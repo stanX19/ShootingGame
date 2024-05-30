@@ -12,5 +12,5 @@ pull:
 	git submodule update --init --remote --recursive
 
 push:
-	@echo -n "Commit name: "; read name; make fclean;\
+	@echo -n "Commit name: "; read name;\
 	git add .; git commit -m "$$name"; git push;
