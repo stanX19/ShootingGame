@@ -4,14 +4,16 @@ import random
 import pygame
 import utils
 
-god_mode = True
-start_score = 300000
+god_mode = False
+start_score = 100000
 # Initialize Pygame
 pygame.init()
 
 # Constants
 SCREEN_WIDTH = 1520
 SCREEN_HEIGHT = 800
+MAP_WIDTH = 2000
+MAP_HEIGHT = 2000
 PLAYER_RADIUS = 5
 BULLET_RADIUS = 2
 MISSILE_RADIUS = 3
@@ -27,7 +29,8 @@ MISSILE_SPEED = 8
 ENEMY_SPEED = 2
 
 # Set up the display
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+MAP_SURFACE = pygame.Surface((MAP_WIDTH, MAP_HEIGHT))
+SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Space Shooting Game")
 
 # Font for score
@@ -36,7 +39,8 @@ font = pygame.font.Font(None, 36)
 
 class WeaponType:
     def __init__(self, name, reload, velocity=BULLET_SPEED, count=None, radius=BULLET_RADIUS,
-                 recoil=0, hp=1.0, dmg=1.0, spread=math.pi * 0.8):
+                 recoil=0, hp=1.0, dmg=1.0, spread=math.pi * 0.8,
+                 min_bullet_count=1, growth_factor=0.0, offset_factor=1.0):
         self.name = name
         self.shot_delay = reload
         self.speed = velocity
@@ -48,6 +52,9 @@ class WeaponType:
         self.hp = hp
         self.dmg = dmg
         self.spread = spread
+        self.min_bullet_count = min_bullet_count
+        self.growth_factor = growth_factor
+        self.offset_factor = offset_factor
 
     def __str__(self):
         return self.name
@@ -56,13 +63,16 @@ class WeaponType:
 
 
 class WeaponEnum:
-    machine_gun = WeaponType("machine gun", reload=100, velocity=10, count=1, radius=2)
+    machine_gun = WeaponType("machine gun", reload=100, velocity=10, count=10, radius=2, growth_factor=100000,
+                             offset_factor=0.1)
     lazer = WeaponType("lazer", reload=200, velocity=100, count=100, radius=1)
-    shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=100, radius=1, recoil=PLAYER_SPEED, dmg=1)
+    shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=100, radius=1,
+                         recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_factor=1000)
     bomb = WeaponType("bomb", reload=500, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
-    hive = WeaponType("hive", 500, count=10)
+    missile = WeaponType("missile", 500, count=10, growth_factor=100000)
     shield = WeaponType("shield", reload=10000, velocity=1, count=200, hp=500, radius=1,
-                        dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi)
+                        dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
+                        min_bullet_count=30, growth_factor=5000)
 
 
 # Player class
@@ -75,13 +85,13 @@ class Player:
         self.rad = rad
 
     def draw(self):
-        pygame.draw.circle(screen, PLAYER_COLOR, (self.x, self.y), self.rad)
+        pygame.draw.circle(MAP_SURFACE, PLAYER_COLOR, (self.x, self.y), self.rad)
 
     def move(self):
         self.x += self.xv
         self.y += self.yv
-        self.x = utils.normalize(self.x, self.rad, SCREEN_WIDTH - self.rad)
-        self.y = utils.normalize(self.y, self.rad, SCREEN_HEIGHT - self.rad)
+        self.x = utils.normalize(self.x, self.rad, MAP_WIDTH - self.rad)
+        self.y = utils.normalize(self.y, self.rad, MAP_HEIGHT - self.rad)
 
     def set_velocity(self, dx, dy):
         self.xv = dx
@@ -94,7 +104,7 @@ class Player:
 
 # Enemy class
 class Enemy:
-    def __init__(self, x, y, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=10000):
+    def __init__(self, x, y, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100):
         self.x = x
         self.y = y
         self.xv = 0
@@ -106,7 +116,7 @@ class Enemy:
         self.speed = speed
 
     def draw(self):
-        pygame.draw.circle(screen, self.color, (self.x, self.y), self.rad)
+        pygame.draw.circle(MAP_SURFACE, self.color, (self.x, self.y), self.rad)
 
     def move_towards_player(self, player):
         angle = math.atan2(player.y - self.y, player.x - self.x)
@@ -142,7 +152,7 @@ class Bullet:
         self.dmg = dmg
 
     def draw(self):
-        pygame.draw.circle(screen, BULLET_COLOR, (int(self.x), int(self.y)), self.rad)
+        pygame.draw.circle(MAP_SURFACE, BULLET_COLOR, (int(self.x), int(self.y)), self.rad)
 
     def move(self):
         self.x += self.xv
@@ -167,7 +177,7 @@ class Missile:
         self.speed = speed
 
     def draw(self):
-        pygame.draw.circle(screen, MISSILE_COLOR, (int(self.x), int(self.y)), self.rad)
+        pygame.draw.circle(MAP_SURFACE, MISSILE_COLOR, (int(self.x), int(self.y)), self.rad)
 
     def find_target(self):
         search_radius = 200
@@ -249,7 +259,7 @@ class Missile:
 # Game class
 class Game:
     def __init__(self):
-        self.player: Player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        self.player: Player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
         self.bullets: list[[Bullet, Missile]] = []
         self.enemies: list[Enemy] = []
         self.score = start_score
@@ -268,9 +278,11 @@ class Game:
         self.clock = pygame.time.Clock()
         self.current_time = pygame.time.get_ticks()
         self.init_game()
+        self.focus_x = self.player.x
+        self.focus_y = self.player.x
 
     def init_game(self):
-        self.player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
         self.enemies = []
         self.bullets = []
         self.bullets = []
@@ -308,6 +320,12 @@ class Game:
                 elif event.button == 3:  # Right mouse button
                     self.right_mouse_down = False
 
+    def get_mouse_pos(self):
+        mx, my = pygame.mouse.get_pos()
+        mx -= self.focus_x
+        my -= self.focus_y
+        return mx, my
+
     def shoot_bullets(self):
         new_weapon = self.weapon
         for k in range(49, 58):
@@ -316,18 +334,19 @@ class Game:
         if self.weapon != new_weapon:
             self.weapon = new_weapon
 
-        mx, my = pygame.mouse.get_pos()
+        mx, my = self.get_mouse_pos()
         dy, dx = my - self.player.y, mx - self.player.x
         hypot = math.hypot(dy, dx)
         angle = math.atan2(dy, dx)
 
         # sub weapon
         if (self.autofire or self.right_mouse_down) and self.current_time - self.last_missile_time > self.missile_delay:
+            bullet_count = int(utils.normalize(self.score / WeaponEnum.machine_gun.growth_factor, 2, 8))
             target = Missile.find_target_at(mx, my)
-            missile_angle = angle
-            for _ in range(8):  # Shoot missiles in all directions
+            missile_angle = angle + math.pi / 2
+            for _ in range(bullet_count):  # Shoot missiles in all directions
                 self.bullets.append(Missile(self.player.x, self.player.y, missile_angle, target))
-                missile_angle += math.pi / 4
+                missile_angle += math.pi * 2 / bullet_count
             self.last_missile_time = self.current_time
 
         # main weapon
@@ -336,10 +355,16 @@ class Game:
             return
         self.last_shot_time[self.weapon] = self.current_time
 
+        if self.weapon.growth_factor != 0:
+            bullet_count = int(self.score / self.weapon.growth_factor)
+            bullet_count = utils.normalize(bullet_count, self.weapon.min_bullet_count, self.weapon.bullet_count)
+        else:
+            bullet_count = self.weapon.bullet_count
+
         if self.weapon is WeaponEnum.lazer:
             lazer_dy = dy / hypot * BULLET_RADIUS
             lazer_dx = dx / hypot * BULLET_RADIUS
-            for i in range(self.weapon.bullet_count):
+            for i in range(bullet_count):
                 self.bullets.append(Bullet(
                         self.player.x + lazer_dx * i,
                         self.player.y + lazer_dy * i,
@@ -348,9 +373,9 @@ class Game:
                     ))
 
         elif self.weapon is WeaponEnum.shotgun:
-            direction_count = self.weapon.bullet_count
+            direction_count = bullet_count
             angle_offset = math.pi * 0.4 / direction_count
-            for i in range(self.weapon.bullet_count):
+            for i in range(bullet_count):
                 offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
                 shoot_angle = angle + offset
                 speed = random.uniform(self.weapon.speed / 2, self.weapon.speed)
@@ -363,8 +388,7 @@ class Game:
                         weapon=self.weapon
                     ))
 
-        elif self.weapon is WeaponEnum.hive:
-            bullet_count = int(utils.normalize(self.score / 200000, 1, self.weapon.bullet_count))
+        elif self.weapon is WeaponEnum.missile:
             direction_count = bullet_count
             angle_offset = math.pi * 2 / direction_count
             target = Missile.find_target_at(mx, my)
@@ -374,16 +398,11 @@ class Game:
                 self.bullets.append(Missile(self.player.x, self.player.y, shoot_angle, target))
 
         else:
-            if self.weapon is WeaponEnum.machine_gun:
-                self.weapon.bullet_count = self.score // 100000
-                self.weapon.bullet_count = utils.normalize(self.weapon.bullet_count, 1, 10)
-            angle_offset = self.weapon.spread / self.weapon.bullet_count  # Adjust this value to control spread
-            for i in range(self.weapon.bullet_count):
-                offset = (i - (self.weapon.bullet_count - 1) / 2) * angle_offset
+            angle_offset = self.weapon.spread / bullet_count  # Adjust this value to control spread
+            for i in range(bullet_count):
+                offset = (i - (bullet_count - 1) / 2) * angle_offset
                 shoot_angle = angle + offset
-                bullet_angle = angle + offset
-                if self.weapon is WeaponEnum.machine_gun:
-                    bullet_angle = angle + offset / 10
+                bullet_angle = angle + offset * self.weapon.offset_factor
                 dy, dx = math.sin(shoot_angle) * self.player.rad * 5, math.cos(shoot_angle) * self.player.rad * 5
                 dy, dx = dy - math.sin(angle) * self.player.rad * 5, dx - math.cos(angle) * self.player.rad * 5
                 self.bullets.append(Bullet(self.player.x + dx, self.player.y + dy, bullet_angle, weapon=self.weapon))
@@ -406,18 +425,18 @@ class Game:
     def spawn_enemies(self):
         side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
-            ex, ey = 0, random.randint(0, SCREEN_HEIGHT)
+            ex, ey = 0, random.randint(0, MAP_HEIGHT)
         elif side == 'right':
-            ex, ey = SCREEN_WIDTH, random.randint(0, SCREEN_HEIGHT)
+            ex, ey = MAP_WIDTH, random.randint(0, MAP_HEIGHT)
         elif side == 'top':
-            ex, ey = random.randint(0, SCREEN_WIDTH), 0
+            ex, ey = random.randint(0, MAP_WIDTH), 0
         elif side == 'bottom':
-            ex, ey = random.randint(0, SCREEN_WIDTH), SCREEN_HEIGHT
+            ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT
         else:
             ex, ey = 0, 0
-        if random.random() < 0.015 + self.score / 3000000:
+        if len(self.enemies) < 100 and random.random() < 0.02 + self.score / 1000000:
             self.enemies.append(Enemy(ex, ey))
-        if random.random() < min(0.02, (self.score - 1000000) / 300000000):
+        if self.score > 100000 and random.random() < min(0.02, self.score / 10000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
@@ -452,7 +471,7 @@ class Game:
             bullet.move()
             if bullet not in self.bullets:
                 continue
-            if bullet.x < 0 or bullet.x > SCREEN_WIDTH or bullet.y < 0 or bullet.y > SCREEN_HEIGHT:
+            if bullet.x < 0 or bullet.x > MAP_WIDTH or bullet.y < 0 or bullet.y > MAP_HEIGHT:
                 self.bullets.remove(bullet)
 
         self.move_player()
@@ -463,10 +482,15 @@ class Game:
         for enemy in self.enemies:
             if math.hypot(enemy.x - self.player.x, enemy.y - self.player.y) < enemy.rad + self.player.rad:
                 game_over_text = font.render("Game Over", True, (255, 255, 255))
-                screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 - 20))
+                MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
                 pygame.display.flip()
                 self.running = False
                 break
+
+    def center_focus(self):
+        LERP_CONST = 0.1
+        self.focus_x += (SCREEN_WIDTH // 2 - self.player.x - self.focus_x) * LERP_CONST
+        self.focus_y += (SCREEN_HEIGHT // 2 - self.player.y - self.focus_y) * LERP_CONST
 
     def update(self):
         if not self.running:
@@ -479,24 +503,35 @@ class Game:
         self.collide_everything()
         self.check_player_death()
         self.move_everything()
+        self.center_focus()
+
+    def add_text_to_screen(self):
+        info_str = f"""Score: {self.score}
+  {self.all_weapon.index(self.weapon) + 1}) {self.weapon}"""
+        y = 10
+        for line in info_str.split("\n"):
+            text = font.render(line, True, (255, 255, 255))
+            SCREEN.blit(text, (10, y))
+            y += font.get_height() + 10
 
     def draw(self):
-        screen.fill(BACKGROUND_COLOR)
+        MAP_SURFACE.fill(BACKGROUND_COLOR)
         self.player.draw()
         for bullet in self.bullets:
             bullet.draw()
         for enemy in self.enemies:
             enemy.draw()
 
-        score_text = font.render(f"Score: {self.score}", True, (255, 255, 255))
-        screen.blit(score_text, (10, 10))
+        SCREEN.fill((100, 100, 100))
+        SCREEN.blit(MAP_SURFACE, (self.focus_x, self.focus_y))
+        self.add_text_to_screen()
 
         pygame.display.flip()
 
     def run(self):
         while not self.quit:
-            self.update()
             self.handle_events()
+            self.update()
             self.draw()
             self.clock.tick(30)
         pygame.quit()
