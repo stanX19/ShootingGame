@@ -14,5 +14,5 @@ def angle_add(angle, add):
 def angle_diff(dst, src):
     return angle_norm(dst - src)
 
-def color_norm(color: tuple[int, int, int]):
+def color_norm(color):
     return tuple(min(max(i, 0), 255) for i in color)

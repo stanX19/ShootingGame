@@ -1,11 +1,17 @@
 import math
 import random
-
-import pygame
+import subprocess
+import sys
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
+try:
+	import pygame
+except ImportError:
+	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
 import utils
 
 god_mode = False
-start_score = 100000
+start_score = 0
 # Initialize Pygame
 pygame.init()
 
@@ -63,13 +69,13 @@ class WeaponType:
 
 
 class WeaponEnum:
-    machine_gun = WeaponType("machine gun", reload=100, velocity=10, count=10, radius=2, growth_factor=100000,
+    machine_gun = WeaponType("machine gun", reload=100, velocity=10, count=10, radius=2, growth_factor=50000,
                              offset_factor=0.1)
     lazer = WeaponType("lazer", reload=200, velocity=100, count=100, radius=1)
     shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=100, radius=1,
                          recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_factor=1000)
     bomb = WeaponType("bomb", reload=500, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
-    missile = WeaponType("missile", 500, count=10, growth_factor=100000)
+    missile = WeaponType("missile", 500, count=10, growth_factor=50000)
     shield = WeaponType("shield", reload=10000, velocity=1, count=200, hp=500, radius=1,
                         dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
                         min_bullet_count=30, growth_factor=5000)
@@ -434,9 +440,9 @@ class Game:
             ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT
         else:
             ex, ey = 0, 0
-        if len(self.enemies) < 100 and random.random() < 0.02 + self.score / 1000000:
+        if len(self.enemies) < 200 and random.random() < 0.02 + self.score / 1000000:
             self.enemies.append(Enemy(ex, ey))
-        if self.score > 100000 and random.random() < min(0.02, self.score / 10000000):
+        if self.score > 50000 and random.random() < min(0.04, self.score / 10000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
