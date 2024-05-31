@@ -3,12 +3,13 @@ import random
 import subprocess
 import sys
 import os
+import utils
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
-	import pygame
+    import pygame
 except ImportError:
-	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
-import utils
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
+    import pygame
 
 god_mode = False
 start_score = 0
@@ -73,10 +74,10 @@ class WeaponEnum:
                              offset_factor=0.1)
     lazer = WeaponType("lazer", reload=200, velocity=100, count=100, radius=1)
     shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=100, radius=1,
-                         recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_factor=1000)
-    bomb = WeaponType("bomb", reload=500, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
+                         recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_factor=5000)
+    bomb = WeaponType("bomb", reload=2000, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
     missile = WeaponType("missile", 500, count=10, growth_factor=50000)
-    shield = WeaponType("shield", reload=10000, velocity=1, count=200, hp=500, radius=1,
+    shield = WeaponType("shield", reload=30000, velocity=1, count=200, hp=500, radius=1,
                         dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
                         min_bullet_count=30, growth_factor=5000)
 
@@ -110,7 +111,8 @@ class Player:
 
 # Enemy class
 class Enemy:
-    def __init__(self, x, y, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100):
+    def __init__(self, x, y, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100,
+                 variable_shape=False):
         self.x = x
         self.y = y
         self.xv = 0
@@ -120,6 +122,7 @@ class Enemy:
         self.hp = hp
         self.score = score
         self.speed = speed
+        self.variable_shape = variable_shape
 
     def draw(self):
         pygame.draw.circle(MAP_SURFACE, self.color, (self.x, self.y), self.rad)
@@ -131,9 +134,12 @@ class Enemy:
         self.x += self.xv
         self.y += self.yv
 
+        if self.variable_shape:
+            self.update_appearance_based_on_hp()
+
     def update_appearance_based_on_hp(self):
         self.rad = ENEMY_RADIUS + self.hp - 1
-        self.color = utils.color_norm((255, 105 - self.hp, 180 - self.hp))
+        self.color = utils.color_norm((255, 105 - self.hp, 80 - self.hp + self.speed * 50))
 
 
 # Bullet class
@@ -279,6 +285,8 @@ class Game:
         self.last_shot_time = {weapon: -1000000 for weapon in self.all_weapon}
         self.missile_delay = 2000  # Milliseconds between shots
         self.last_missile_time = 0
+        self.last_reload_time = 0
+        self.weapon_change_energy = 0
         self.running = True
         self.quit = False
         self.clock = pygame.time.Clock()
@@ -305,8 +313,7 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.quit = False
                 if event.key == pygame.K_TAB:
-                    cur_idx = (self.all_weapon.index(self.weapon) + 1) % len(self.all_weapon)
-                    self.weapon = self.all_weapon[cur_idx]
+                    self.change_weapon()
                 if event.key == pygame.K_e:
                     self.autofire = not self.autofire
                 self.pressed_keys[event.key] = True
@@ -332,13 +339,34 @@ class Game:
         my -= self.focus_y
         return mx, my
 
+    def change_weapon(self, weapon=None):
+        MAX_CONSECUTIVE_CHANGE = 2
+        COOLDOWN = 2000  # ms
+        self.weapon_change_energy += self.current_time - self.last_reload_time
+        self.last_reload_time = self.current_time
+        self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, MAX_CONSECUTIVE_CHANGE * COOLDOWN)
+        if self.weapon_change_energy < COOLDOWN:
+            return
+        self.weapon_change_energy -= COOLDOWN
+
+        if weapon is None:
+            idx = (self.all_weapon.index(self.weapon) + 1) % len(self.all_weapon)
+            self.weapon = self.all_weapon[idx]
+        elif isinstance(weapon, WeaponType):
+            self.weapon = weapon
+        elif isinstance(weapon, int):
+            if 0 <= weapon < len(self.all_weapon):
+                self.weapon = self.all_weapon[weapon]
+        else:
+            raise TypeError("Invalid weapon type")
+
     def shoot_bullets(self):
-        new_weapon = self.weapon
         for k in range(49, 58):
             if self.pressed_keys[k]:
                 new_weapon = self.all_weapon[(k - 49) % len(self.all_weapon)]
-        if self.weapon != new_weapon:
-            self.weapon = new_weapon
+                if self.weapon != new_weapon:
+                    self.change_weapon(new_weapon)
+                break
 
         mx, my = self.get_mouse_pos()
         dy, dx = my - self.player.y, mx - self.player.x
@@ -440,17 +468,25 @@ class Game:
             ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT
         else:
             ex, ey = 0, 0
-        if len(self.enemies) < 200 and random.random() < 0.02 + self.score / 1000000:
+        if len(self.enemies) < 100 and random.random() < 0.02 + self.score / 1000000:
             self.enemies.append(Enemy(ex, ey))
-        if self.score > 50000 and random.random() < min(0.04, self.score / 10000000):
+        if len(self.enemies) < 120 and random.random() < min(0.01, (self.score - 50000) / 10000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
             hp = max_hp
-            radius = ENEMY_RADIUS + hp - 1
-            score = hp * 1000
-            color = utils.color_norm((255, 105 - hp, 180 - hp))
-            self.enemies.append(Enemy(ex, ey, hp=hp, radius=radius, color=color, score=score))
+            score = 1000
+            self.enemies.append(Enemy(ex, ey, hp=hp, score=score, variable_shape=True))
+        if len(self.enemies) < 150 and random.random() < min(0.01, (self.score - 100000) / 100000000):
+            hp = 10
+            score = 5000
+            self.enemies.append(Enemy(ex, ey, hp=hp, score=score, speed=PLAYER_SPEED,
+                                      variable_shape=True))
+        if len(self.enemies) < 100 and random.random() < min(0.01, (self.score - 100000) / 100000000):
+            hp = 1
+            score = 1000
+            self.enemies.append(Enemy(ex, ey, hp=hp, score=score, speed=PLAYER_SPEED * 2,
+                                      variable_shape=True))
 
     def collide_everything(self):
         for bullet in self.bullets[:]:
@@ -458,7 +494,6 @@ class Game:
                 if math.hypot(enemy.x - bullet.x, enemy.y - bullet.y) < enemy.rad + bullet.rad:
                     enemy.hp -= bullet.dmg
                     bullet.hp -= bullet.dmg + enemy.hp
-                    enemy.update_appearance_based_on_hp()
                     break
             if bullet.hp <= 0:
                 self.bullets.remove(bullet)
