@@ -17,8 +17,8 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
     import pygame
 
-god_mode = True
-start_score = 100000000
+god_mode = False
+start_score = 0
 # Initialize Pygame
 pygame.init()
 
@@ -145,9 +145,9 @@ class Game:
         score = 100
         speed = ENEMY_SPEED
         variable_shape = True
-        if len(self.enemies) < 100 and random.random() < 0.02 + self.score / 1000000:
+        if len(self.enemies) < 200 and random.random() < 0.02 + self.score / 1000000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 110 and random.random() < min(0.01, (self.score - 100000) / 1000000):
+        if len(self.enemies) < 210 and random.random() < min(0.01, (self.score - 100000) / 1000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
@@ -155,16 +155,15 @@ class Game:
             score = 1000
             speed = ENEMY_SPEED / 2
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 120 and random.random() < min(0.01, (self.score - 150000) / 10000000):
+        if len(self.enemies) < 220 and random.random() < min(0.01, (self.score - 150000) / 10000000):
             hp = 10
             score = 500
             speed = PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 130 and random.random() < min(0.001, (self.score - 200000) / 100000000):
-            hp = 10000
-            score = 1000000
-            speed = ENEMY_SPEED / 4
-            self._spawn_new_enemy(hp, score, speed, True)
+        # if len(self.enemies) < 230 and random.random() < min(0.001, (self.score - 200000) / 100000000):
+            # TODO:
+            # spawn elite enemies that dodges bullets
+            # and can shoot back
 
     def handle_collision(self, bullet: Bullet, enemy: Enemy):
         enemy.hp -= bullet.dmg
