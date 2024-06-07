@@ -1,7 +1,7 @@
 import math
 import pygame
-import utils
-from constants import *
+from srcs import utils
+from srcs.constants import *
 
 
 class Player:
@@ -24,6 +24,9 @@ class Player:
     def set_velocity(self, dx, dy):
         self.xv = dx
         self.yv = dy
+
+    def get_xy(self):
+        return self.x, self.y
 
     def recoil(self, shooting_angle, magnitude):
         self.x -= math.cos(shooting_angle) * magnitude

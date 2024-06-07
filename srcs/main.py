@@ -3,13 +3,15 @@ import random
 import subprocess
 import sys
 import os
-from constants import *
-from weapon_handler import WeaponHandler
-from weapons import WeaponType, WeaponEnum
-from missile import Missile
-from bullet import Bullet
-from player import Player
-from enemy import Enemy
+from srcs.constants import *
+from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.weapons import WeaponType, WeaponEnum
+from srcs.classes.missile import Missile
+from srcs.classes.bullet import Bullet
+from srcs.classes.player import Player
+from srcs.classes.enemy import Enemy
+from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
+from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
     import pygame
@@ -23,7 +25,7 @@ start_score = 0
 pygame.init()
 
 # Set up the display
-MAP_SURFACE = pygame.Surface((MAP_WIDTH, MAP_HEIGHT))
+MAP_SURFACE = pygame.Surface((MAP_WIDTH, MAP_HEIGHT), pygame.SRCALPHA)
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Space Shooting Game")
 
@@ -37,6 +39,7 @@ class Game:
         self.player: Player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
         self.bullets: list[[Bullet, Missile]] = []
         self.enemies: list[Enemy] = []
+        self.water_particle_handler = WaterParticleHandler()
         self.score = start_score
         self.start_ticks = pygame.time.get_ticks()
         self.left_mouse_down = False
@@ -59,7 +62,7 @@ class Game:
         self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
         self.enemies = []
         self.bullets = []
-        self.bullets = []
+        self.water_particle_handler.clear()
         self.score = start_score
         self.autofire = False
 
@@ -89,8 +92,14 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
                     self.left_mouse_down = False
+                    self.main_weapon.on_mouse_up()
                 elif event.button == 3:  # Right mouse button
                     self.right_mouse_down = False
+
+    def get_mouse_angle(self):
+        mx, my = self.get_mouse_pos()
+        px, py = self.player.get_xy()
+        return math.atan2(my - py, mx - px)
 
     def get_mouse_pos(self):
         mx, my = pygame.mouse.get_pos()
@@ -165,39 +174,19 @@ class Game:
             # spawn elite enemies that dodges bullets
             # and can shoot back
 
-    def handle_collision(self, bullet: Bullet, enemy: Enemy):
-        enemy.hp -= bullet.dmg
-        bullet.hp -= bullet.dmg + enemy.hp
-        if bullet.hp <= 0 and bullet in self.bullets:
-            self.bullets.remove(bullet)
-
-    def check_collision_with_enemies(self, bullet, start_idx):
-        for enemy in self.enemies[start_idx:]:
-            if enemy.x + enemy.rad < bullet.x - bullet.rad:
-                start_idx += 1
-                continue
-            break
-        for enemy in self.enemies[start_idx:]:
-            if enemy.x - enemy.rad > bullet.x + bullet.rad:
-                break
-            if math.hypot(enemy.x - bullet.x, enemy.y - bullet.y) < enemy.rad + bullet.rad:
-                self.handle_collision(bullet, enemy)
-        return start_idx
-
     def collide_everything(self):
-        self.bullets.sort(key=lambda b: b.x - b.rad)
-        self.enemies.sort(key=lambda b: b.x - b.rad)
-
-        enemy_start_idx = 0
-        for bullet in self.bullets[:]:
-            enemy_start_idx = self.check_collision_with_enemies(bullet, enemy_start_idx)
-            if enemy_start_idx >= len(self.enemies):
-                break
+        collide_enemy_and_bullets(self.bullets, self.enemies)
+        self.water_particle_handler.collide_with_enemies(self.enemies)
 
         for enemy in self.enemies[:]:
             if enemy.hp <= 0:
                 self.enemies.remove(enemy)
                 self.score += enemy.score
+                continue
+
+        for bullet in self.bullets[:]:
+            if bullet.hp <= 0:
+                self.bullets.remove(bullet)
                 continue
 
     def move_everything(self):
@@ -213,6 +202,10 @@ class Game:
             elif bullet.lifespan <= 0.0:
                 self.bullets.remove(bullet)
 
+        self.water_particle_handler.update()
+        self.water_particle_handler.remove_out_of_bounds(0, 0, MAP_WIDTH, MAP_HEIGHT)
+        self.water_particle_handler.remove_zero_lifespan()
+        self.water_particle_handler.remove_zero_hp()
         self.move_player()
 
     def check_player_death(self):
@@ -246,7 +239,7 @@ class Game:
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
-  {self.main_weapon.index}) {self.main_weapon.name}"""
+  {self.main_weapon.index + 1}) {self.main_weapon.name}"""
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))
@@ -260,6 +253,7 @@ class Game:
             bullet.draw(MAP_SURFACE)
         for enemy in self.enemies:
             enemy.draw(MAP_SURFACE)
+        self.water_particle_handler.draw_everything(MAP_SURFACE)
 
         SCREEN.fill((100, 100, 100))
         SCREEN.blit(MAP_SURFACE, (self.focus_x, self.focus_y))

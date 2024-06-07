@@ -1,8 +1,8 @@
 # Enemy class
 import pygame
 import math
-import utils
-from constants import *
+from srcs import utils
+from srcs.constants import *
 
 
 class Enemy:

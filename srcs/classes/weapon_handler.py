@@ -1,10 +1,10 @@
 import math
 import random
-import constants
-import utils
-from bullet import Bullet
-from missile import Missile
-from weapons import WeaponType, WeaponEnum
+from srcs import constants
+from srcs import utils
+from srcs.classes.bullet import Bullet
+from srcs.classes.missile import Missile
+from srcs.classes.weapons import WeaponType, WeaponEnum
 
 
 class WeaponHandler:
@@ -53,21 +53,22 @@ class WeaponHandler:
         except AttributeError:
             return "None"
 
-    def _set_weapon_by_type(self, weapon: WeaponType):
+    def _set_weapon(self, weapon: WeaponType):
         if self.weapon is weapon:
             return
         if self._change_in_cooldown():
             return
+        self.on_mouse_up()
         self.weapon = weapon
 
     def _cycle_weapon(self):
         idx = (self.index + 1) % len(self.all_weapon)
-        self._set_weapon_by_type(self.all_weapon[idx])
+        self._set_weapon(self.all_weapon[idx])
 
     def _set_weapon_by_index(self, index: int):
         if index < 0 or index >= len(self.all_weapon):
             return
-        self._set_weapon_by_type(self.all_weapon[index])
+        self._set_weapon(self.all_weapon[index])
 
     def _change_in_cooldown(self):
         MAX_CONSECUTIVE_CHANGE = 2
@@ -84,7 +85,7 @@ class WeaponHandler:
         if weapon is None:
             self._cycle_weapon()
         elif isinstance(weapon, WeaponType):
-            self._set_weapon_by_type(weapon)
+            self._set_weapon(weapon)
         elif isinstance(weapon, int):
             self._set_weapon_by_index(weapon)
         else:
@@ -150,6 +151,10 @@ class WeaponHandler:
                 weapon=self.weapon
             ))
 
+    def _fire_particle(self):
+        self.game.water_particle_handler.spawn_at(*self.game.get_mouse_pos())
+        self.game.water_particle_handler.attract_to(*self.game.get_mouse_pos())
+
     def _update_fire_constants(self):
         self.mx, self.my = self.game.get_mouse_pos()
         self.dy, self.dx = self.my - self.player.y, self.mx - self.player.x
@@ -169,10 +174,20 @@ class WeaponHandler:
         fire_dict = {
             WeaponEnum.lazer: self._fire_lazer,
             WeaponEnum.shotgun: self._fire_shotgun,
-            WeaponEnum.missile: self._fire_missile
+            WeaponEnum.missile: self._fire_missile,
+            WeaponEnum.water: self._fire_particle
         }
         # fire according to matched weapon and function
         fire_func = fire_dict.get(self.weapon, self._fire_default)
         fire_func()
 
         self.player.recoil(self.angle, self.weapon.recoil)
+
+    def on_mouse_up(self):
+        if self.weapon is WeaponEnum.water:
+            self.game.water_particle_handler.release(
+                *self.game.get_mouse_pos(),
+                self.game.get_mouse_angle(),
+                self.weapon.speed,
+                self.player
+            )

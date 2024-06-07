@@ -1,9 +1,8 @@
 import math
-
 import pygame
-import utils
-from enemy import Enemy
-from constants import *
+from srcs import utils
+from srcs.classes.enemy import Enemy
+from srcs.constants import *
 
 
 class Missile:

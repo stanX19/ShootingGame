@@ -1,7 +1,7 @@
 import math
 import pygame
-from constants import *
-from weapons import WeaponType
+from srcs.constants import *
+from srcs.classes.weapons import WeaponType
 
 
 # Bullet class
