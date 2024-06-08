@@ -9,7 +9,7 @@ from srcs.classes.weapons import WeaponType, WeaponEnum
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy
+from srcs.classes.enemy import Enemy, EliteEnemy
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -20,7 +20,7 @@ except ImportError:
     import pygame
 
 god_mode = False
-start_score = 0
+start_score = 1000000000
 # Initialize Pygame
 pygame.init()
 
@@ -107,6 +107,13 @@ class Game:
         my -= self.focus_y
         return mx, my
 
+    def in_screen(self, particle):
+        min_x = - self.focus_x - particle.rad
+        max_x = - self.focus_x + SCREEN_WIDTH + particle.rad
+        min_y = - self.focus_y - particle.rad
+        max_y = - self.focus_y + SCREEN_HEIGHT + particle.rad
+        return min_x < particle.x < max_x and min_y < particle.y < max_y
+
     def shoot_bullets(self):
         for k in range(49, 58):
             if self.pressed_keys[k]:
@@ -132,7 +139,7 @@ class Game:
         self.player.set_velocity(dx, dy)
         self.player.move()
 
-    def _spawn_new_enemy(self, hp, score, speed, variable_shape):
+    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy):
         # decide side
         radius = Enemy.get_rad(hp)
 
@@ -147,16 +154,15 @@ class Game:
             ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT + radius
         else:
             ex, ey = -radius, -radius
-        self.enemies.append(Enemy(ex, ey, hp=hp, score=score, speed=speed, variable_shape=variable_shape))
+        self.enemies.append(_constructor(ex, ey, hp=hp, score=score, speed=speed, variable_shape=variable_shape))
 
     def spawn_enemies(self):
         hp = 1
         score = 100
         speed = ENEMY_SPEED
-        variable_shape = True
-        if len(self.enemies) < 200 and random.random() < 0.02 + self.score / 1000000:
+        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 1000000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 210 and random.random() < min(0.01, (self.score - 100000) / 1000000):
+        if len(self.enemies) < 160 and random.random() < min(0.01, (self.score - 100000) / 10000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
@@ -164,15 +170,18 @@ class Game:
             score = 1000
             speed = ENEMY_SPEED / 2
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 220 and random.random() < min(0.01, (self.score - 150000) / 10000000):
+        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 200000) / 10000000):
             hp = 10
             score = 500
             speed = PLAYER_SPEED
-            self._spawn_new_enemy(hp, score, speed, True)
-        # if len(self.enemies) < 230 and random.random() < min(0.001, (self.score - 200000) / 100000000):
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
+        if len(self.enemies) < 180 and random.random() < min(0.001, (self.score - 200000) / 100000000):
+            score = 10000
+            hp = 1000
+            speed = PLAYER_SPEED * 0.5
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
             # TODO:
-            # spawn elite enemies that dodges bullets
-            # and can shoot back
+            # can shoot back
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.bullets, self.enemies)
@@ -191,6 +200,8 @@ class Game:
 
     def move_everything(self):
         for enemy in self.enemies:
+            if isinstance(enemy, EliteEnemy):
+                enemy.dodge_bullets(self.bullets)
             enemy.move_towards_player(self.player)
 
         for bullet in self.bullets[:]:
@@ -239,7 +250,10 @@ class Game:
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
-  {self.main_weapon.index + 1}) {self.main_weapon.name}"""
+  {self.main_weapon.index + 1}) {self.main_weapon.name}
+  particle count: {len(self.water_particle_handler.particles)}
+  enemy count: {len(self.enemies)}
+  bullet count: {len(self.bullets)}"""
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))
@@ -250,10 +264,14 @@ class Game:
         MAP_SURFACE.fill(BACKGROUND_COLOR)
         self.player.draw(MAP_SURFACE)
         for bullet in self.bullets:
+            if not self.in_screen(bullet):
+                continue
             bullet.draw(MAP_SURFACE)
         for enemy in self.enemies:
+            if not self.in_screen(enemy):
+                continue
             enemy.draw(MAP_SURFACE)
-        self.water_particle_handler.draw_everything(MAP_SURFACE)
+        self.water_particle_handler.draw_everything(MAP_SURFACE, (self.focus_x, self.focus_y))
 
         SCREEN.fill((100, 100, 100))
         SCREEN.blit(MAP_SURFACE, (self.focus_x, self.focus_y))

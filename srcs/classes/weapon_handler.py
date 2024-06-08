@@ -152,8 +152,10 @@ class WeaponHandler:
             ))
 
     def _fire_particle(self):
-        self.game.water_particle_handler.spawn_at(*self.game.get_mouse_pos())
-        self.game.water_particle_handler.attract_to(*self.game.get_mouse_pos())
+        mx, my = self.game.get_mouse_pos()
+        for i in range(self.bullet_count):
+            self.game.water_particle_handler.spawn_at(mx, my)
+        self.game.water_particle_handler.attract_to(mx, my)
 
     def _update_fire_constants(self):
         self.mx, self.my = self.game.get_mouse_pos()
@@ -175,7 +177,7 @@ class WeaponHandler:
             WeaponEnum.lazer: self._fire_lazer,
             WeaponEnum.shotgun: self._fire_shotgun,
             WeaponEnum.missile: self._fire_missile,
-            WeaponEnum.water: self._fire_particle
+            WeaponEnum.magic: self._fire_particle
         }
         # fire according to matched weapon and function
         fire_func = fire_dict.get(self.weapon, self._fire_default)
@@ -184,7 +186,7 @@ class WeaponHandler:
         self.player.recoil(self.angle, self.weapon.recoil)
 
     def on_mouse_up(self):
-        if self.weapon is WeaponEnum.water:
+        if self.weapon is WeaponEnum.magic:
             self.game.water_particle_handler.release(
                 *self.game.get_mouse_pos(),
                 self.game.get_mouse_angle(),

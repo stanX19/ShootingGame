@@ -1,53 +1,74 @@
 import pygame
-import random
+import numpy as np
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 class Particle:
-    def __init__(self, x, y, xv, yv, mass, rad):
+    def __init__(self, x, y, rad):
         self.x = x
         self.y = y
-        self.xv = xv
-        self.yv = yv
-        self.mass = mass
         self.rad = rad
 
-
-class Simulation:
+class ParticleSystem:
     def __init__(self):
-        self.particles = []
+        self.particles = [Particle(100, 100, 10), Particle(120, 120, 10)]  # Example particles
 
-    def add_particle(self, particle):
-        self.particles.append(particle)
-
-    def draw_everything(self, surface: pygame.Surface):
-        draw_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        draw_surface.fill((0, 0, 0, 0))  # white background
+    def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
+        draw_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        draw_surface.fill((0, 0, 0, 0))  # Transparent background
 
         for particle in self.particles:
+            particle_surface = pygame.Surface((particle.rad * 10, particle.rad * 10), pygame.SRCALPHA)
+            particle_surface.fill((0, 0, 0, 0))
             color = (0, 255, 255, 25)
-            pygame.draw.circle(draw_surface, color, (particle.x, particle.y), particle.rad * 5)
+            pygame.draw.circle(particle_surface, color, (particle.rad * 5, particle.rad * 5), particle.rad * 5)
+            draw_surface.blit(
+                particle_surface,
+                (int(particle.x + focus[0] - particle.rad * 5), int(particle.y + focus[1] - particle.rad * 5))
+            )
 
-        surface.blit(draw_surface, (0, 0))
+        # Convert Pygame surface to NumPy array
+        draw_array = pygame.surfarray.array3d(draw_surface)
+        alpha_array = pygame.surfarray.array_alpha(draw_surface)
 
+        # Apply darkening effect
+        darkened_array = np.maximum(0, draw_array - (alpha_array[..., None] // 2))
 
+        # Create a new surface to hold the darkened image
+        darkened_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 
-# Example usage
+        # Update the RGB values
+        pygame.surfarray.blit_array(darkened_surface, darkened_array)
+
+        # Update the alpha values
+        darkened_alpha_array = pygame.surfarray.pixels_alpha(darkened_surface)
+        darkened_alpha_array[:, :] = alpha_array // 2
+
+        # Unlock the surfaces
+        del draw_array
+        del alpha_array
+        del darkened_alpha_array
+
+        # Blit the darkened surface onto the main surface
+        surface.blit(darkened_surface, (0, 0))
+
+# Initialize Pygame
 pygame.init()
-screen = pygame.display.set_mode((800, 600))
+window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-simulation = Simulation()
-for _ in range(100):  # Adding multiple particles
-    x = random.randint(100, 700)
-    y = random.randint(100, 500)
-    simulation.add_particle(Particle(x, y, 0, 0, 1, 6))
+# Create particle system
+particle_system = ParticleSystem()
 
+# Main loop
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((90, 90, 0))  # Clear screen with black background
-    simulation.draw_everything(screen)
+    window.fill((255, 255, 255))  # Fill the background with white
+    particle_system.draw_everything(window, (0, 0))  # Draw particles
     pygame.display.flip()
 
 pygame.quit()
