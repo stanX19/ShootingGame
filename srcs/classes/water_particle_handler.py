@@ -70,14 +70,14 @@ class WaterParticleHandler:
         for idx, p1 in enumerate(self.particles):
             self._collide_with_all_other(p1, idx)
 
-    def _spawn_at(self, x, y, angle):
-        self.particles.append(WaterParticle(x, y, angle, rad=15, lifespan=random.randint(10, 60)))
+    def _spawn_at(self, x, y):
+        random_angle = random.uniform(-math.pi, math.pi)
+        self.particles.append(WaterParticle(x, y, random_angle, rad=15, lifespan=random.randint(10, 60)))
 
     def spawn_at(self, x, y):
         if len(self.particles) > MAX_PARTICLE_COUNT:
             return
-        random_angle = random.uniform(-math.pi, math.pi)
-        self._spawn_at(x, y, random_angle)
+        self._spawn_at(x, y)
 
     def _move(self):
         if self.orbited_particle and self.orbited_particle.lifespan < 0:
@@ -142,10 +142,11 @@ class WaterParticleHandler:
         self._collide_everything()
         if not self.particles:
             self.orbited_particle = None
+
         if isinstance(self.orbited_particle, WaterParticle) and self.orbited_particle.speed == 0\
                 and self.orbit_acceleration:
             for _ in range(5):
-                self._spawn_at(self.orbited_particle.x, self.orbited_particle.y, 0)
+                self._spawn_at(self.orbited_particle.x, self.orbited_particle.y)
 
     def release(self, mx, my, angle, speed, player):
         if not self.particles:

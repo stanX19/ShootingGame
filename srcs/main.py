@@ -20,7 +20,7 @@ except ImportError:
     import pygame
 
 god_mode = False
-start_score = 1000000000
+start_score = 0
 # Initialize Pygame
 pygame.init()
 
