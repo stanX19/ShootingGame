@@ -1,5 +1,5 @@
 run:
-	python3 srcs/main.py
+	export PYTHONPATH=$(shell pwd); python3 srcs/main.py
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 ifeq ($(BRANCH),HEAD)

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 import random
 import pygame
@@ -85,7 +86,7 @@ class WaterParticleHandler:
         if self.orbited_particle:
             power = self.orbited_particle.lifespan / 480
             radius = power * 300 + 200
-            orbit_strength = 0.5 * power + 1
+            orbit_strength = 1.5 * power + 1
             self._attract_to(self.orbited_particle.x, self.orbited_particle.y,
                              radius, orbit_strength)
             if self.orbited_particle.speed < self.orbit_max_speed:

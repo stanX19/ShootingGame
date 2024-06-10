@@ -39,4 +39,4 @@ class WeaponEnum:
     shield = WeaponType("shield", reload=30000, velocity=1, count=200, hp=500, radius=1,
                         dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
                         min_bullet_count=30, growth_factor=5000)
-    magic = WeaponType("magic", reload=0, count=5, velocity=1000)
+    nova = WeaponType("nova", reload=0, count=5, velocity=1000)

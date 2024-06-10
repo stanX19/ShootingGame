@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 import random
 from srcs import constants
@@ -177,7 +178,7 @@ class WeaponHandler:
             WeaponEnum.lazer: self._fire_lazer,
             WeaponEnum.shotgun: self._fire_shotgun,
             WeaponEnum.missile: self._fire_missile,
-            WeaponEnum.magic: self._fire_particle
+            WeaponEnum.nova: self._fire_particle
         }
         # fire according to matched weapon and function
         fire_func = fire_dict.get(self.weapon, self._fire_default)
@@ -186,7 +187,7 @@ class WeaponHandler:
         self.player.recoil(self.angle, self.weapon.recoil)
 
     def on_mouse_up(self):
-        if self.weapon is WeaponEnum.magic:
+        if self.weapon is WeaponEnum.nova:
             self.game.water_particle_handler.release(
                 *self.game.get_mouse_pos(),
                 self.game.get_mouse_angle(),

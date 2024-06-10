@@ -1,8 +1,19 @@
+from __future__ import annotations
 import math
 import random
 import subprocess
 import sys
 import os
+import typing
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
+try:
+    import pygame
+    import numpy
+except ImportError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+    import pygame
+    import numpy
 from srcs.constants import *
 from srcs.classes.weapon_handler import WeaponHandler
 from srcs.classes.weapons import WeaponType, WeaponEnum
@@ -12,12 +23,6 @@ from srcs.classes.player import Player
 from srcs.classes.enemy import Enemy, EliteEnemy
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
-try:
-    import pygame
-except ImportError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
-    import pygame
 
 god_mode = False
 start_score = 0

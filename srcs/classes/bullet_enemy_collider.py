@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 from srcs.classes.bullet import Bullet
 from srcs.classes.enemy import Enemy
