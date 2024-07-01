@@ -25,7 +25,7 @@ from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParti
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 
 god_mode = False
-start_score = 0
+start_score = 10000000000
 # Initialize Pygame
 pygame.init()
 

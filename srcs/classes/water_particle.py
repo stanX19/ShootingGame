@@ -7,7 +7,7 @@ from srcs.classes.weapons import WeaponType
 # Bullet class
 class WaterParticle:
     def __init__(self, x, y, angle, speed=3, rad=3, weapon=None,
-                hp=1, dmg=1, lifespan=60 * 4):
+                hp=1, dmg=0, lifespan=60 * 4):
         self.x = x
         self.y = y
         if isinstance(weapon, WeaponType):
@@ -54,6 +54,7 @@ class WaterParticle:
         self.lifespan -= 1
         self.x += self.xv
         self.y += self.yv
+        self.dmg = self.speed / 5
 
     def distance_with(self, other):
         return math.hypot(self.x - other.x, self.y - other.y)

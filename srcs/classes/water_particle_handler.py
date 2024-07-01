@@ -43,6 +43,8 @@ class WaterParticleHandler:
     def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
         if GOOD_GRAPHICS:
             return self._draw_good_graphics(surface, focus)
+        k = min(1, max(0, (self.particles.__len__() - MAX_PARTICLE_COUNT) / 500))
+        color = (25 * (1 - k), 5 + 20 * k, 50 * k, 25)
         prev_rad = None
         particle_surface = None
         for particle in self.particles:
@@ -50,7 +52,6 @@ class WaterParticleHandler:
                 prev_rad = particle.rad
                 particle_surface = pygame.Surface((particle.rad * 2, particle.rad * 2), pygame.SRCALPHA)
                 particle_surface.fill((0, 0, 0, 0))
-                color = (0, 25, 25, 25)
                 pygame.draw.circle(particle_surface, color, (particle.rad, particle.rad), particle.rad)
             if isinstance(particle_surface, pygame.Surface):
                 surface.blit(particle_surface, (particle.x - particle.rad, particle.y - particle.rad),
@@ -86,11 +87,15 @@ class WaterParticleHandler:
         if self.orbited_particle:
             power = self.orbited_particle.lifespan / 480
             radius = power * 300 + 200
-            orbit_strength = 1.5 * power + 1
+            orbit_strength = 1
             self._attract_to(self.orbited_particle.x, self.orbited_particle.y,
                              radius, orbit_strength)
+            ACCELERATION = 0.5
             if self.orbited_particle.speed < self.orbit_max_speed:
-                self.orbited_particle.speed += 0.5
+                self.orbited_particle.speed += ACCELERATION
+            for p in self.particles:
+                p.x += self.orbited_particle.xv
+                p.y += self.orbited_particle.yv
             self.orbited_particle.move()
         for p in self.particles:
             p.move()
@@ -146,7 +151,7 @@ class WaterParticleHandler:
 
         if isinstance(self.orbited_particle, WaterParticle) and self.orbited_particle.speed == 0\
                 and self.orbit_acceleration:
-            for _ in range(5):
+            for _ in range(7):
                 self._spawn_at(self.orbited_particle.x, self.orbited_particle.y)
 
     def release(self, mx, my, angle, speed, player):
