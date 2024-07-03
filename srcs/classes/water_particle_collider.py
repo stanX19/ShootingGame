@@ -42,7 +42,7 @@ def adhesive_particle(p1: WaterParticle, p2: WaterParticle, adhesive_strength=0.
     nx = dx / distance
     ny = dy / distance
 
-    adhesion_distance += p1.collide_rad + p2.collide_rad
+    adhesion_distance += p1.rad + p2.rad
     if distance < adhesion_distance:
         # Calculate the adhesive force magnitude
         force_magnitude = adhesive_strength * (adhesion_distance - distance)

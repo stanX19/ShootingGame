@@ -25,7 +25,7 @@ from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParti
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 
 god_mode = False
-start_score = 10000000000
+start_score = 0
 # Initialize Pygame
 pygame.init()
 
@@ -53,7 +53,8 @@ class Game:
         self.pressed_keys = {k: False for k in range(1000)}
         self.main_weapon = WeaponHandler(self)
         self.sub_weapon = WeaponHandler(self, [
-            WeaponType("sub missile", 2000, MISSILE_SPEED, 8, min_bullet_count=2, growth_factor=50000, bullet_class="missile")
+            WeaponType("sub missile", 2000, MISSILE_SPEED, 8, min_bullet_count=2,
+                       growth_factor=50000, bullet_class="missile", radius=MISSILE_RADIUS)
         ])
         self.running = True
         self.quit = False
@@ -78,7 +79,9 @@ class Game:
                 self.quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.quit = False
+                    self.quit = True
+                if event.key == pygame.K_q:
+                    self.main_weapon.overdrive_start()
                 if event.key == pygame.K_TAB:
                     self.main_weapon.change_weapon()
                 if event.key == pygame.K_e:
@@ -165,9 +168,9 @@ class Game:
         hp = 1
         score = 100
         speed = ENEMY_SPEED
-        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 1000000:
+        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 100000) / 1000000):
+        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 50000) / 1000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
@@ -175,7 +178,7 @@ class Game:
             score = 1000
             speed = ENEMY_SPEED / 2
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 200000) / 1000000):
+        if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 100000) / 1000000):
             hp = 10
             score = 500
             speed = PLAYER_SPEED
@@ -258,7 +261,8 @@ class Game:
   {self.main_weapon.index + 1}) {self.main_weapon.name}
   particle count: {len(self.water_particle_handler.particles)}
   enemy count: {len(self.enemies)}
-  bullet count: {len(self.bullets)}"""
+  bullet count: {len(self.bullets)}
+  overdrive cd: {self.main_weapon.overdrive_cd / 1000:.1f}"""
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))

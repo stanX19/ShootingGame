@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 import random
+import copy
 from srcs import constants
 from srcs import utils
 from srcs.classes.bullet import Bullet
@@ -23,6 +24,9 @@ class WeaponHandler:
         self.hypot = 0.0
         self.angle = 0.0
         self.bullet_count = 1
+        self._overdrive_end_time = -constants.OVERDRIVE_CD
+        self._overdrive_start_time = -constants.OVERDRIVE_CD
+        self.overdrive_weapon = None
 
     @property
     def current_time(self):
@@ -54,12 +58,46 @@ class WeaponHandler:
         except AttributeError:
             return "None"
 
+    @property
+    def overdrive_cd(self):
+        return max(0.0, constants.OVERDRIVE_CD - (self.current_time - self._overdrive_start_time))
+
+    @overdrive_cd.setter
+    def overdrive_cd(self, val):
+        self._overdrive_start_time = self.current_time - constants.OVERDRIVE_CD + val
+
+    def overdrive_start(self):
+        if self.overdrive_weapon:
+            return
+        if self.overdrive_cd:
+            return
+        self._overdrive_start_time = self.current_time
+        self.overdrive_weapon = self.weapon
+        self.last_shot_time[self.overdrive_weapon] = -self.weapon.shot_delay
+        self.overdrive_weapon.rad *= 2
+        self.overdrive_weapon.dmg *= 5
+        self.overdrive_weapon.hp *= 5
+        self.overdrive_weapon.shot_delay /= 10
+        # self.overdrive_weapon.speed *= 2
+
+    def overdrive_end(self):
+        if not self.overdrive_weapon:
+            return
+        self.overdrive_weapon.rad /= 2
+        self.overdrive_weapon.dmg /= 5
+        self.overdrive_weapon.hp /= 5
+        self.overdrive_weapon.shot_delay *= 10
+        # self.overdrive_weapon.speed /= 2
+        self.overdrive_weapon = None
+        self._overdrive_end_time = self.current_time
+
     def _set_weapon(self, weapon: WeaponType):
         if self.weapon is weapon:
             return
         if self._change_in_cooldown():
             return
         self.on_mouse_up()
+        self.overdrive_end()
         self.weapon = weapon
 
     def _cycle_weapon(self):
@@ -133,7 +171,8 @@ class WeaponHandler:
         for i in range(self.bullet_count):
             offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.bullets_list.append(Missile(self.player.x, self.player.y, shoot_angle, self.game.enemies, target))
+            self.bullets_list.append(Missile(self.player.x, self.player.y, shoot_angle, self.game.enemies, target,
+                                     dmg=self.weapon.dmg))
 
     def _fire_default(self):
         if self.weapon.bullet_class == "missile":
@@ -165,13 +204,19 @@ class WeaponHandler:
         self.angle = math.atan2(self.dy, self.dx)
         self.bullet_count = self._get_bullet_count()
 
+    def _update_overdrive(self):
+        if self.current_time - self._overdrive_start_time < constants.OVERDRIVE_DURATION:
+            return
+        self.overdrive_end()
+
     def fire(self):
         if self.weapon is None:
             return
         if self.current_time - self.last_shot_time[self.weapon] < self.weapon.shot_delay:
             return
         self.last_shot_time[self.weapon] = self.current_time
-        
+
+        self._update_overdrive()
         self._update_fire_constants()
         
         fire_dict = {

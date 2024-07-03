@@ -43,8 +43,9 @@ class WaterParticleHandler:
     def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
         if GOOD_GRAPHICS:
             return self._draw_good_graphics(surface, focus)
-        k = min(1, max(0, (self.particles.__len__() - MAX_PARTICLE_COUNT) / 500))
+        k = min(1, max(0, self.particles.__len__() / MAX_PARTICLE_COUNT - 1))
         color = (25 * (1 - k), 5 + 20 * k, 50 * k, 25)
+        # color = (50 * k, 5 + 20 * (1 - k), 25 * (1 - k), 25)
         prev_rad = None
         particle_surface = None
         for particle in self.particles:
@@ -53,9 +54,11 @@ class WaterParticleHandler:
                 particle_surface = pygame.Surface((particle.rad * 2, particle.rad * 2), pygame.SRCALPHA)
                 particle_surface.fill((0, 0, 0, 0))
                 pygame.draw.circle(particle_surface, color, (particle.rad, particle.rad), particle.rad)
-            if isinstance(particle_surface, pygame.Surface):
-                surface.blit(particle_surface, (particle.x - particle.rad, particle.y - particle.rad),
-                             special_flags=pygame.BLEND_RGBA_ADD)
+            surface.blit(particle_surface, (particle.x - particle.rad, particle.y - particle.rad),
+                         special_flags=pygame.BLEND_RGBA_ADD)
+        # if self.orbited_particle:
+        #     pygame.draw.circle(surface, (255, 255, 255),
+        #                        (self.orbited_particle.x, self.orbited_particle.y), 10)
 
     def _collide_with_all_other(self, p1: WaterParticle, idx: int):
         for p2 in self.particles[idx + 1:]:
@@ -90,7 +93,7 @@ class WaterParticleHandler:
             orbit_strength = 1
             self._attract_to(self.orbited_particle.x, self.orbited_particle.y,
                              radius, orbit_strength)
-            ACCELERATION = 0.5
+            ACCELERATION = 1.0
             if self.orbited_particle.speed < self.orbit_max_speed:
                 self.orbited_particle.speed += ACCELERATION
             for p in self.particles:
@@ -150,8 +153,8 @@ class WaterParticleHandler:
             self.orbited_particle = None
 
         if isinstance(self.orbited_particle, WaterParticle) and self.orbited_particle.speed == 0\
-                and self.orbit_acceleration:
-            for _ in range(7):
+                and self.orbit_acceleration and self.particles.__len__() < MAX_PARTICLE_COUNT * 2:
+            for _ in range(15):
                 self._spawn_at(self.orbited_particle.x, self.orbited_particle.y)
 
     def release(self, mx, my, angle, speed, player):
@@ -167,19 +170,20 @@ class WaterParticleHandler:
         particle_speed = sum(p.speed for p in self.particles) / len(self.particles)
         directed_constant = particle_mouse_dis + particle_velocity * 10 - len(self.particles) / 100
         lifespan = 480
-        self.orbit_max_speed = speed
-        if particle_speed > 5:
-            self.orbit_acceleration = particle_speed / 10
-        else:
-            self.orbit_acceleration = 0.0
+        self.orbit_max_speed = min(particle_mouse_dis * 0.1, max(p.speed for p in self.particles) * 2)
+        # if particle_speed > 5:
+        #     self.orbit_acceleration = particle_speed / 10
+        # else:
+        self.orbit_acceleration = 0.0
         if directed_constant > 50.0:
+            particle_velocity = particle_mouse_dis * 0.005
             angle = math.atan2(my - py, mx - px)
         else:
             particle_velocity = 0
             self.orbit_max_speed = 0
-        mx -= (mx - px) * 0.75
-        my -= (my - py) * 0.75
-        self.orbited_particle = WaterParticle(mx, my, angle, particle_velocity, lifespan=lifespan)
+            if particle_speed > 5:
+                self.orbit_acceleration = particle_speed / 10
+        self.orbited_particle = WaterParticle(px, py, angle, particle_velocity, lifespan=lifespan)
 
 
 def main():

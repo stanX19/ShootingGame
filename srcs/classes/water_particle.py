@@ -54,7 +54,7 @@ class WaterParticle:
         self.lifespan -= 1
         self.x += self.xv
         self.y += self.yv
-        self.dmg = self.speed / 5
+        self.dmg = self.speed / MAX_PARTICLE_COUNT * 100
 
     def distance_with(self, other):
         return math.hypot(self.x - other.x, self.y - other.y)
