@@ -54,6 +54,10 @@ class EliteEnemy(Enemy):
         super().__init__(*args, **kwargs)
         self.dodge_angle = random.choice([math.pi / 2, -math.pi / 2])
 
+    def draw(self, surface: pygame.Surface):
+        pygame.draw.circle(surface, (255, 105, 255), (self.x, self.y), self.rad + 2)
+        super().draw(surface)
+
     def dodge_bullets(self, bullets):
         closest_bullet = None
         min_time_to_collision = float('inf')
@@ -80,6 +84,7 @@ class EliteEnemy(Enemy):
                 if 0 < t_collision < min_time_to_collision:
                     min_time_to_collision = t_collision
                     closest_bullet = bullet
+                    break
 
         if closest_bullet and min_time_to_collision < float('inf'):
             angle = math.atan2(closest_bullet.yv, closest_bullet.xv) + self.dodge_angle
