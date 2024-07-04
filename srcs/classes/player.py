@@ -1,33 +1,30 @@
+from __future__ import annotations
 import math
 import pygame
 from srcs import utils
 from srcs.constants import *
+from srcs.classes.game_particle import GameParticle
 
 
-class Player:
-    def __init__(self, x, y, rad=PLAYER_RADIUS):
-        self.x = x
-        self.y = y
-        self.xv = 0
-        self.yv = 0
-        self.rad = rad
+class Player(GameParticle):
+    def __init__(self, x: float, y: float, rad=PLAYER_RADIUS):
+        super().__init__(x, y, radius=rad, color=PLAYER_COLOR)
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.circle(surface, PLAYER_COLOR, (self.x, self.y), self.rad)
 
     def move(self):
-        self.x += self.xv
-        self.y += self.yv
+        super().move()
         self.x = utils.normalize(self.x, self.rad, MAP_WIDTH - self.rad)
         self.y = utils.normalize(self.y, self.rad, MAP_HEIGHT - self.rad)
 
-    def set_velocity(self, dx, dy):
+    def set_velocity(self, dx: float, dy: float):
         self.xv = dx
         self.yv = dy
 
     def get_xy(self):
         return self.x, self.y
 
-    def recoil(self, shooting_angle, magnitude):
+    def recoil(self, shooting_angle: float, magnitude: float):
         self.x -= math.cos(shooting_angle) * magnitude
         self.y -= math.sin(shooting_angle) * magnitude

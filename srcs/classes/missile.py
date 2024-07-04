@@ -1,29 +1,23 @@
+from __future__ import annotations
 import math
 import pygame
 from srcs import utils
 from srcs.classes.enemy import Enemy
+from srcs.classes.bullet import Bullet
+from srcs.classes.game_particle import GameParticle
 from srcs.constants import *
 
 
-class Missile:
-    def __init__(self, x, y, angle, enemies_list, target: [Enemy, None] = None, radius=MISSILE_RADIUS,
-                 speed=MISSILE_SPEED, lifespan=60 * 2, hp=1, dmg=10):
-        self.x = x
-        self.y = y
-        self.xv = math.cos(angle) * PLAYER_SPEED
-        self.yv = math.sin(angle) * PLAYER_SPEED
-        self.rad = radius
-        self.angle = angle
-        self.lifespan = lifespan  # fps * seconds
-        self.target = target
-        self.enemies_list = enemies_list
-        self.reached_target = False
-        self.hp = hp
-        self.dmg = dmg
-        self.speed = speed
-
-    def draw(self, surface: pygame.Surface):
-        pygame.draw.circle(surface, MISSILE_COLOR, (int(self.x), int(self.y)), self.rad)
+class Missile(Bullet):
+    def __init__(self, x: float, y: float, angle: float, enemies_list: list[GameParticle],
+                 target: [GameParticle, None] = None,
+                 radius=MISSILE_RADIUS,
+                 speed=MISSILE_SPEED,
+                 hp=1, dmg=10, lifespan=60 * 2):
+        super().__init__(x, y, angle, speed, radius, MISSILE_COLOR, hp, dmg, lifespan)
+        self.target: [GameParticle, None] = target
+        self.enemies_list: list[GameParticle] = enemies_list
+        self.reached_target: bool = False
 
     def find_target(self):
         search_radius = 200
@@ -33,7 +27,7 @@ class Missile:
         self.target = Missile.find_target_at(self.x + dx, self.y + dy, self.enemies_list, search_radius)
 
     @staticmethod
-    def find_target_at(x, y, enemy_list, search_radius=100.0):
+    def find_target_at(x:float, y:float, enemy_list: list[GameParticle], search_radius=100.0):
         lowest_distance = search_radius
         target = None
         for enemy in enemy_list:
@@ -45,7 +39,7 @@ class Missile:
                 target = enemy
         return target
 
-    def angle_with(self, other):
+    def angle_with(self, other: GameParticle):
         try:
             y_dis = other.y - self.y
             x_dis = other.x - self.x
@@ -53,7 +47,7 @@ class Missile:
         except AttributeError:
             return 0
 
-    def calculate_intercept_angle(self, target):
+    def calculate_intercept_angle(self, target: GameParticle):
         tx = target.x
         ty = target.y
         tvx = target.xv
@@ -85,18 +79,10 @@ class Missile:
             angle_diff = utils.angle_diff(target_angle, self.angle)
             angle_diff = utils.normalize(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff
-        self.xv = self.speed * math.cos(self.angle)
-        self.yv = self.speed * math.sin(self.angle)
-        magnitude = math.hypot(self.xv, self.yv)
-        if magnitude > self.speed:
-            self.xv = self.xv / magnitude * self.speed
-            self.yv = self.yv / magnitude * self.speed
 
     def move(self):
         self.update()
-        self.x += self.xv
-        self.y += self.yv
-        self.lifespan -= 1
+        super().move()
 
     def explode(self):
         pass

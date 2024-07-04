@@ -3,24 +3,25 @@ from srcs.constants import *
 
 
 class WeaponType:
-    def __init__(self, name, reload, velocity=BULLET_SPEED, count=None, radius=BULLET_RADIUS,
+    def __init__(self, name: str, reload: float, velocity=BULLET_SPEED, count=None, radius=BULLET_RADIUS,
                  recoil=0, hp=1.0, dmg=1.0, spread=math.pi * 0.8, bullet_class="bullet",
-                 min_bullet_count=1, growth_factor=0.0, offset_factor=1.0):
-        self.name = name
-        self.shot_delay = reload
-        self.speed = velocity
+                 min_bullet_count=1, growth_factor=0.0, offset_factor=1.0, color=BULLET_COLOR):
+        self.name: str = name
+        self.shot_delay: float = reload
+        self.speed: float = velocity
         if count is None:
             count = int(reload * 0.01) + 1
-        self.bullet_count = count
-        self.rad = radius
-        self.recoil = recoil
-        self.hp = hp
-        self.dmg = dmg
-        self.spread = spread
-        self.min_bullet_count = min_bullet_count
-        self.growth_factor = growth_factor
-        self.offset_factor = offset_factor
-        self.bullet_class = bullet_class
+        self.bullet_count: int = count
+        self.rad: float = radius
+        self.recoil: float = recoil
+        self.hp: float = hp
+        self.dmg: float = dmg
+        self.spread: float = spread
+        self.min_bullet_count: int = min_bullet_count
+        self.growth_factor: float = growth_factor
+        self.offset_factor: float = offset_factor
+        self.bullet_class: str = bullet_class
+        self.color: tuple[int] = color
 
     def __str__(self):
         return self.name

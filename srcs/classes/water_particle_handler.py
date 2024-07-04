@@ -13,7 +13,6 @@ class WaterParticleHandler:
     def __init__(self, particles=None):
         if particles is None:
             particles = []
-        self.other_handlers: list[WaterParticleHandler] = []
         self.particles: list[WaterParticle] = particles
         self.orbit_max_speed: float = 0.0
         self.orbit_acceleration: float = 0.0

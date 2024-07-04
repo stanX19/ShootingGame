@@ -1,37 +1,26 @@
-# Enemy class
+from __future__ import annotations
 import pygame
 import math
 import random
 from srcs import utils
 from srcs.constants import *
+from srcs.classes.game_particle import GameParticle
 
 
-class Enemy:
-    def __init__(self, x, y, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100,
+class Enemy(GameParticle):
+    def __init__(self, x, y, target: GameParticle, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100,
                  variable_shape=False):
-        self.x = x
-        self.y = y
-        self.xv = 0
-        self.yv = 0
-        self.rad = radius
-        self.color = color
-        self.hp = hp
-        self.score = score
-        self.speed = speed
-        self.variable_shape = variable_shape
+        super().__init__(x, y, 0.0, speed, radius, color, hp, 1)
+        self.score: float = score
+        self.variable_shape: bool = variable_shape
+        self.target: GameParticle = target
 
         if variable_shape:
             self.update_appearance_based_on_hp()
 
-    def draw(self, surface: pygame.Surface):
-        pygame.draw.circle(surface, self.color, (self.x, self.y), self.rad)
-
-    def move_towards_player(self, player):
-        angle = math.atan2(player.y - self.y, player.x - self.x)
-        self.xv = self.speed * math.cos(angle)
-        self.yv = self.speed * math.sin(angle)
-        self.x += self.xv
-        self.y += self.yv
+    def move(self):
+        self.angle = math.atan2(self.target.y - self.y, self.target.x - self.x)
+        super().move()
 
         if self.variable_shape:
             self.update_appearance_based_on_hp()
@@ -41,24 +30,20 @@ class Enemy:
         self.color = Enemy.get_color(self.hp, self.speed)
 
     @staticmethod
-    def get_rad(hp):
+    def get_rad(hp: float):
         return ENEMY_RADIUS + hp - 1
 
     @staticmethod
-    def get_color(hp, speed):
+    def get_color(hp: float, speed: float):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
 
 
 class EliteEnemy(Enemy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dodge_angle = random.choice([math.pi / 2, -math.pi / 2])
+        self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
 
-    def draw(self, surface: pygame.Surface):
-        pygame.draw.circle(surface, (255, 105, 255), (self.x, self.y), self.rad + 2)
-        super().draw(surface)
-
-    def dodge_bullets(self, bullets):
+    def dodge_bullets(self, bullets: list[GameParticle]):
         closest_bullet = None
         min_time_to_collision = float('inf')
 
@@ -84,7 +69,6 @@ class EliteEnemy(Enemy):
                 if 0 < t_collision < min_time_to_collision:
                     min_time_to_collision = t_collision
                     closest_bullet = bullet
-                    break
 
         if closest_bullet and min_time_to_collision < float('inf'):
             angle = math.atan2(closest_bullet.yv, closest_bullet.xv) + self.dodge_angle
@@ -95,3 +79,9 @@ class EliteEnemy(Enemy):
             self.y += dodge_yv
             return True
         return False
+
+
+class EnergyEnemy(Enemy):
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        pygame.draw.circle(surface, (255, 155, 0), (self.x, self.y), self.rad - 3)

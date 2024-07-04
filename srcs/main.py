@@ -4,7 +4,6 @@ import random
 import subprocess
 import sys
 import os
-import typing
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
     import pygame
@@ -20,12 +19,12 @@ from srcs.classes.weapons import WeaponType, WeaponEnum
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy
+from srcs.classes.enemy import Enemy, EliteEnemy, EnergyEnemy
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 
-god_mode = False
-start_score = 1000000
+god_mode: bool = 0
+start_score: int = 0
 # Initialize Pygame
 pygame.init()
 
@@ -36,6 +35,7 @@ pygame.display.set_caption("Space Shooting Game")
 
 # Font for score
 font = pygame.font.Font(None, 36)
+consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 
 
 # Game class
@@ -54,6 +54,7 @@ class Game:
         self.main_weapon = WeaponHandler(self)
         self.sub_weapon = WeaponHandler(self, [
             WeaponType("sub missile", 2000, MISSILE_SPEED, 8, min_bullet_count=2,
+                       dmg=WeaponEnum.missile.dmg,
                        growth_factor=50000, bullet_class="missile", radius=MISSILE_RADIUS)
         ])
         self.running = True
@@ -71,6 +72,8 @@ class Game:
         self.water_particle_handler.clear()
         self.score = start_score
         self.autofire = False
+        self.main_weapon.overdrive_cd = 0.0
+        self.main_weapon.set_weapon_by_index(0)
 
     def handle_events(self):
         pygame.event.pump()
@@ -149,7 +152,10 @@ class Game:
 
     def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy):
         # decide side
-        radius = Enemy.get_rad(hp)
+        if variable_shape:
+            radius = Enemy.get_rad(hp)
+        else:
+            radius = ENEMY_RADIUS
 
         side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
@@ -162,7 +168,7 @@ class Game:
             ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT + radius
         else:
             ex, ey = -radius, -radius
-        self.enemies.append(_constructor(ex, ey, hp=hp, score=score, speed=speed, variable_shape=variable_shape))
+        self.enemies.append(_constructor(ex, ey, self.player, hp=hp, score=score, speed=speed, variable_shape=variable_shape))
 
     def spawn_enemies(self):
         hp = 1
@@ -190,16 +196,24 @@ class Game:
             hp = 1000
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True)
+        if len(self.enemies) < 190 and random.random() < min(0.001, (self.score - 100000) / 1000000):
+            score = 0
+            hp = 10
+            speed = ENEMY_SPEED
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnergyEnemy)
+            print("spawned")
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.bullets, self.enemies)
         self.water_particle_handler.collide_with_enemies(self.enemies)
 
         for enemy in self.enemies[:]:
-            if enemy.hp <= 0:
-                self.enemies.remove(enemy)
-                self.score += enemy.score
+            if enemy.hp > 0:
                 continue
+            if isinstance(enemy, EnergyEnemy):
+                self.main_weapon.overdrive_cd = 0.0  # milliseconds
+            self.enemies.remove(enemy)
+            self.score += enemy.score
 
         for bullet in self.bullets[:]:
             if bullet.hp <= 0:
@@ -210,7 +224,7 @@ class Game:
         for enemy in self.enemies:
             if isinstance(enemy, EliteEnemy):
                 enemy.dodge_bullets(self.bullets)
-            enemy.move_towards_player(self.player)
+            enemy.move()
 
         for bullet in self.bullets[:]:
             bullet.move()
@@ -230,7 +244,7 @@ class Game:
     def check_player_death(self):
         if god_mode:
             return
-        for enemy in self.enemies:
+        for enemy in self.enemies[:]:
             if math.hypot(enemy.x - self.player.x, enemy.y - self.player.y) < enemy.rad + self.player.rad:
                 game_over_text = font.render("Game Over", True, (255, 255, 255))
                 MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
@@ -259,15 +273,22 @@ class Game:
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
   {self.main_weapon.index + 1}) {self.main_weapon.name}
-  particle count: {len(self.water_particle_handler.particles)}
-  enemy count: {len(self.enemies)}
-  bullet count: {len(self.bullets)}
-  overdrive cd: {self.main_weapon.overdrive_cd / 1000:.1f}"""
+  """.strip()
+        debug_str = f"""\
+  particle count  : {len(self.water_particle_handler.particles)}
+  enemy count     : {len(self.enemies)}
+  bullet count    : {len(self.bullets)}
+  overdrive cd    : {self.main_weapon.overdrive_cd / 1000:<4.1f}(Q)
+  auto fire       : {'on' if self.autofire else 'off':4}(E)""".title()
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))
             SCREEN.blit(text, (10, y))
-            y += font.get_height() + 10
+            y += text.get_height() + 10
+        for line in debug_str.split("\n"):
+            text = consolas.render(line, True, (255, 255, 255))
+            SCREEN.blit(text, (10, y))
+            y += text.get_height()
 
     def draw(self):
         MAP_SURFACE.fill(BACKGROUND_COLOR)

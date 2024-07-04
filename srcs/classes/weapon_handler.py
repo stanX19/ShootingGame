@@ -60,11 +60,11 @@ class WeaponHandler:
 
     @property
     def overdrive_cd(self):
-        return max(0.0, constants.OVERDRIVE_CD - (self.current_time - self._overdrive_start_time))
+        return max(0.0, constants.OVERDRIVE_CD - (self.current_time - self._overdrive_end_time))
 
     @overdrive_cd.setter
     def overdrive_cd(self, val):
-        self._overdrive_start_time = self.current_time - constants.OVERDRIVE_CD + val
+        self._overdrive_end_time = self.current_time - constants.OVERDRIVE_CD + val
 
     def overdrive_start(self):
         if self.overdrive_weapon:
@@ -72,6 +72,7 @@ class WeaponHandler:
         if self.overdrive_cd:
             return
         self._overdrive_start_time = self.current_time
+        self._overdrive_end_time = self.current_time
         self.overdrive_weapon = self.weapon
         self.last_shot_time[self.overdrive_weapon] = -self.weapon.shot_delay
         self.overdrive_weapon.rad *= 2
@@ -89,7 +90,6 @@ class WeaponHandler:
         self.overdrive_weapon.shot_delay *= 10
         # self.overdrive_weapon.speed /= 2
         self.overdrive_weapon = None
-        self._overdrive_end_time = self.current_time
 
     def _set_weapon(self, weapon: WeaponType):
         if self.weapon is weapon:
@@ -100,11 +100,11 @@ class WeaponHandler:
         self.overdrive_end()
         self.weapon = weapon
 
-    def _cycle_weapon(self):
+    def cycle_weapon(self):
         idx = (self.index + 1) % len(self.all_weapon)
         self._set_weapon(self.all_weapon[idx])
 
-    def _set_weapon_by_index(self, index: int):
+    def set_weapon_by_index(self, index: int):
         if index < 0 or index >= len(self.all_weapon):
             return
         self._set_weapon(self.all_weapon[index])
@@ -122,11 +122,11 @@ class WeaponHandler:
 
     def change_weapon(self, weapon=None):
         if weapon is None:
-            self._cycle_weapon()
+            self.cycle_weapon()
         elif isinstance(weapon, WeaponType):
             self._set_weapon(weapon)
         elif isinstance(weapon, int):
-            self._set_weapon_by_index(weapon)
+            self.set_weapon_by_index(weapon)
         else:
             raise TypeError("Invalid weapon type")
 
