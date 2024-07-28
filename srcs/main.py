@@ -46,6 +46,7 @@ class Game:
         self.enemies: list[Enemy] = []
         self.water_particle_handler = WaterParticleHandler()
         self.score = start_score
+        self.kills = 0
         self.start_ticks = pygame.time.get_ticks()
         self.left_mouse_down = False
         self.right_mouse_down = False
@@ -71,6 +72,7 @@ class Game:
         self.bullets = []
         self.water_particle_handler.clear()
         self.score = start_score
+        self.kills = 0
         self.autofire = False
         self.main_weapon.overdrive_cd = 0.0
         self.main_weapon.set_weapon_by_index(0)
@@ -197,7 +199,7 @@ class Game:
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True)
         if len(self.enemies) < 190 and random.random() < min(0.001, (self.score - 100000) / 1000000):
-            score = 0
+            score = 10000
             hp = 10
             speed = ENEMY_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnergyEnemy)
@@ -211,9 +213,12 @@ class Game:
             if enemy.hp > 0:
                 continue
             if isinstance(enemy, EnergyEnemy):
-                self.main_weapon.overdrive_cd = 0.0  # milliseconds
+                self.main_weapon.overdrive_cd -= enemy.score  # milliseconds
+            elif self.main_weapon.overdrive_on:
+                self.main_weapon.overdrive_cd -= enemy.score
             self.enemies.remove(enemy)
             self.score += enemy.score
+            self.kills += 1
 
         for bullet in self.bullets[:]:
             if bullet.hp <= 0:
@@ -277,7 +282,7 @@ class Game:
         debug_str = f"""\
   particle count  : {len(self.water_particle_handler.particles)}
   enemy count     : {len(self.enemies)}
-  bullet count    : {len(self.bullets)}
+  kills           : {self.kills}
   overdrive cd    : {self.main_weapon.overdrive_cd / 1000:<4.1f}(Q)
   auto fire       : {'on' if self.autofire else 'off':4}(E)""".title()
         y = 10

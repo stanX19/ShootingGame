@@ -64,6 +64,8 @@ class WeaponHandler:
 
     @overdrive_cd.setter
     def overdrive_cd(self, val):
+        if val < 0.0:
+            return
         self._overdrive_end_time = self.current_time - constants.OVERDRIVE_CD + val
 
     def overdrive_start(self):
@@ -79,6 +81,7 @@ class WeaponHandler:
         self.overdrive_weapon.dmg *= 5
         self.overdrive_weapon.hp *= 5
         self.overdrive_weapon.shot_delay /= 10
+        constants.MAX_PARTICLE_COUNT *= 2
         # self.overdrive_weapon.speed *= 2
 
     def overdrive_end(self):
@@ -88,6 +91,7 @@ class WeaponHandler:
         self.overdrive_weapon.dmg /= 5
         self.overdrive_weapon.hp /= 5
         self.overdrive_weapon.shot_delay *= 10
+        constants.MAX_PARTICLE_COUNT /= 2
         # self.overdrive_weapon.speed /= 2
         self.overdrive_weapon = None
 
@@ -204,8 +208,12 @@ class WeaponHandler:
         self.angle = math.atan2(self.dy, self.dx)
         self.bullet_count = self._get_bullet_count()
 
+    @property
+    def overdrive_on(self) -> bool:
+        return self.current_time - self._overdrive_start_time < constants.OVERDRIVE_DURATION
+
     def _update_overdrive(self):
-        if self.current_time - self._overdrive_start_time < constants.OVERDRIVE_DURATION:
+        if self.overdrive_on:
             return
         self.overdrive_end()
 

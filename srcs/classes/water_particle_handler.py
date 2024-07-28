@@ -6,7 +6,7 @@ import numpy as np
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.water_particle import WaterParticle
 from srcs.classes import water_particle_collider
-from srcs.constants import *
+from srcs import constants
 
 
 class WaterParticleHandler:
@@ -19,7 +19,7 @@ class WaterParticleHandler:
         self.orbited_particle: [WaterParticle, None] = None
 
     def _draw_good_graphics(self, surface: pygame.Surface, focus: tuple[int, int]):
-        draw_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        draw_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
         draw_surface.fill((0, 0, 0, 0))  # white background
 
         for particle in self.particles:
@@ -40,9 +40,9 @@ class WaterParticleHandler:
         surface.blit(draw_surface, (-focus[0], -focus[1]))
 
     def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
-        if GOOD_GRAPHICS:
+        if constants.GOOD_GRAPHICS:
             return self._draw_good_graphics(surface, focus)
-        k = min(1, max(0, self.particles.__len__() / MAX_PARTICLE_COUNT - 1))
+        k = min(1, max(0, self.particles.__len__() / constants.MAX_PARTICLE_COUNT - 1))
         color = (25 * (1 - k), 5 + 20 * k, 50 * k, 25)
         # color = (50 * k, 5 + 20 * (1 - k), 25 * (1 - k), 25)
         prev_rad = None
@@ -79,7 +79,7 @@ class WaterParticleHandler:
         self.particles.append(WaterParticle(x, y, random_angle, rad=15, lifespan=random.randint(10, 60)))
 
     def spawn_at(self, x, y):
-        if len(self.particles) > MAX_PARTICLE_COUNT:
+        if len(self.particles) > constants.MAX_PARTICLE_COUNT:
             return
         self._spawn_at(x, y)
 
@@ -152,7 +152,7 @@ class WaterParticleHandler:
             self.orbited_particle = None
 
         if isinstance(self.orbited_particle, WaterParticle) and self.orbited_particle.speed == 0\
-                and self.orbit_acceleration and self.particles.__len__() < MAX_PARTICLE_COUNT * 2:
+                and self.orbit_acceleration and self.particles.__len__() < constants.MAX_PARTICLE_COUNT * 2:
             for _ in range(15):
                 self._spawn_at(self.orbited_particle.x, self.orbited_particle.y)
 

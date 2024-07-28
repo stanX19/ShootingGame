@@ -84,4 +84,4 @@ class EliteEnemy(Enemy):
 class EnergyEnemy(Enemy):
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
-        pygame.draw.circle(surface, (255, 155, 0), (self.x, self.y), self.rad - 3)
+        pygame.draw.circle(surface, (105, 105, 105), (self.x, self.y), self.rad, 3)
