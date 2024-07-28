@@ -19,7 +19,7 @@ from srcs.classes.weapons import WeaponType, WeaponEnum
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy, EnergyEnemy
+from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 
@@ -56,17 +56,18 @@ class Game:
         self.sub_weapon = WeaponHandler(self, [
             WeaponType("sub missile", 2000, MISSILE_SPEED, 8, min_bullet_count=2,
                        dmg=WeaponEnum.missile.dmg,
-                       growth_factor=50000, bullet_class="missile", radius=MISSILE_RADIUS)
+                       growth_score=50000, bullet_class="missile", radius=MISSILE_RADIUS)
         ])
         self.running = True
         self.quit = False
         self.clock = pygame.time.Clock()
         self.current_time = pygame.time.get_ticks()
-        self.init_game()
         self.focus_x = self.player.x
         self.focus_y = self.player.x
+        self.init_game()
 
     def init_game(self):
+        self.running = True
         self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
         self.enemies = []
         self.bullets = []
@@ -76,6 +77,12 @@ class Game:
         self.autofire = False
         self.main_weapon.overdrive_cd = 0.0
         self.main_weapon.set_weapon_by_index(0)
+        self.background_update()
+
+    def background_update(self):
+        threshold = min(SCREEN_WIDTH, SCREEN_HEIGHT)
+        while not any(e.distance_with(self.player) <= threshold for e in self.enemies):
+            self.update()
 
     def handle_events(self):
         pygame.event.pump()
@@ -179,7 +186,7 @@ class Game:
         if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
         if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 100000) / 1000000):
-            max_hp = 100
+            max_hp = 50
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
             hp = max_hp
@@ -195,15 +202,9 @@ class Game:
             # can shoot back
         if len(self.enemies) < 180 and random.random() < min(0.01, (self.score - 300000) / 10000000):
             score = 10000
-            hp = 1000
+            hp = 200
             speed = PLAYER_SPEED * 0.5
-            self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 190 and random.random() < min(0.001, (self.score - 100000) / 1000000):
-            score = 10000
-            hp = 10
-            speed = ENEMY_SPEED
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnergyEnemy)
-            print("spawned")
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.bullets, self.enemies)
@@ -212,12 +213,7 @@ class Game:
         for enemy in self.enemies[:]:
             if enemy.hp > 0:
                 continue
-            if isinstance(enemy, EnergyEnemy):
-                self.main_weapon.overdrive_cd -= enemy.score  # milliseconds
-            elif self.main_weapon.overdrive_on:
-                self.main_weapon.overdrive_cd -= enemy.score
-            self.enemies.remove(enemy)
-            self.score += enemy.score
+            enemy.on_death(self)
             self.kills += 1
 
         for bullet in self.bullets[:]:

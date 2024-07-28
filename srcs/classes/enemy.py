@@ -8,9 +8,9 @@ from srcs.classes.game_particle import GameParticle
 
 
 class Enemy(GameParticle):
-    def __init__(self, x, y, target: GameParticle, radius=ENEMY_RADIUS, speed=ENEMY_SPEED, color=ENEMY_COLOR, hp=1, score=100,
-                 variable_shape=False):
-        super().__init__(x, y, 0.0, speed, radius, color, hp, 1)
+    def __init__(self, x, y, target: GameParticle, radius=ENEMY_RADIUS, speed=ENEMY_SPEED,
+                 angle=0.0, color=ENEMY_COLOR, hp=1, score=100, variable_shape=False):
+        super().__init__(x, y, angle, speed, radius, color, hp, 1)
         self.score: float = score
         self.variable_shape: bool = variable_shape
         self.target: GameParticle = target
@@ -19,7 +19,15 @@ class Enemy(GameParticle):
             self.update_appearance_based_on_hp()
 
     def move(self):
-        self.angle = math.atan2(self.target.y - self.y, self.target.x - self.x)
+        dy = self.target.y - self.y
+        dx = self.target.x - self.x
+        dis = math.hypot(dy, dx)
+        dy /= dis
+        dx /= dis
+        spd = self.speed
+        self.xv += dx
+        self.yv += dy
+        self.speed = spd
         super().move()
 
         if self.variable_shape:
@@ -36,6 +44,13 @@ class Enemy(GameParticle):
     @staticmethod
     def get_color(hp: float, speed: float):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
+
+    def on_death(self, game):
+        game.score += self.score
+        game.enemies.remove(self)
+
+
+
 
 
 class EliteEnemy(Enemy):
@@ -81,7 +96,16 @@ class EliteEnemy(Enemy):
         return False
 
 
-class EnergyEnemy(Enemy):
+class EnemyMothership(Enemy):
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
-        pygame.draw.circle(surface, (105, 105, 105), (self.x, self.y), self.rad, 3)
+
+    def on_death(self, game):
+        total = int(self.score / 1000)
+        for i in range(total):
+            child = EliteEnemy(self.x, self.y, self.target, hp=10, variable_shape=True)
+            child.angle = -math.pi + i / total * math.pi * 2
+            child.speed = PLAYER_SPEED
+            child.move()
+            game.enemies.append(child)
+        super().on_death(game)
