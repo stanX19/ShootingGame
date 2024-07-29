@@ -103,7 +103,7 @@ class EnemyMothership(Enemy):
     def on_death(self, game):
         total = int(self.score / 1000)
         for i in range(total):
-            child = EliteEnemy(self.x, self.y, self.target, hp=10, variable_shape=True)
+            child = EliteEnemy(self.x, self.y, self.target, hp=1, variable_shape=True)
             child.angle = -math.pi + i / total * math.pi * 2
             child.speed = PLAYER_SPEED
             child.move()
