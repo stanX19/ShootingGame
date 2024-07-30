@@ -107,5 +107,7 @@ class EnemyMothership(Enemy):
             child.angle = -math.pi + i / total * math.pi * 2
             child.speed = PLAYER_SPEED
             child.move()
+            child.move()
+            child.move()
             game.enemies.append(child)
         super().on_death(game)

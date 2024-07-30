@@ -7,7 +7,7 @@ from srcs.classes.game_particle import GameParticle
 
 
 def _safe_value(value, default, reject=None):
-    return value if value is not reject else default
+    return value if value != reject else default
 
 
 # Bullet class
