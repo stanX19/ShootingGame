@@ -47,12 +47,14 @@ class Enemy(GameParticle):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
 
     def on_death(self):
-        self.parent_list.remove(self)
+        if self in self.parent_list:
+            self.parent_list.remove(self)
 
 
 class EliteEnemy(Enemy):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle],
+                 radius=10, speed=PLAYER_SPEED, **kwargs):
+        super().__init__(x, y, target, parent_list, radius=radius, speed=speed, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
 
     def dodge_bullets(self, bullets: list[GameParticle]):
@@ -97,12 +99,17 @@ class EnemyMothership(Enemy):
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
 
+    def move(self):
+        super(EnemyMothership, self).move()
+
     def on_death(self):
         total = int(self.score / 500)
         for i in range(total):
-            child = EliteEnemy(self.x, self.y, self.target, self.parent_list, hp=5, variable_shape=True)
-            child.angle = -math.pi + i / total * math.pi * 2
-            child.speed = PLAYER_SPEED
+            angle = -math.pi + i / total * math.pi * 2
+            x = self.x + math.cos(angle) * total * (i % 3 + 1)
+            y = self.y + math.sin(angle) * total * (i % 3 + 1)
+            child = EliteEnemy(x, y, self.target, self.parent_list, hp=1, variable_shape=True)
+            child.angle = angle
             child.move()
             self.parent_list.append(child)
             super().on_death()

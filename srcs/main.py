@@ -186,21 +186,21 @@ class Game:
         speed = ENEMY_SPEED
         if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 100000) / 1000000):
-            hp = 10
-            score = 500
-            speed = PLAYER_SPEED
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-            # TODO:
-            # can shoot back
         if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 150000) / 1000000):
             max_hp = 100
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
             hp = max_hp
-            score = 2000
-            speed = ENEMY_SPEED / 2
+            score = 3000
+            speed = ENEMY_SPEED / 4
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
+        if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 100000) / 1000000):
+            hp = 10
+            score = 10000
+            speed = PLAYER_SPEED
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
+            # TODO:
+            # can shoot back
         if len(self.enemies) < 180 and random.random() < min(0.01, (self.score - 200000) / 10000000):
             score = 10000
             hp = 200

@@ -60,8 +60,11 @@ class Missile(Bullet):
 
         if disc < 0:
             return math.atan2(dy, dx)
-        t1 = (-b + math.sqrt(disc)) / (2 * a)
-        t2 = (-b - math.sqrt(disc)) / (2 * a)
+        try:
+            t1 = (-b + math.sqrt(disc)) / (2 * a)
+            t2 = (-b - math.sqrt(disc)) / (2 * a)
+        except ZeroDivisionError:
+            return math.atan2(dy, dx)
         t = min(t1, t2) if t1 > 0 and t2 > 0 else max(t1, t2, 0)
         intercept_x = tx + tvx * t
         intercept_y = ty + tvy * t
