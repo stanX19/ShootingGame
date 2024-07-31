@@ -8,12 +8,13 @@ from srcs.classes.game_particle import GameParticle
 
 
 class Enemy(GameParticle):
-    def __init__(self, x, y, target: GameParticle, radius=ENEMY_RADIUS, speed=ENEMY_SPEED,
-                 angle=0.0, color=ENEMY_COLOR, hp=1, score=100, variable_shape=False):
+    def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle], radius=ENEMY_RADIUS,
+                 speed=ENEMY_SPEED, angle=0.0, color=ENEMY_COLOR, hp=1, score=100, variable_shape=False):
         super().__init__(x, y, angle, speed, radius, color, hp, 1)
         self.score: float = score
         self.variable_shape: bool = variable_shape
         self.target: GameParticle = target
+        self.parent_list: list[GameParticle] = parent_list
 
         if variable_shape:
             self.update_appearance_based_on_hp()
@@ -45,12 +46,8 @@ class Enemy(GameParticle):
     def get_color(hp: float, speed: float):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
 
-    def on_death(self, game):
-        game.score += self.score
-        game.enemies.remove(self)
-
-
-
+    def on_death(self):
+        self.parent_list.remove(self)
 
 
 class EliteEnemy(Enemy):
@@ -100,12 +97,12 @@ class EnemyMothership(Enemy):
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
 
-    def on_death(self, game):
-        total = int(self.score / 1000)
+    def on_death(self):
+        total = int(self.score / 500)
         for i in range(total):
-            child = EliteEnemy(self.x, self.y, self.target, hp=1, variable_shape=True)
+            child = EliteEnemy(self.x, self.y, self.target, self.parent_list, hp=5, variable_shape=True)
             child.angle = -math.pi + i / total * math.pi * 2
             child.speed = PLAYER_SPEED
             child.move()
-            game.enemies.append(child)
-        super().on_death(game)
+            self.parent_list.append(child)
+        super().on_death()

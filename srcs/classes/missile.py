@@ -1,8 +1,6 @@
 from __future__ import annotations
 import math
-import pygame
 from srcs import utils
-from srcs.classes.enemy import Enemy
 from srcs.classes.bullet import Bullet
 from srcs.classes.game_particle import GameParticle
 from srcs.constants import *
@@ -27,10 +25,10 @@ class Missile(Bullet):
         self.target = Missile.find_target_at(self.x + dx, self.y + dy, self.enemies_list, search_radius)
 
     @staticmethod
-    def find_target_at(x:float, y:float, enemy_list: list[GameParticle], search_radius=100.0):
+    def find_target_at(x: float, y: float, target_list: list[GameParticle], search_radius=100.0):
         lowest_distance = search_radius
         target = None
-        for enemy in enemy_list:
+        for enemy in target_list:
             y_dis = enemy.y - y
             x_dis = enemy.x - x
             distance = math.hypot(x_dis, y_dis)
@@ -74,7 +72,7 @@ class Missile(Bullet):
             self.find_target()
         if self.lifespan <= 0:
             self.explode()
-        if isinstance(self.target, Enemy):
+        if isinstance(self.target, GameParticle):
             target_angle = self.calculate_intercept_angle(self.target)
             angle_diff = utils.angle_diff(target_angle, self.angle)
             angle_diff = utils.normalize(angle_diff, -math.pi / 24, math.pi / 24)

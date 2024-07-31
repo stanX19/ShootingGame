@@ -23,7 +23,7 @@
     <setting file="file://$PROJECT_DIR$/srcs/classes/bullet_enemy_collider.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/enemy.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/game_particle.py" root0="SKIP_INSPECTION" />
-    <setting file="file://$PROJECT_DIR$/srcs/classes/missile.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/missile.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/player.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/water_particle.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/water_particle_collider.py" root0="FORCE_HIGHLIGHTING" />
