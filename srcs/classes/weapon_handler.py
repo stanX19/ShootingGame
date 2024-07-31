@@ -181,7 +181,7 @@ class WeaponHandler:
     def _fire_default(self):
         if self.weapon.bullet_class == "missile":
             return self._fire_missile()
-        angle_offset = self.weapon.spread / self.bullet_count  # Adjust this value to control spread
+        angle_offset = self.weapon.spread / self.bullet_count
         for i in range(self.bullet_count):
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset

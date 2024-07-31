@@ -105,4 +105,4 @@ class EnemyMothership(Enemy):
             child.speed = PLAYER_SPEED
             child.move()
             self.parent_list.append(child)
-        super().on_death()
+            super().on_death()
