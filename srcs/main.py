@@ -208,7 +208,7 @@ class Game:
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
     def collide_everything(self):
-        collide_enemy_and_bullets(self.bullets, self.enemies)
+        collide_enemy_and_bullets(self.bullets + [self.player], self.enemies)
         self.water_particle_handler.collide_with_enemies(self.enemies)
 
         for enemy in self.enemies[:]:
@@ -247,13 +247,13 @@ class Game:
     def check_player_death(self):
         if god_mode:
             return
-        for enemy in self.enemies[:]:
-            if math.hypot(enemy.x - self.player.x, enemy.y - self.player.y) < enemy.rad + self.player.rad:
-                game_over_text = font.render("Game Over", True, (255, 255, 255))
-                MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
-                pygame.display.flip()
-                self.running = False
-                break
+        self.player.hp = max(0, min(PLAYER_HP, self.player.hp))
+        if self.player.hp > 0:
+            return
+        game_over_text = font.render("Game Over", True, (255, 255, 255))
+        MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
+        pygame.display.flip()
+        self.running = False
 
     def center_focus(self):
         LERP_CONST = 0.1
@@ -276,6 +276,7 @@ class Game:
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
   {self.main_weapon.index + 1}) {self.main_weapon.name}
+  {int(self.player.hp)} / {PLAYER_HP} hp
   """.strip()
         debug_str = f"""\
   particle count  : {len(self.water_particle_handler.particles)}

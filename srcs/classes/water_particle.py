@@ -16,7 +16,7 @@ class WaterParticle(Bullet):
 
     def move(self):
         super().move()
-        self.dmg = self.speed / MAX_PARTICLE_COUNT * 100
+        self.dmg = self.speed / MAX_PARTICLE_COUNT * 50
 
     def distance_with(self, other):
         return math.hypot(self.x - other.x, self.y - other.y)

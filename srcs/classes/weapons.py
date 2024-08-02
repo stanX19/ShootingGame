@@ -33,12 +33,12 @@ class WeaponEnum:
     machine_gun = WeaponType("machine gun", reload=100, velocity=10, count=10, radius=2, growth_score=25000,
                              offset_factor=0.1)
     lazer = WeaponType("lazer", reload=200, velocity=100, count=100, radius=1)
-    shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=100, radius=1,
+    shotgun = WeaponType("shotgun", reload=1000, velocity=50, count=200, radius=1,
                          recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_score=2500)
-    bomb = WeaponType("bomb", reload=800, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
+    bomb = WeaponType("destroyer", reload=800, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
     missile = WeaponType("missile", 500, count=8, growth_score=50000, dmg=10,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED)
     shield = WeaponType("shield", reload=2500, velocity=1, count=50, hp=50000, radius=1,
-                        dmg=1 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
+                        dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2*math.pi,
                         min_bullet_count=30, growth_score=5000)
     nova = WeaponType("nova", reload=0, count=min(1, int(MAX_PARTICLE_COUNT / 100)), velocity=1000)
