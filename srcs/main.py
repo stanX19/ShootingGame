@@ -22,8 +22,10 @@ from srcs.classes.player import Player
 from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
+from srcs.classes.collectible import *
+from srcs.classes.algo import generate_random_point
 
-god_mode: bool = 0
+god_mode: bool = False
 start_score: int = 100000000
 # Initialize Pygame
 pygame.init()
@@ -42,8 +44,9 @@ consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 class Game:
     def __init__(self):
         self.player: Player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
-        self.bullets: list[[Bullet, Missile]] = []
-        self.enemies: list[Enemy] = []
+        self.bullets: list[[Bullet, Missile]] = list([])
+        self.enemies: list[Enemy] = list([])
+        self.collectibles: list[Collectible] = list([])
         self.water_particle_handler = WaterParticleHandler()
         self.score = start_score
         self.kills = 0
@@ -62,15 +65,17 @@ class Game:
         self.quit = False
         self.clock = pygame.time.Clock()
         self.current_time = pygame.time.get_ticks()
-        self.focus_x = self.player.x
-        self.focus_y = self.player.x
+        self.screen_x = 0
+        self.screen_y = 0
         self.init_game()
 
     def init_game(self):
         self.running = True
         self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
-        self.enemies = []
-        self.bullets = []
+        self.center_focus(lerp_const=1.0)
+        self.enemies = list([])
+        self.bullets = list([])
+        self.collectibles = list([])
         self.water_particle_handler.clear()
         self.score = start_score
         self.kills = 0
@@ -123,15 +128,15 @@ class Game:
 
     def get_mouse_pos(self):
         mx, my = pygame.mouse.get_pos()
-        mx -= self.focus_x
-        my -= self.focus_y
+        mx += self.screen_x
+        my += self.screen_y
         return mx, my
 
     def in_screen(self, particle):
-        min_x = - self.focus_x - particle.rad
-        max_x = - self.focus_x + SCREEN_WIDTH + particle.rad
-        min_y = - self.focus_y - particle.rad
-        max_y = - self.focus_y + SCREEN_HEIGHT + particle.rad
+        min_x = self.screen_x - particle.rad
+        max_x = self.screen_x + SCREEN_WIDTH + particle.rad
+        min_y = self.screen_y - particle.rad
+        max_y = self.screen_y + SCREEN_HEIGHT + particle.rad
         return min_x < particle.x < max_x and min_y < particle.y < max_y
 
     def shoot_bullets(self):
@@ -180,6 +185,22 @@ class Game:
         self.enemies.append(_constructor(ex, ey, self.player, parent_list=self.enemies, hp=hp,
                                          score=score, speed=speed, variable_shape=variable_shape))
 
+    def get_view_rect(self) -> tuple[int, int, int, int]:
+        return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
+
+    def spawn_collectibles(self):
+        if len(self.collectibles) > 100:
+            return
+        if random.random() > 0.01:
+            return
+        _class = random.choice((HealCollectible, WeaponCollectible))
+        x, y = generate_random_point(
+            rect_small=self.get_view_rect(),
+            rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
+            padding=COLLECTIBLE_RADIUS
+        )
+        self.collectibles.append(_class(x, y, self))
+
     def spawn_enemies(self):
         hp = 1
         score = 100
@@ -209,19 +230,23 @@ class Game:
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.bullets + [self.player], self.enemies)
+        collide_enemy_and_bullets([self.player], self.collectibles)
         self.water_particle_handler.collide_with_enemies(self.enemies)
 
-        for enemy in self.enemies[:]:
+        for enemy in self.enemies:
             if enemy.hp > 0:
                 continue
             enemy.on_death()
             self.score += enemy.score
             self.kills += 1
+        self.enemies[:] = [e for e in self.enemies if e.hp > 0]
 
-        for bullet in self.bullets[:]:
-            if bullet.hp <= 0:
-                self.bullets.remove(bullet)
-                continue
+        self.bullets[:] = [b for b in self.bullets if b.hp > 0]
+
+        for collectible in self.collectibles:
+            if collectible.hp <= 0:
+                collectible.on_collect()
+        self.collectibles[:] = [c for c in self.collectibles if c.hp > 0]
 
     def move_everything(self):
         for enemy in self.enemies:
@@ -229,15 +254,11 @@ class Game:
                 enemy.dodge_bullets(self.bullets)
             enemy.move()
 
-        for bullet in self.bullets[:]:
+        for bullet in self.bullets:
             bullet.move()
-            if bullet not in self.bullets:
-                continue
-            elif bullet.x < 0 or bullet.x > MAP_WIDTH or bullet.y < 0 or bullet.y > MAP_HEIGHT:
-                self.bullets.remove(bullet)
-            elif bullet.lifespan <= 0.0:
-                self.bullets.remove(bullet)
 
+        self.bullets[:] = [b for b in self.bullets
+                           if not (b.x < 0 or b.x > MAP_WIDTH or b.y < 0 or b.y > MAP_HEIGHT) and b.lifespan > 0]
         self.water_particle_handler.update()
         self.water_particle_handler.remove_out_of_bounds(0, 0, MAP_WIDTH, MAP_HEIGHT)
         self.water_particle_handler.remove_zero_lifespan()
@@ -255,10 +276,9 @@ class Game:
         pygame.display.flip()
         self.running = False
 
-    def center_focus(self):
-        LERP_CONST = 0.1
-        self.focus_x += (SCREEN_WIDTH // 2 - self.player.x - self.focus_x) * LERP_CONST
-        self.focus_y += (SCREEN_HEIGHT // 2 - self.player.y - self.focus_y) * LERP_CONST
+    def center_focus(self, lerp_const=0.1):
+        self.screen_x += (self.player.x - SCREEN_WIDTH / 2 - self.screen_x) * lerp_const
+        self.screen_y += (self.player.y - SCREEN_HEIGHT / 2 - self.screen_y) * lerp_const
 
     def update(self):
         if not self.running:
@@ -268,6 +288,7 @@ class Game:
         self.start_ticks = self.current_time
         self.shoot_bullets()
         self.spawn_enemies()
+        self.spawn_collectibles()
         self.collide_everything()
         self.check_player_death()
         self.move_everything()
@@ -279,7 +300,10 @@ class Game:
   {int(self.player.hp)} / {PLAYER_HP} hp
   """.strip()
         debug_str = f"""\
+  fps             : {self.clock.get_fps():.0f}
   particle count  : {len(self.water_particle_handler.particles)}
+  bullet count    : {len(self.bullets)}
+  buff count      : {len(self.collectibles)}
   enemy count     : {len(self.enemies)}
   kills           : {self.kills}
   overdrive cd    : {self.main_weapon.overdrive_cd / 1000:<4.1f}(Q)
@@ -294,21 +318,25 @@ class Game:
             SCREEN.blit(text, (10, y))
             y += text.get_height()
 
-    def draw(self):
+    def draw_everything(self):
         MAP_SURFACE.fill(BACKGROUND_COLOR)
         self.player.draw(MAP_SURFACE)
-        for bullet in self.bullets:
-            if not self.in_screen(bullet):
-                continue
-            bullet.draw(MAP_SURFACE)
-        for enemy in self.enemies:
-            if not self.in_screen(enemy):
-                continue
-            enemy.draw(MAP_SURFACE)
-        self.water_particle_handler.draw_everything(MAP_SURFACE, (self.focus_x, self.focus_y))
+
+        # particles
+        def draw_particles(particles: [GameParticle]):
+            for particle in particles:
+                if not self.in_screen(particle):
+                    continue
+                particle.draw(MAP_SURFACE)
+
+        draw_particles(self.collectibles)
+        draw_particles(self.bullets)
+        draw_particles(self.enemies)
+
+        self.water_particle_handler.draw_everything(MAP_SURFACE, (self.screen_x, self.screen_y))
 
         SCREEN.fill((100, 100, 100))
-        SCREEN.blit(MAP_SURFACE, (self.focus_x, self.focus_y))
+        SCREEN.blit(MAP_SURFACE, (-self.screen_x, -self.screen_y))
         self.add_text_to_screen()
 
         pygame.display.flip()
@@ -317,8 +345,8 @@ class Game:
         while not self.quit:
             self.handle_events()
             self.update()
-            self.draw()
-            self.clock.tick(30)
+            self.draw_everything()
+            self.clock.tick(FPS)
         pygame.quit()
 
 

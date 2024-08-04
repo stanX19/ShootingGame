@@ -1,5 +1,6 @@
 from __future__ import annotations
 import math
+from typing import Sequence
 from srcs.constants import *
 from srcs.classes.bullet import Bullet
 from srcs.classes.enemy import Enemy
@@ -10,7 +11,7 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
     if bullet.hp <= 0:
         return
     enemy.hp -= bullet.dmg
-    bullet.hp -= bullet.dmg + enemy.hp
+    bullet.hp -= enemy.dmg
 
 
 def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int):
@@ -35,9 +36,9 @@ def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list
             break
 
 
-def collide_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GameParticle]):
-    bullets.sort(key=lambda b: b.x - b.rad)
-    enemies.sort(key=lambda b: b.x - b.rad)
+def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle]):
+    bullets = sorted(bullets, key=lambda b: b.x - b.rad)
+    enemies = sorted(enemies, key=lambda b: b.x - b.rad)
     # sep
     CUTTING_LINE = ENEMY_RADIUS + 20
 
@@ -45,5 +46,3 @@ def collide_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GamePar
     big_enemies = [p for p in enemies if p.rad > CUTTING_LINE]
     _collide_sorted_enemy_and_bullets(bullets, small_enemies)
     _collide_sorted_enemy_and_bullets(bullets, big_enemies)
-
-

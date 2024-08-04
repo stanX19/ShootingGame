@@ -2,6 +2,7 @@ from __future__ import annotations
 import pygame
 import math
 import random
+from typing import Sequence
 from srcs import utils
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
@@ -47,8 +48,7 @@ class Enemy(GameParticle):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
 
     def on_death(self):
-        if self in self.parent_list:
-            self.parent_list.remove(self)
+        pass
 
 
 class EliteEnemy(Enemy):
@@ -57,14 +57,22 @@ class EliteEnemy(Enemy):
         super().__init__(x, y, target, parent_list, radius=radius, speed=speed, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
 
-    def dodge_bullets(self, bullets: list[GameParticle]):
+    def dodge_bullets(self, bullets: Sequence[GameParticle]):
         closest_bullet = None
         min_time_to_collision = float('inf')
 
-        for bullet in bullets:
+        MAX_DISTANCE = 100
+        MAX_CHECK = 100
+
+        # more than this will cause lag
+        for bullet in bullets[:MAX_CHECK]:
             # Calculate relative position and velocity
             rel_x = bullet.x - self.x
             rel_y = bullet.y - self.y
+
+            # if math.hypot(rel_x, rel_y) < MAX_DISTANCE:
+            #     continue
+
             rel_vx = bullet.xv - self.xv
             rel_vy = bullet.yv - self.yv
 
@@ -83,6 +91,7 @@ class EliteEnemy(Enemy):
                 if 0 < t_collision < min_time_to_collision:
                     min_time_to_collision = t_collision
                     closest_bullet = bullet
+                    break
 
         if closest_bullet and min_time_to_collision < float('inf'):
             angle = math.atan2(closest_bullet.yv, closest_bullet.xv) + self.dodge_angle
@@ -104,6 +113,8 @@ class EnemyMothership(Enemy):
 
     def on_death(self):
         total = int(self.score / 500)
+        # if len(self.parent_list) + total > 300:
+        #     return
         for i in range(total):
             angle = -math.pi + i / total * math.pi * 2
             x = self.x + math.cos(angle) * total * (i % 3 + 1)
@@ -112,4 +123,4 @@ class EnemyMothership(Enemy):
             child.angle = angle
             child.move()
             self.parent_list.append(child)
-            super().on_death()
+        super().on_death()

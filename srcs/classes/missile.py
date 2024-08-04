@@ -3,6 +3,7 @@ import math
 from srcs import utils
 from srcs.classes.bullet import Bullet
 from srcs.classes.game_particle import GameParticle
+from srcs.classes.algo import calculate_intercept_angle
 from srcs.constants import *
 
 
@@ -45,38 +46,13 @@ class Missile(Bullet):
         except AttributeError:
             return 0
 
-    def calculate_intercept_angle(self, target: GameParticle):
-        tx = target.x
-        ty = target.y
-        tvx = target.xv
-        tvy = target.yv
-        dx = tx - self.x
-        dy = ty - self.y
-        target_speed = math.hypot(tvx, tvy)
-        a = target_speed ** 2 - (self.speed * 0.1) ** 2
-        b = 2 * (dx * tvx + dy * tvy)
-        c = dx ** 2 + dy ** 2
-        disc = b ** 2 - 4 * a * c
-
-        if disc < 0:
-            return math.atan2(dy, dx)
-        try:
-            t1 = (-b + math.sqrt(disc)) / (2 * a)
-            t2 = (-b - math.sqrt(disc)) / (2 * a)
-        except ZeroDivisionError:
-            return math.atan2(dy, dx)
-        t = min(t1, t2) if t1 > 0 and t2 > 0 else max(t1, t2, 0)
-        intercept_x = tx + tvx * t
-        intercept_y = ty + tvy * t
-        return math.atan2(intercept_y - self.y, intercept_x - self.x)
-
     def update(self):
         if self.target not in self.enemies_list:
             self.find_target()
         if self.lifespan <= 0:
             self.explode()
         if isinstance(self.target, GameParticle):
-            target_angle = self.calculate_intercept_angle(self.target)
+            target_angle = calculate_intercept_angle(self, self.target)
             angle_diff = utils.angle_diff(target_angle, self.angle)
             angle_diff = utils.normalize(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff

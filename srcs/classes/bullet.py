@@ -29,4 +29,3 @@ class Bullet(GameParticle):
     def move(self):
         super().move()
         self.lifespan -= 1
-

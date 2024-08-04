@@ -19,17 +19,19 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/.gitignore" root0="SKIP_INSPECTION" />
-    <setting file="file://$PROJECT_DIR$/srcs/classes/bullet.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/algo.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/bullet.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/bullet_enemy_collider.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/collectible.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/enemy.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/game_particle.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/missile.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/srcs/classes/player.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/player.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/water_particle.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/water_particle_collider.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/classes/water_particle_handler.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/srcs/classes/weapon_handler.py" root0="SKIP_INSPECTION" />
-    <setting file="file://$PROJECT_DIR$/srcs/classes/weapons.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/weapon_handler.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/srcs/classes/weapons.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/main.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/srcs/test.py" root0="SKIP_INSPECTION" />
   </component>
@@ -58,6 +60,48 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
+    <configuration name="algo" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ShootingGame" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/srcs/classes" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/srcs/classes/algo.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="constants" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ShootingGame" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/srcs" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/srcs/constants.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="ShootingGame" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -121,55 +165,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="water_particle_handler" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="ShootingGame" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/srcs/classes" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="C:\Users\DELL\PycharmProjects\pythonProject\ShootingGame\srcs\classes\water_particle_handler.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="weapon_handler" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="ShootingGame" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/srcs/classes" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/srcs/classes/weapon_handler.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.constants" />
+        <item itemvalue="Python.algo" />
         <item itemvalue="Python.test" />
         <item itemvalue="Python.water_particle_handler (1)" />
-        <item itemvalue="Python.weapon_handler" />
-        <item itemvalue="Python.water_particle_handler" />
       </list>
     </recent_temporary>
   </component>

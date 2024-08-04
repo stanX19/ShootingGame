@@ -29,7 +29,7 @@ class WaterParticleHandler:
             pygame.draw.circle(particle_surface, color, (particle.rad, particle.rad), particle.rad)
             draw_surface.blit(
                 particle_surface,
-                (int(particle.x + focus[0] - particle.rad), int(particle.y + focus[1] - particle.rad))
+                (int(particle.x - focus[0] - particle.rad), int(particle.y - focus[1] - particle.rad))
             )
         # overlap = black
         alpha_array = pygame.surfarray.pixels_alpha(draw_surface)
@@ -37,7 +37,7 @@ class WaterParticleHandler:
         alpha_array[:] = np.where(alpha_array == 0, 0, (355 - alpha_array) / 255 * 128)
         del alpha_array
 
-        surface.blit(draw_surface, (-focus[0], -focus[1]))
+        surface.blit(draw_surface, (focus[0], focus[1]))
 
     def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
         if constants.GOOD_GRAPHICS:
