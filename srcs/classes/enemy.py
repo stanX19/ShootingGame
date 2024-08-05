@@ -41,7 +41,7 @@ class Enemy(GameParticle):
 
     @staticmethod
     def get_rad(hp: float):
-        return ENEMY_RADIUS + hp - 1
+        return ENEMY_RADIUS + (hp - 1)
 
     @staticmethod
     def get_color(hp: float, speed: float):
@@ -119,7 +119,7 @@ class EnemyMothership(Enemy):
             angle = -math.pi + i / total * math.pi * 2
             x = self.x + math.cos(angle) * total * (i % 3 + 1)
             y = self.y + math.sin(angle) * total * (i % 3 + 1)
-            child = EliteEnemy(x, y, self.target, self.parent_list, hp=1, variable_shape=True)
+            child = Enemy(x, y, self.target, self.parent_list, hp=1, variable_shape=True, speed=PLAYER_SPEED)
             child.angle = angle
             child.move()
             self.parent_list.append(child)

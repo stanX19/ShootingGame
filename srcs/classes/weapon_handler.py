@@ -6,16 +6,19 @@ from srcs import constants
 from srcs import utils
 from srcs.classes.bullet import Bullet
 from srcs.classes.missile import Missile
-from srcs.classes.weapons import WeaponType, WeaponEnum
+from srcs.classes.weapons import *
 
 
 class WeaponHandler:
-    def __init__(self, game, weapons: [None, list[WeaponType]] = None):
+    def __init__(self, game, weapons: [None, list[WeaponType], type] = None):
         if weapons is None:
-            weapons = [attr for attr in vars(WeaponEnum).values() if isinstance(attr, WeaponType)]
+            weapons = []
+        if isinstance(weapons, type):
+            weapons = [copy.copy(attr) for attr in vars(weapons).values() if isinstance(attr, WeaponType)]
+
         self.weapon: [WeaponType, None] = weapons[0] if weapons else None
         self.all_weapon = weapons
-        self.last_shot_time = {weapon: -1000000 for weapon in self.all_weapon}
+        self.last_shot_time = {}
         self.weapon_change_energy = 10000
         self.last_reload_time = 0
         self.game = game
@@ -95,11 +98,16 @@ class WeaponHandler:
         # self.overdrive_weapon.speed /= 2
         self.overdrive_weapon = None
 
+    def upgrade_weapon(self):
+        self.weapon.level += 1
+
     def _set_weapon(self, weapon: WeaponType):
-        if self.weapon is weapon:
+        if self.weapon.name == weapon.name:
             return
         if self._change_in_cooldown():
             return
+        if weapon not in self.all_weapon:
+            self.all_weapon.append(weapon)
         self.on_mouse_up()
         self.overdrive_end()
         self.weapon = weapon
@@ -136,7 +144,7 @@ class WeaponHandler:
 
     def _get_bullet_count(self) -> int:
         if self.weapon.growth_factor != 0:
-            bullet_count = int(self.score / self.weapon.growth_factor)
+            bullet_count = self.weapon.min_bullet_count + (self.weapon.level - 1) * self.weapon.growth_factor
             return utils.normalize(bullet_count, self.weapon.min_bullet_count, self.weapon.bullet_count)
         else:
             return self.weapon.bullet_count
@@ -152,21 +160,21 @@ class WeaponHandler:
                 weapon=self.weapon
             ))
 
-    def _fire_shotgun(self):
-        direction_count = self.bullet_count
-        angle_offset = math.pi * 0.4 / direction_count
-        for i in range(self.bullet_count):
-            offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
-            shoot_angle = self.angle + offset
-            speed = random.uniform(self.weapon.speed / 2, self.weapon.speed)
-            self.bullets_list.append(
-                Bullet(
-                    self.player.x,
-                    self.player.y,
-                    shoot_angle,
-                    speed=speed,
-                    weapon=self.weapon
-                ))
+    # def _fire_shotgun(self):
+    #     direction_count = self.bullet_count
+    #     angle_offset = math.pi * 0.4 / direction_count
+    #     for i in range(self.bullet_count):
+    #         offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
+    #         shoot_angle = self.angle + offset
+    #         speed = random.uniform(self.weapon.speed / 2, self.weapon.speed)
+    #         self.bullets_list.append(
+    #             Bullet(
+    #                 self.player.x,
+    #                 self.player.y,
+    #                 shoot_angle,
+    #                 speed=speed,
+    #                 weapon=self.weapon
+    #             ))
 
     def _fire_missile(self):
         direction_count = self.bullet_count
@@ -179,8 +187,12 @@ class WeaponHandler:
                                      dmg=self.weapon.dmg))
 
     def _fire_default(self):
-        if self.weapon.bullet_class == "missile":
+        if self.weapon.bullet_class is MISSILE_CLASS:
             return self._fire_missile()
+        elif self.weapon.bullet_class is LAZER_CLASS:
+            return self._fire_lazer()
+        elif self.weapon.bullet_class is NOVA_CLASS:
+            return self._fire_nova()
         angle_offset = self.weapon.spread / self.bullet_count
         for i in range(self.bullet_count):
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
@@ -195,7 +207,7 @@ class WeaponHandler:
                 weapon=self.weapon
             ))
 
-    def _fire_particle(self):
+    def _fire_nova(self):
         mx, my = self.game.get_mouse_pos()
         for i in range(self.bullet_count):
             self.game.water_particle_handler.spawn_at(mx, my)
@@ -220,7 +232,7 @@ class WeaponHandler:
     def fire(self):
         if self.weapon is None:
             return
-        if self.current_time - self.last_shot_time[self.weapon] < self.weapon.shot_delay:
+        if self.current_time - self.last_shot_time.get(self.weapon, -10000000000) < self.weapon.shot_delay:
             return
         self.last_shot_time[self.weapon] = self.current_time
 
@@ -228,19 +240,19 @@ class WeaponHandler:
         self._update_fire_constants()
         
         fire_dict = {
-            WeaponEnum.lazer: self._fire_lazer,
-            WeaponEnum.shotgun: self._fire_shotgun,
-            WeaponEnum.missile: self._fire_missile,
-            WeaponEnum.nova: self._fire_particle
+            LAZER_CLASS: self._fire_lazer,
+            MISSILE_CLASS: self._fire_missile,
+            NOVA_CLASS: self._fire_nova
         }
         # fire according to matched weapon and function
-        fire_func = fire_dict.get(self.weapon, self._fire_default)
+        fire_func = fire_dict.get(self.weapon.bullet_class, self._fire_default)
         fire_func()
+        # self._fire_default()
 
         self.player.recoil(self.angle, self.weapon.recoil)
 
     def on_mouse_up(self):
-        if self.weapon is WeaponEnum.nova:
+        if self.weapon.bullet_class is NOVA_CLASS:
             self.game.water_particle_handler.release(
                 *self.game.get_mouse_pos(),
                 self.game.get_mouse_angle(),

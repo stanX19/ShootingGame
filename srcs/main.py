@@ -15,7 +15,7 @@ except ImportError:
     import numpy
 from srcs.constants import *
 from srcs.classes.weapon_handler import WeaponHandler
-from srcs.classes.weapons import WeaponType, WeaponEnum
+from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
@@ -26,7 +26,8 @@ from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
 god_mode: bool = False
-start_score: int = 100000000
+start_score: int = 0
+default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile]) #  (MainWeaponEnum, SubWeaponEnum)
 # Initialize Pygame
 pygame.init()
 
@@ -55,12 +56,8 @@ class Game:
         self.right_mouse_down = False
         self.autofire = False
         self.pressed_keys = {k: False for k in range(1000)}
-        self.main_weapon = WeaponHandler(self)
-        self.sub_weapon = WeaponHandler(self, [
-            WeaponType("sub missile", 2000, MISSILE_SPEED, 8, min_bullet_count=2,
-                       dmg=WeaponEnum.missile.dmg,
-                       growth_score=50000, bullet_class="missile", radius=MISSILE_RADIUS)
-        ])
+        self.main_weapon = None
+        self.sub_weapon = None
         self.running = True
         self.quit = False
         self.clock = pygame.time.Clock()
@@ -72,6 +69,8 @@ class Game:
     def init_game(self):
         self.running = True
         self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
+        self.main_weapon = WeaponHandler(self, default_weapons[0])
+        self.sub_weapon = WeaponHandler(self, default_weapons[1])
         self.center_focus(lerp_const=1.0)
         self.enemies = list([])
         self.bullets = list([])
@@ -189,17 +188,17 @@ class Game:
         return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
 
     def spawn_collectibles(self):
-        if len(self.collectibles) > 100:
+        if len(self.collectibles) >= 300:# or random.random() > 0.005:
             return
-        if random.random() > 0.01:
-            return
-        _class = random.choice((HealCollectible, WeaponCollectible))
+        _class = random.choices([HealCollectible, WeaponCollectible, WeaponUpgradeCollectible],
+                                [0.10, 0.30, 0.60])[0]
         x, y = generate_random_point(
             rect_small=self.get_view_rect(),
             rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
             padding=COLLECTIBLE_RADIUS
         )
         self.collectibles.append(_class(x, y, self))
+
 
     def spawn_enemies(self):
         hp = 1
@@ -301,6 +300,7 @@ class Game:
   """.strip()
         debug_str = f"""\
   fps             : {self.clock.get_fps():.0f}
+  weapon level    : {self.main_weapon.weapon.level}
   particle count  : {len(self.water_particle_handler.particles)}
   bullet count    : {len(self.bullets)}
   buff count      : {len(self.collectibles)}
