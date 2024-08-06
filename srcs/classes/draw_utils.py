@@ -2,8 +2,10 @@ import pygame
 
 
 def draw_cross(surface, x, y, rad, color1, color2):
-    WIDTH = int(rad * 0.75)
-    LENGTH = int(rad * 0.75)
+    WIDTH = rad
+    LENGTH = rad
+    WIDTH -= WIDTH % 2   # ensure even
+    LENGTH -= LENGTH % 2
     # pygame.draw.circle(surface, color1, (x, y), rad)
     pygame.draw.rect(surface, color1, (x - WIDTH // 2, y - LENGTH, WIDTH, 2 * LENGTH))
     pygame.draw.rect(surface, color1, (x - LENGTH, y - WIDTH // 2, 2 * LENGTH, WIDTH))
@@ -41,7 +43,7 @@ def draw_star(surface, x, y, rad, color1, color2):
 def draw_arrow(surface, x, y, rad, color1, color2):
     w = rad
     h = rad
-    pygame.draw.polygon(surface, color1, (
+    pygame.draw.polygon(surface, color2, (
         (x, y - h),        # Top point
         (x - w, y),        # Bottom-left point
         (x - w // 2, y),        # Left inner point
@@ -52,7 +54,7 @@ def draw_arrow(surface, x, y, rad, color1, color2):
     ))
     w -= 3
     h -= 3
-    pygame.draw.polygon(surface, color2, (
+    pygame.draw.polygon(surface, color1, (
         (x, y - h),  # Top point
         (x - w, y),  # Bottom-left point
         (x - w // 2, y),  # Left inner point

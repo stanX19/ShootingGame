@@ -27,7 +27,7 @@ from srcs.classes.algo import generate_random_point
 
 god_mode: bool = False
 start_score: int = 0
-default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile]) #  (MainWeaponEnum, SubWeaponEnum)
+default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile]) #(MainWeaponEnum, SubWeaponEnum)#
 # Initialize Pygame
 pygame.init()
 
@@ -99,7 +99,7 @@ class Game:
                 if event.key == pygame.K_q:
                     self.main_weapon.overdrive_start()
                 if event.key == pygame.K_TAB:
-                    self.main_weapon.change_weapon()
+                    self.sub_weapon.change_weapon()
                 if event.key == pygame.K_e:
                     self.autofire = not self.autofire
                 self.pressed_keys[event.key] = True
@@ -188,10 +188,14 @@ class Game:
         return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
 
     def spawn_collectibles(self):
-        if len(self.collectibles) >= 300:# or random.random() > 0.005:
+        MAX_ON_MAP = 50
+        if random.random() > 0.0001 * (MAX_ON_MAP - len(self.collectibles)):
             return
-        _class = random.choices([HealCollectible, WeaponCollectible, WeaponUpgradeCollectible],
-                                [0.10, 0.30, 0.60])[0]
+        _class = random.choices(
+            [HealCollectible, WeaponCollectible, SubWeaponCollectible,
+             WeaponUpgradeCollectible, SubWeaponUpgradeCollectible],
+            [1, 1, 1, 10, 5]
+        )[0]
         x, y = generate_random_point(
             rect_small=self.get_view_rect(),
             rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
@@ -285,12 +289,12 @@ class Game:
         self.current_time = pygame.time.get_ticks()
         self.score += self.current_time - self.start_ticks
         self.start_ticks = self.current_time
+        self.move_everything()
+        self.collide_everything()
+        self.check_player_death()
         self.shoot_bullets()
         self.spawn_enemies()
         self.spawn_collectibles()
-        self.collide_everything()
-        self.check_player_death()
-        self.move_everything()
         self.center_focus()
 
     def add_text_to_screen(self):

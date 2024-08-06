@@ -99,20 +99,45 @@ def generate_random_point(rect_small: tuple[int, int, int, int], rect_big: tuple
 
     return (x, y)
 
-#
+
+import matplotlib.pyplot as plt
+
+
+def test(x, y, rad, rect, must_have: list[tuple[int, int, int, int]], must_error=False, iterations=10000):
+    rect_small = [x - rad, y - rad, x + rad, y + rad]
+    rect_big = rect
+
+    points = []
+    error_count = 0
+    for _ in range(iterations):
+        try:
+            point = generate_random_point(rect_small, rect_big)
+            points.append(point)
+        except ValueError as e:
+            error_count += 1
+
+    def rect_contains(rect, cord) -> bool:
+        x1, y1, x2, y2 = rect
+        cord_x, cord_y = cord
+        return x1 <= cord_x <= x2 and y1 <= cord_y <= y2
+
+    if not all(any(rect_contains(rect, c) for c in points) for rect in must_have):
+        return False
+    if must_error and error_count == 0:
+        return False
+    return True
+
+
+def main():
+    case1 = [5, 5, 4, [0, 0, 10, 10], [[0, 0, 1, 1], [9, 9, 10, 10], [0, 9, 1, 10], [9, 0, 10, 1]]]
+
+    print(test(*case1))
+
 # def main():
-#     import matplotlib.pyplot as plt
-#     rect_small = [2, 2, 8, 8]
 #     rect_big = [0, 0, 10, 10]
 #
 #     # Generate random points
-#     points = []
-#     for _ in range(1000):
-#         try:
-#             point = generate_random_point(rect_small, rect_big, padding=1)
-#             points.append(point)
-#         except ValueError as e:
-#             print(e)
+#
 #
 #     # Unpack points
 #     x_points, y_points = zip(*points)
@@ -143,8 +168,8 @@ def generate_random_point(rect_small: tuple[int, int, int, int], rect_big: tuple
 #     ax.set_title('Random Points Outside rect_small and Inside rect_big')
 #
 #     plt.show()
-#
-#
-# if __name__ == "__main__":
-#     main()
-#
+
+
+if __name__ == "__main__":
+    main()
+

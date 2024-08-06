@@ -11,10 +11,14 @@ from srcs.classes.weapons import *
 
 class WeaponHandler:
     def __init__(self, game, weapons: [None, list[WeaponType], type] = None):
-        if weapons is None:
-            weapons = []
-        if isinstance(weapons, type):
+        if isinstance(weapons, list):
+            weapons = [copy.copy(weapon) for weapon in weapons if isinstance(weapon, WeaponType)]
+        elif isinstance(weapons, WeaponType):
+            weapons = [weapons]
+        elif isinstance(weapons, type):
             weapons = [copy.copy(attr) for attr in vars(weapons).values() if isinstance(attr, WeaponType)]
+        else:
+            weapons = []
 
         self.weapon: [WeaponType, None] = weapons[0] if weapons else None
         self.all_weapon = weapons
@@ -107,6 +111,7 @@ class WeaponHandler:
         if self._change_in_cooldown():
             return
         if weapon not in self.all_weapon:
+            weapon = copy.copy(weapon)
             self.all_weapon.append(weapon)
         self.on_mouse_up()
         self.overdrive_end()

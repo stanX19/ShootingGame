@@ -33,7 +33,7 @@ class WeaponType:
         self.offset_factor: float = offset_factor
         self.bullet_class: str = bullet_class
         self.color: tuple[int] = color
-        self.level: int = 1
+        self.level: int = 100
 
     @property
     def speed(self) -> float:
@@ -53,7 +53,7 @@ class MainWeaponEnum:
                              offset_factor=0.1)
     lazer = WeaponType("lazer", reload=200, velocity=100, min_bullet_count=50, count=100, radius=1,
                        growth_factor=5, bullet_class=LAZER_CLASS)
-    shotgun = WeaponType("shotgun", reload=1000, velocity=(25, 50), count=200, radius=1,
+    shotgun = WeaponType("shotgun", reload=1000, velocity=(25, 50), count=300, radius=1,
                          recoil=PLAYER_SPEED, dmg=1, min_bullet_count=10, growth_factor=10, spread=math.pi * 0.4)
     bomb = WeaponType("destroyer", reload=800, velocity=5, count=1, radius=25, recoil=25, hp=10000, dmg=10)
     missile = WeaponType("missile", 500, count=8, growth_factor=1, dmg=10,
@@ -70,6 +70,6 @@ class SubWeaponEnum:
                              dmg=MainWeaponEnum.missile.dmg,
                              growth_factor=1, bullet_class=MISSILE_CLASS, radius=MISSILE_RADIUS)
 
-    sub_shield = WeaponType("sub shield", reload=5000, velocity=1, count=50, hp=50000, radius=1,
+    sub_shield = WeaponType("sub shield", reload=10000, velocity=1, count=100, hp=50000, radius=1,
                             dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
-                            min_bullet_count=20, growth_factor=5)
+                            min_bullet_count=30, growth_factor=5)
