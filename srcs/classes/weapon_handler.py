@@ -110,7 +110,9 @@ class WeaponHandler:
             return
         if self._change_in_cooldown():
             return
-        if weapon not in self.all_weapon:
+        if weapon.name in [w.name for w in self.all_weapon]:
+            weapon = [w for w in self.all_weapon if w.name == weapon.name][0]
+        else:
             weapon = copy.copy(weapon)
             self.all_weapon.append(weapon)
         self.on_mouse_up()
@@ -149,7 +151,7 @@ class WeaponHandler:
 
     def _get_bullet_count(self) -> int:
         if self.weapon.growth_factor != 0:
-            bullet_count = self.weapon.min_bullet_count + (self.weapon.level - 1) * self.weapon.growth_factor
+            bullet_count = self.weapon.min_bullet_count + int((self.weapon.level - 1) * self.weapon.growth_factor)
             return utils.normalize(bullet_count, self.weapon.min_bullet_count, self.weapon.bullet_count)
         else:
             return self.weapon.bullet_count
@@ -198,6 +200,8 @@ class WeaponHandler:
             return self._fire_lazer()
         elif self.weapon.bullet_class is NOVA_CLASS:
             return self._fire_nova()
+        if self.bullet_count == 0:
+            return
         angle_offset = self.weapon.spread / self.bullet_count
         for i in range(self.bullet_count):
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
@@ -214,6 +218,7 @@ class WeaponHandler:
 
     def _fire_nova(self):
         mx, my = self.game.get_mouse_pos()
+        print(self.bullet_count)
         for i in range(self.bullet_count):
             self.game.water_particle_handler.spawn_at(mx, my)
         self.game.water_particle_handler.attract_to(mx, my)

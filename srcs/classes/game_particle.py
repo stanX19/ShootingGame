@@ -48,3 +48,6 @@ class GameParticle(Particle):
         super().__init__(x, y, angle, speed, radius, color)
         self.hp: float = hp
         self.dmg: float = dmg
+
+    def on_death(self, *args, **kwargs):
+        pass

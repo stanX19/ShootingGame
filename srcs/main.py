@@ -25,9 +25,14 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
+dev_mode = 0
 god_mode: bool = False
 start_score: int = 0
-default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile]) #(MainWeaponEnum, SubWeaponEnum)#
+default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
+if dev_mode:
+    # god_mode = True
+    start_score = 100000000
+    default_weapons = (MainWeaponEnum, SubWeaponEnum)
 # Initialize Pygame
 pygame.init()
 
@@ -189,12 +194,12 @@ class Game:
 
     def spawn_collectibles(self):
         MAX_ON_MAP = 50
-        if random.random() > 0.0001 * (MAX_ON_MAP - len(self.collectibles)):
+        if random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
             return
         _class = random.choices(
             [HealCollectible, WeaponCollectible, SubWeaponCollectible,
              WeaponUpgradeCollectible, SubWeaponUpgradeCollectible],
-            [1, 1, 1, 10, 5]
+            [1, 2, 1, 4, 2]
         )[0]
         x, y = generate_random_point(
             rect_small=self.get_view_rect(),
@@ -289,8 +294,8 @@ class Game:
         self.current_time = pygame.time.get_ticks()
         self.score += self.current_time - self.start_ticks
         self.start_ticks = self.current_time
-        self.move_everything()
         self.collide_everything()
+        self.move_everything()
         self.check_player_death()
         self.shoot_bullets()
         self.spawn_enemies()
