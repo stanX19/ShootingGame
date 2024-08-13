@@ -51,3 +51,6 @@ class GameParticle(Particle):
 
     def on_death(self, *args, **kwargs):
         pass
+
+    def is_dead(self):
+        return self.hp <= 0.0

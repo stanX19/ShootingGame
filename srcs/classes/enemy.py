@@ -62,7 +62,7 @@ class EliteEnemy(Enemy):
         min_time_to_collision = float('inf')
 
         MAX_DISTANCE = 100
-        MAX_CHECK = 100
+        MAX_CHECK = 200
 
         # more than this will cause lag
         for bullet in bullets[:MAX_CHECK]:

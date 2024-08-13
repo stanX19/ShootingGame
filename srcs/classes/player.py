@@ -8,7 +8,7 @@ from srcs.classes.game_particle import GameParticle
 
 class Player(GameParticle):
     def __init__(self, x: float, y: float, rad=PLAYER_RADIUS):
-        super().__init__(x, y, radius=rad, color=PLAYER_COLOR, hp=100)
+        super().__init__(x, y, radius=rad, color=PLAYER_COLOR, hp=PLAYER_HP)
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.circle(surface, PLAYER_COLOR, (self.x, self.y), self.rad)

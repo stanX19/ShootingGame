@@ -17,7 +17,8 @@ class WeaponType:
                  max_count=None, radius=BULLET_RADIUS,
                  recoil=0, hp=1.0, dmg=1.0, spread=math.pi * 0.8, bullet_class: str = BULLET_CLASS,
                  min_count=1, growth_factor=0.0, offset_factor=1.0, color=BULLET_COLOR,
-                 lifespan: Union[None, int, tuple[int, int]] = None):
+                 lifespan: Union[None, int, tuple[int, int]] = None,
+                 spawn_radius: float = PLAYER_RADIUS * 5):
         self.name: str = name
         self.shot_delay: float = reload
         self._speed: Union[float, tuple[float, float]] = velocity
@@ -35,6 +36,7 @@ class WeaponType:
         self.bullet_class: str = bullet_class
         self.color: tuple[int] = color
         self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else 60 * 4
+        self.spawn_radius: float = spawn_radius
         self.level: int = 1
 
     @property
@@ -44,7 +46,13 @@ class WeaponType:
         else:
             return self._speed
 
+    def is_max_lvl(self):
+        return int(self.level * self.growth_factor) + self.min_bullet_count >= self.bullet_count
+
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return self.name
 
     pass
@@ -68,9 +76,10 @@ class MainWeaponEnum:
                       bullet_class=NOVA_CLASS, growth_factor=0.2)
     piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=25, max_count=5, radius=3,
                                       growth_factor=1, offset_factor=0.1, dmg=5, hp=5)
-    dancer = WeaponType("dancer", reload=0, velocity=(-1, 1), radius=2, dmg=0.01, hp=1000,
-                        min_count=0, max_count=10, growth_factor=1, spread=math.pi,
-                        recoil=-20)
+    dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
+                        min_count=1, max_count=20, growth_factor=0.5, spread=math.pi,
+                        recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)
+
 
 
 class SubWeaponEnum:
@@ -81,3 +90,7 @@ class SubWeaponEnum:
     sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=50000, radius=1,
                             dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
                             min_count=30, growth_factor=5)
+
+
+ALL_MAIN_WEAPON_LIST = [w for w in vars(MainWeaponEnum).values() if isinstance(w, WeaponType)]
+ALL_SUB_WEAPON_LIST = [w for w in vars(SubWeaponEnum).values() if isinstance(w, WeaponType)]

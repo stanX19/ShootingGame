@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 import math
 import random
 import subprocess
@@ -15,7 +16,7 @@ except ImportError:
     import numpy
 from srcs.constants import *
 from srcs.classes.weapon_handler import WeaponHandler
-from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum
+from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
@@ -30,9 +31,9 @@ god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
-    # god_mode = True
+    god_mode = True
     start_score = 100000000
-    default_weapons = (MainWeaponEnum, SubWeaponEnum)
+    default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
 # Initialize Pygame
 pygame.init()
 
@@ -53,19 +54,19 @@ class Game:
         self.bullets: list[[Bullet, Missile]] = list([])
         self.enemies: list[Enemy] = list([])
         self.collectibles: list[Collectible] = list([])
-        self.water_particle_handler = WaterParticleHandler()
-        self.score = start_score
-        self.kills = 0
+        self.water_particle_handler: WaterParticleHandler = WaterParticleHandler()
+        self.score: int = start_score
+        self.kills: int = 0
         self.start_ticks = pygame.time.get_ticks()
         self.left_mouse_down = False
         self.right_mouse_down = False
         self.autofire = False
-        self.pressed_keys = {k: False for k in range(1000)}
-        self.main_weapon = None
-        self.sub_weapon = None
-        self.running = True
-        self.quit = False
-        self.clock = pygame.time.Clock()
+        self.pressed_keys: dict[int, bool] = {k: False for k in range(1000)}
+        self.main_weapon: Optional[WeaponHandler] = None
+        self.sub_weapon: Optional[WeaponHandler] = None
+        self.running: bool = True
+        self.quit: bool = False
+        self.clock: pygame.time.Clock = pygame.time.Clock()
         self.current_time = pygame.time.get_ticks()
         self.screen_x = 0
         self.screen_y = 0
@@ -193,14 +194,32 @@ class Game:
         return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
 
     def spawn_collectibles(self):
+        MIN_ON_MAP = 10
         MAX_ON_MAP = 50
-        if random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
+        if len(self.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
             return
-        _class = random.choices(
-            [HealCollectible, WeaponCollectible, SubWeaponCollectible,
-             WeaponUpgradeCollectible, SubWeaponUpgradeCollectible],
-            [1, 2, 1, 4, 2]
-        )[0]
+        main_weapon_obtained = len(self.main_weapon.all_weapon)
+        sub_weapon_obtained = len(self.sub_weapon.all_weapon)
+        not_obtained_main_weapons = len(ALL_MAIN_WEAPON_LIST) - main_weapon_obtained
+        not_obtained_sub_weapons = len(ALL_SUB_WEAPON_LIST) - sub_weapon_obtained
+        maxed_main_weapons = len([i for i in self.main_weapon.all_weapon if i.is_max_lvl()])
+        maxed_sub_weapons = len([i for i in self.sub_weapon.all_weapon if i.is_max_lvl()])
+        missing_hp = PLAYER_HP - self.player.hp
+        collectibles = [
+                            HealCollectible,
+                            MainWeaponCollectible,
+                            SubWeaponCollectible,
+                            WeaponUpgradeCollectible,
+                            SubWeaponUpgradeCollectible,
+                       ]
+        probabilities = [max(0, i) for i in [
+                            missing_hp + 1,
+                            not_obtained_main_weapons,
+                            not_obtained_sub_weapons,
+                            (main_weapon_obtained - maxed_main_weapons) * 2,
+                            (sub_weapon_obtained - maxed_sub_weapons) * 2,
+                        ]]
+        _class = random.choices(collectibles, probabilities)[0]
         x, y = generate_random_point(
             rect_small=self.get_view_rect(),
             rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
@@ -242,19 +261,19 @@ class Game:
         self.water_particle_handler.collide_with_enemies(self.enemies)
 
         for enemy in self.enemies:
-            if enemy.hp > 0:
+            if not enemy.is_dead():
                 continue
             enemy.on_death()
             self.score += enemy.score
             self.kills += 1
-        self.enemies[:] = [e for e in self.enemies if e.hp > 0]
+        self.enemies[:] = [e for e in self.enemies if not e.is_dead()]
 
-        self.bullets[:] = [b for b in self.bullets if b.hp > 0]
+        self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
 
         for collectible in self.collectibles:
-            if collectible.hp <= 0:
+            if collectible.is_dead():
                 collectible.on_collect()
-        self.collectibles[:] = [c for c in self.collectibles if c.hp > 0]
+        self.collectibles[:] = [c for c in self.collectibles if not c.is_dead()]
 
     def move_everything(self):
         for enemy in self.enemies:
@@ -265,8 +284,7 @@ class Game:
         for bullet in self.bullets:
             bullet.move()
 
-        self.bullets[:] = [b for b in self.bullets
-                           if not (b.x < 0 or b.x > MAP_WIDTH or b.y < 0 or b.y > MAP_HEIGHT) and b.lifespan > 0]
+        self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
         self.water_particle_handler.update()
         self.water_particle_handler.remove_out_of_bounds(0, 0, MAP_WIDTH, MAP_HEIGHT)
         self.water_particle_handler.remove_zero_lifespan()
@@ -275,9 +293,10 @@ class Game:
 
     def check_player_death(self):
         if god_mode:
+            self.player.hp = max(0.01, self.player.hp)
             return
         self.player.hp = max(0, min(PLAYER_HP, self.player.hp))
-        if self.player.hp > 0:
+        if not self.player.is_dead():
             return
         game_over_text = font.render("Game Over", True, (255, 255, 255))
         MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
@@ -309,7 +328,7 @@ class Game:
   """.strip()
         debug_str = f"""\
   fps             : {self.clock.get_fps():.0f}
-  weapon level    : {self.main_weapon.weapon.level}
+  weapon level    : {self.main_weapon.weapon.level if not self.main_weapon.weapon.is_max_lvl() else "Max"}
   particle count  : {len(self.water_particle_handler.particles)}
   bullet count    : {len(self.bullets)}
   buff count      : {len(self.collectibles)}

@@ -4,7 +4,8 @@ import random
 import copy
 import pygame
 from srcs.classes.game_particle import GameParticle
-from srcs.classes.weapons import MainWeaponEnum, SubWeaponEnum, WeaponType
+from srcs.classes.weapons import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
+from srcs.classes.weapon_handler import WeaponHandler
 from srcs.constants import *
 from srcs.classes import draw_utils
 
@@ -35,29 +36,39 @@ class HealCollectible(Collectible):
         draw_utils.draw_cross(surface, self.x, self.y, self.rad * 3 // 4, COLOR1, COLOR2)
 
 
-class WeaponCollectible(Collectible):
+class MainWeaponCollectible(Collectible):
     def __init__(self, x, y, game):
-        super(WeaponCollectible, self).__init__(x, y, game)
-        self.weapon = random.choice(
-            [attr for attr in vars(MainWeaponEnum).values() if isinstance(attr, WeaponType)]
-        )
+        super().__init__(x, y, game)
+        self.weapon_handler: WeaponHandler = game.main_weapon
+
+    def _get_not_collected(self):
+        collected_names = [i.name for i in self.game.main_weapon.all_weapon]
+        not_collected = [i for i in ALL_MAIN_WEAPON_LIST if i.name not in collected_names]
+        return not_collected
 
     def on_collect(self):
-        self.game.main_weapon.change_weapon(self.weapon)
+        not_collected = self._get_not_collected()
+        if not not_collected:
+            return
+        weapon = random.choice(not_collected)
+        self.weapon_handler.change_weapon(weapon)
 
     def draw(self, surface: pygame.Surface):
         draw_utils.draw_star(surface, self.x, self.y, self.rad, *MAIN_WEAPON_THEME)
 
+    def is_dead(self):
+        return super().is_dead() or not self._get_not_collected()
 
-class SubWeaponCollectible(Collectible):
+
+class SubWeaponCollectible(MainWeaponCollectible):
     def __init__(self, x, y, game):
         super().__init__(x, y, game)
-        self.weapon = random.choice(
-            [attr for attr in vars(SubWeaponEnum).values() if isinstance(attr, WeaponType)]
-        )
+        self.weapon_handler: WeaponHandler = game.sub_weapon
 
-    def on_collect(self):
-        self.game.sub_weapon.change_weapon(self.weapon)
+    def _get_not_collected(self):
+        collected_names = [i.name for i in self.game.sub_weapon.all_weapon]
+        not_collected = [i for i in ALL_SUB_WEAPON_LIST if i.name not in collected_names]
+        return not_collected
 
     def draw(self, surface: pygame.Surface):
         draw_utils.draw_star(surface, self.x, self.y, self.rad, *SUB_WEAPON_THEME)

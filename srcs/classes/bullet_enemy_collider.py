@@ -8,7 +8,9 @@ from srcs.classes.game_particle import GameParticle
 
 
 def handle_collision(bullet: GameParticle, enemy: GameParticle):
-    if bullet.hp <= 0:
+    if bullet.is_dead():
+        return
+    if enemy.is_dead():
         return
     enemy.hp -= bullet.dmg
     bullet.hp -= enemy.dmg

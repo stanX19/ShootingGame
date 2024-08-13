@@ -138,7 +138,7 @@ class WaterParticleHandler:
 
     def remove_zero_hp(self):
         self.particles = list(filter(
-            lambda p: p.hp > 0,
+            lambda p: not p.is_dead(),
             self.particles
         ))
 

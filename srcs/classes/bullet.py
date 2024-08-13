@@ -36,3 +36,7 @@ class Bullet(GameParticle):
     def move(self):
         super().move()
         self.lifespan -= 1
+
+    def is_dead(self):
+        return super().is_dead() or self.x < 0 or self.x > MAP_WIDTH or\
+            self.y < 0 or self.y > MAP_HEIGHT or self.lifespan <= 0

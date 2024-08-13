@@ -207,8 +207,8 @@ class WeaponHandler:
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
             bullet_angle = self.angle + offset * self.weapon.offset_factor
-            dy, dx = math.sin(shoot_angle) * self.player.rad * 5, math.cos(shoot_angle) * self.player.rad * 5
-            dy, dx = dy - math.sin(self.angle) * self.player.rad * 5, dx - math.cos(self.angle) * self.player.rad * 5
+            dy, dx = math.sin(shoot_angle) * self.weapon.spawn_radius, math.cos(shoot_angle) * self.weapon.spawn_radius
+            dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(self.angle) * self.weapon.spawn_radius
             self.bullets_list.append(Bullet(
                 self.player.x + dx,
                 self.player.y + dy,
