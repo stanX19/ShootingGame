@@ -26,7 +26,7 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
-dev_mode = 0
+dev_mode = 1
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -56,6 +56,7 @@ class Game:
         self.collectibles: list[Collectible] = list([])
         self.water_particle_handler: WaterParticleHandler = WaterParticleHandler()
         self.score: int = start_score
+        self.collectible_spawn_score: int = 0
         self.kills: int = 0
         self.start_ticks = pygame.time.get_ticks()
         self.left_mouse_down = False
@@ -83,6 +84,7 @@ class Game:
         self.collectibles = list([])
         self.water_particle_handler.clear()
         self.score = start_score
+        self.collectible_spawn_score = 10000
         self.kills = 0
         self.autofire = False
         self.main_weapon.overdrive_cd = 0.0
@@ -193,15 +195,17 @@ class Game:
     def get_view_rect(self) -> tuple[int, int, int, int]:
         return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
 
-    def spawn_collectibles(self):
-        MIN_ON_MAP = 10
-        MAX_ON_MAP = 50
-        if len(self.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
-            return
+    def spawn_collectible_at(self, x: Optional[float] = None, y: Optional[float] = None):
+        # MIN_ON_MAP = 10
+        # MAX_ON_MAP = 50
+        # if len(self.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
+        #     return
+        all_main_weapon = len(ALL_MAIN_WEAPON_LIST)
+        all_sub_weapon = len(ALL_SUB_WEAPON_LIST)
         main_weapon_obtained = len(self.main_weapon.all_weapon)
         sub_weapon_obtained = len(self.sub_weapon.all_weapon)
-        not_obtained_main_weapons = len(ALL_MAIN_WEAPON_LIST) - main_weapon_obtained
-        not_obtained_sub_weapons = len(ALL_SUB_WEAPON_LIST) - sub_weapon_obtained
+        not_obtained_main_weapons = all_main_weapon - main_weapon_obtained
+        not_obtained_sub_weapons = all_sub_weapon - sub_weapon_obtained
         maxed_main_weapons = len([i for i in self.main_weapon.all_weapon if i.is_max_lvl()])
         maxed_sub_weapons = len([i for i in self.sub_weapon.all_weapon if i.is_max_lvl()])
         missing_hp = PLAYER_HP - self.player.hp
@@ -214,17 +218,18 @@ class Game:
                        ]
         probabilities = [max(0, i) for i in [
                             missing_hp + 1,
-                            not_obtained_main_weapons,
-                            not_obtained_sub_weapons,
-                            (main_weapon_obtained - maxed_main_weapons) * 2,
-                            (sub_weapon_obtained - maxed_sub_weapons) * 2,
+                            not_obtained_main_weapons / 2,
+                            not_obtained_sub_weapons / 2,
+                            (all_main_weapon - maxed_main_weapons) * 2,
+                            (all_sub_weapon - maxed_sub_weapons) * 2,
                         ]]
         _class = random.choices(collectibles, probabilities)[0]
-        x, y = generate_random_point(
-            rect_small=self.get_view_rect(),
-            rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
-            padding=COLLECTIBLE_RADIUS
-        )
+        if x is None or y is None:
+            x, y = generate_random_point(
+                rect_small=self.get_view_rect(),
+                rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
+                padding=COLLECTIBLE_RADIUS
+            )
         self.collectibles.append(_class(x, y, self))
 
 
@@ -239,12 +244,12 @@ class Game:
             # distribution of 1/x
             # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
             hp = max_hp
-            score = 3000
+            score = 1000
             speed = ENEMY_SPEED / 4
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
         if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 100000) / 1000000):
             hp = 10
-            score = 10000
+            score = 300
             speed = PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
             # TODO:
@@ -264,8 +269,14 @@ class Game:
             if not enemy.is_dead():
                 continue
             enemy.on_death()
+            self.collectible_spawn_score += enemy.score
+            #                                                  60 seconds per drop
+            if random.random() < self.collectible_spawn_score / 60000 - len(self.collectibles) / 50:
+                self.spawn_collectible_at(enemy.x, enemy.y)
+                self.collectible_spawn_score = 0
             self.score += enemy.score
             self.kills += 1
+
         self.enemies[:] = [e for e in self.enemies if not e.is_dead()]
 
         self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
@@ -312,13 +323,13 @@ class Game:
             return
         self.current_time = pygame.time.get_ticks()
         self.score += self.current_time - self.start_ticks
+        self.collectible_spawn_score += self.current_time - self.start_ticks
         self.start_ticks = self.current_time
         self.collide_everything()
         self.move_everything()
         self.check_player_death()
         self.shoot_bullets()
         self.spawn_enemies()
-        self.spawn_collectibles()
         self.center_focus()
 
     def add_text_to_screen(self):
