@@ -218,8 +218,8 @@ class Game:
                        ]
         probabilities = [max(0, i) for i in [
                             missing_hp + 1,
-                            not_obtained_main_weapons / 2,
-                            not_obtained_sub_weapons / 2,
+                            not_obtained_main_weapons,
+                            not_obtained_sub_weapons,
                             (all_main_weapon - maxed_main_weapons) * 2,
                             (all_sub_weapon - maxed_sub_weapons) * 2,
                         ]]
