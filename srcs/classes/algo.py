@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 import random
 from srcs.classes.game_particle import GameParticle
@@ -100,9 +101,6 @@ def generate_random_point(rect_small: tuple[int, int, int, int], rect_big: tuple
     return (x, y)
 
 
-import matplotlib.pyplot as plt
-
-
 def test(x, y, rad, rect, must_have: list[tuple[int, int, int, int]], must_error=False, iterations=10000):
     rect_small = [x - rad, y - rad, x + rad, y + rad]
     rect_big = rect
@@ -134,6 +132,7 @@ def main():
     print(test(*case1))
 
 # def main():
+#     import matplotlib.pyplot as plt
 #     rect_big = [0, 0, 10, 10]
 #
 #     # Generate random points
