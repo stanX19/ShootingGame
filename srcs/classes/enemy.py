@@ -105,22 +105,33 @@ class EliteEnemy(Enemy):
 
 
 class EnemyMothership(Enemy):
+    def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle], **kwargs):
+        super().__init__(x, y, target, parent_list, **kwargs)
+        self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
+        self.shoot_cd = 0
+
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
 
     def move(self):
-        super(EnemyMothership, self).move()
+        super().move()
+        self.shoot_cd -= 1
+        if self.shoot_cd <= 0:
+            self.spawn_childs(int(self.score / 2000) + 1)
+            self.shoot_cd = 100
 
-    def on_death(self):
-        total = int(self.score / 500)
+    def spawn_childs(self, total: int):
         # if len(self.parent_list) + total > 300:
         #     return
         for i in range(total):
             angle = -math.pi + i / total * math.pi * 2
-            x = self.x + math.cos(angle) * total * (i % 3 + 1)
-            y = self.y + math.sin(angle) * total * (i % 3 + 1)
+            x = self.x + math.cos(angle) * (total * (i % 3) + self.rad)
+            y = self.y + math.sin(angle) * (total * (i % 3) + self.rad)
             child = Enemy(x, y, self.target, self.parent_list, hp=1, variable_shape=True, speed=PLAYER_SPEED)
             child.angle = angle
             child.move()
             self.parent_list.append(child)
+
+    def on_death(self):
+        self.spawn_childs(int(self.score / 500))
         super().on_death()

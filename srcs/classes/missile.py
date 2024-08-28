@@ -38,14 +38,6 @@ class Missile(Bullet):
                 target = enemy
         return target
 
-    def angle_with(self, other: GameParticle):
-        try:
-            y_dis = other.y - self.y
-            x_dis = other.x - self.x
-            return self.angle - math.atan2(y_dis, x_dis)
-        except AttributeError:
-            return 0
-
     def update(self):
         if self.target not in self.enemies_list:
             self.find_target()
