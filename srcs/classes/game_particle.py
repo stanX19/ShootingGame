@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import math
+
 import pygame
 
 
@@ -44,10 +46,12 @@ class Particle:
 
 
 class GameParticle(Particle):
-    def __init__(self, x: float, y: float, angle=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1):
+    def __init__(self, x: float, y: float, angle=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
+                 score=0):
         super().__init__(x, y, angle, speed, radius, color)
         self.hp: float = hp
         self.dmg: float = dmg
+        self.score: int = score
 
     def on_death(self, *args, **kwargs):
         pass
@@ -59,6 +63,6 @@ class GameParticle(Particle):
         try:
             y_dis = other.y - self.y
             x_dis = other.x - self.x
-            return self.angle - math.atan2(y_dis, x_dis)
+            return math.atan2(y_dis, x_dis)
         except AttributeError:
             return 0

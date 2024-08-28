@@ -81,7 +81,7 @@ class MainWeaponEnum:
     bomb = WeaponType("destroyer", reload=800, velocity=5, max_count=1, radius=25, recoil=25, hp=10000, dmg=10)
     missile = WeaponType("missile", 500, max_count=8, growth_factor=1, dmg=10,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
-    shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=10, radius=1,
+    shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=100, radius=1,
                         dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
                         min_count=30, growth_factor=5)
     nova = WeaponType("nova", reload=0, min_count=1, max_count=3, velocity=1000,
@@ -99,7 +99,7 @@ class SubWeaponEnum:
                              dmg=MainWeaponEnum.missile.dmg,
                              growth_factor=1, bullet_class=MISSILE_CLASS, radius=MISSILE_RADIUS)
 
-    sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=10, radius=1,
+    sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=100, radius=1,
                             dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
                             min_count=30, growth_factor=5)
 

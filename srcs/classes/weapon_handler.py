@@ -104,7 +104,7 @@ class WeaponHandler:
 
     def upgrade_weapon(self):
         if self.weapon.is_max_lvl():
-            self.overdrive_cd -= OVERDRIVE_CD * 0.5
+            self.overdrive_cd -= OVERDRIVE_CD * 0.25
         else:
             self.weapon.level += 1
 

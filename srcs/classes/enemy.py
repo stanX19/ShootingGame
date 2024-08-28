@@ -6,13 +6,13 @@ from typing import Sequence
 from srcs import utils
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
+from srcs.classes.bullet import Bullet
 
 
 class Enemy(GameParticle):
     def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle], radius=ENEMY_RADIUS,
                  speed=ENEMY_SPEED, angle=0.0, color=ENEMY_COLOR, hp=1, score=100, variable_shape=False):
-        super().__init__(x, y, angle, speed, radius, color, hp, 1)
-        self.score: float = score
+        super().__init__(x, y, angle, speed, radius, color, hp, 1, score)
         self.variable_shape: bool = variable_shape
         self.target: GameParticle = target
         self.parent_list: list[GameParticle] = parent_list
@@ -56,6 +56,17 @@ class EliteEnemy(Enemy):
                  radius=10, speed=PLAYER_SPEED, **kwargs):
         super().__init__(x, y, target, parent_list, radius=radius, speed=speed, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
+        self.shoot_cd = 0
+
+    def move(self):
+        super().move()
+        self.shoot_cd -= 1
+        if self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
+            self.parent_list.append(Bullet(
+                self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
+                color=ENEMY_BULLET_COLOR
+            ))
+            self.shoot_cd = 5
 
     def dodge_bullets(self, bullets: Sequence[GameParticle]):
         closest_bullet = None
@@ -112,13 +123,6 @@ class EnemyMothership(Enemy):
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
-
-    def move(self):
-        super().move()
-        self.shoot_cd -= 1
-        if self.shoot_cd <= 0:
-            self.spawn_childs(int(self.score / 2000) + 1)
-            self.shoot_cd = 100
 
     def spawn_childs(self, total: int):
         # if len(self.parent_list) + total > 300:
