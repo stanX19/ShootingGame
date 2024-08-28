@@ -54,3 +54,11 @@ class GameParticle(Particle):
 
     def is_dead(self):
         return self.hp <= 0.0
+
+    def angle_with(self, other: Particle):
+        try:
+            y_dis = other.y - self.y
+            x_dis = other.x - self.x
+            return self.angle - math.atan2(y_dis, x_dis)
+        except AttributeError:
+            return 0
