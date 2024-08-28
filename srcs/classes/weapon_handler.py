@@ -72,7 +72,7 @@ class WeaponHandler:
     @overdrive_cd.setter
     def overdrive_cd(self, val):
         if val < 0.0:
-            return
+            val = 0.0
         self._overdrive_end_time = self.current_time - constants.OVERDRIVE_CD + val
 
     def overdrive_start(self):
@@ -103,7 +103,10 @@ class WeaponHandler:
         self.overdrive_weapon = None
 
     def upgrade_weapon(self):
-        self.weapon.level += 1
+        if self.weapon.is_max_lvl():
+            self.overdrive_cd -= OVERDRIVE_CD * 0.5
+        else:
+            self.weapon.level += 1
 
     def _set_weapon(self, weapon: WeaponType):
         if self.weapon.name == weapon.name:

@@ -37,7 +37,7 @@ class WeaponType:
         self.color: tuple[int] = color
         self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else 60 * 4
         self.spawn_radius: float = spawn_radius
-        self.level: int = 1
+        self.level: int = 100
 
     @property
     def speed(self) -> float:
@@ -46,8 +46,20 @@ class WeaponType:
         else:
             return self._speed
 
-    def is_max_lvl(self):
+    @property
+    def max_lvl(self) -> int:
+        if not self.growth_factor:
+            return 1
+        return int((self.bullet_count - self.min_bullet_count) / self.growth_factor)
+
+    def is_max_lvl(self) -> bool:
         return int(self.level * self.growth_factor) + self.min_bullet_count >= self.bullet_count
+
+    def get_max_dmg_constant(self) -> float:
+        return self.dmg / max(1.0, self.shot_delay) * self.hp * self.bullet_count * 100
+
+    def get_min_dmg_constant(self) -> float:
+        return self.dmg / max(1.0, self.shot_delay) * self.hp * self.min_bullet_count * 100
 
     def __str__(self):
         return self.name
@@ -64,8 +76,8 @@ class MainWeaponEnum:
     lazer = WeaponType("lazer", reload=200, velocity=100, min_count=50, max_count=100, radius=1,
                        growth_factor=5, bullet_class=LAZER_CLASS)
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
-                         recoil=PLAYER_SPEED, dmg=1, min_count=50, growth_factor=25, spread=math.pi * 0.4,
-                         lifespan=(5, 25))
+                         recoil=PLAYER_SPEED, dmg=1, min_count=25, growth_factor=25, spread=math.pi * 0.4,
+                         lifespan=(5, 20))
     bomb = WeaponType("destroyer", reload=800, velocity=5, max_count=1, radius=25, recoil=25, hp=10000, dmg=10)
     missile = WeaponType("missile", 500, max_count=8, growth_factor=1, dmg=10,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
@@ -75,7 +87,7 @@ class MainWeaponEnum:
     nova = WeaponType("nova", reload=0, min_count=1, max_count=3, velocity=1000,
                       bullet_class=NOVA_CLASS, growth_factor=0.2)
     piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=25, max_count=5, radius=3,
-                                      growth_factor=1, offset_factor=0.1, dmg=5, hp=5)
+                                      growth_factor=0.5, offset_factor=0.1, dmg=2, hp=5)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
                         min_count=1, max_count=20, growth_factor=0.5, spread=math.pi,
                         recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)
@@ -92,5 +104,9 @@ class SubWeaponEnum:
                             min_count=30, growth_factor=5)
 
 
-ALL_MAIN_WEAPON_LIST = [w for w in vars(MainWeaponEnum).values() if isinstance(w, WeaponType)]
-ALL_SUB_WEAPON_LIST = [w for w in vars(SubWeaponEnum).values() if isinstance(w, WeaponType)]
+ALL_MAIN_WEAPON_LIST: list[WeaponType] = [w for w in vars(MainWeaponEnum).values() if isinstance(w, WeaponType)]
+ALL_SUB_WEAPON_LIST: list[WeaponType] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, WeaponType)]
+
+if __name__ == '__main__':
+    for w in ALL_MAIN_WEAPON_LIST:
+        print(f"{w.name:20}{w.get_min_dmg_constant():20.0f}{w.get_max_dmg_constant():20.0f}{w.max_lvl:20}")

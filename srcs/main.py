@@ -26,7 +26,7 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
-dev_mode = 0
+dev_mode = 1
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -220,7 +220,7 @@ class Game:
                             missing_hp + 1,
                             not_obtained_main_weapons,
                             not_obtained_sub_weapons,
-                            (all_main_weapon - maxed_main_weapons) * 2,
+                            (all_main_weapon - maxed_main_weapons) * 2 + 2,
                             (all_sub_weapon - maxed_sub_weapons) * 2,
                         ]]
         _class = random.choices(collectibles, probabilities)[0]
@@ -345,7 +345,7 @@ class Game:
   buff count      : {len(self.collectibles)}
   enemy count     : {len(self.enemies)}
   kills           : {self.kills}
-  overdrive cd    : {self.main_weapon.overdrive_cd / 1000:<4.1f}(Q)
+  overdrive       : {(1.0 - self.main_weapon.overdrive_cd / OVERDRIVE_CD) * 100:.0f}% (Q)
   auto fire       : {'on' if self.autofire else 'off':4}(E)""".title()
         y = 10
         for line in info_str.split("\n"):
