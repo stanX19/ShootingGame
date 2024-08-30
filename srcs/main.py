@@ -20,7 +20,7 @@ from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_
 from srcs.classes.missile import Missile
 from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership
+from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy
 from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
@@ -239,23 +239,13 @@ class Game:
         speed = ENEMY_SPEED
         if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 150000) / 1000000):
-            max_hp = 100
-            # distribution of 1/x
-            # hp = int(math.e ** (random.uniform(0, 1) * math.log(max_hp, math.e)))
-            hp = max_hp
-            score = 1000
-            speed = ENEMY_SPEED / 4
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
-        if len(self.enemies) < 170 and random.random() < min(0.04, (self.score - 100000) / 1000000):
+        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 10000) / 10000000):
             hp = 10
             score = 300
             speed = PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-            # TODO:
-            # can shoot back
-        if len(self.enemies) < 180 and random.random() < min(0.01, (self.score - 200000) / 10000000):
-            score = 10000
+        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 10000) / 10000000):
+            score = 1000 + self.score // 1000
             hp = 200
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
@@ -270,7 +260,7 @@ class Game:
                 continue
             enemy.on_death()
             self.collectible_spawn_score += enemy.score
-            #                                                  60 seconds per drop
+            #                                                   60 seconds per drop
             if random.random() < self.collectible_spawn_score / 60000 - len(self.collectibles) / 50:
                 self.spawn_collectible_at(enemy.x, enemy.y)
                 self.collectible_spawn_score = 0
@@ -288,7 +278,7 @@ class Game:
 
     def move_everything(self):
         for enemy in self.enemies:
-            if isinstance(enemy, EliteEnemy):
+            if isinstance(enemy, DodgingEnemy):
                 enemy.dodge_bullets(self.bullets)
             enemy.move()
 
@@ -306,7 +296,7 @@ class Game:
         if god_mode:
             self.player.hp = max(0.01, self.player.hp)
             return
-        self.player.hp = max(0, min(PLAYER_HP, self.player.hp))
+        self.player.hp = max(0.0, min(self.player.max_hp, self.player.hp))
         if not self.player.is_dead():
             return
         game_over_text = font.render("Game Over", True, (255, 255, 255))
@@ -335,7 +325,7 @@ class Game:
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
   {self.main_weapon.index + 1}) {self.main_weapon.name}
-  {int(self.player.hp)} / {PLAYER_HP} hp
+  {int(self.player.hp)} / {self.player.max_hp} hp
   """.strip()
         debug_str = f"""\
   fps             : {self.clock.get_fps():.0f}
@@ -363,7 +353,7 @@ class Game:
 
         # particles
         def draw_particles(particles: [GameParticle]):
-            for particle in particles:
+            for particle in sorted(particles, key=lambda p: p.rad):
                 if not self.in_screen(particle):
                     continue
                 particle.draw(MAP_SURFACE)

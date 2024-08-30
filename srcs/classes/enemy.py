@@ -51,22 +51,11 @@ class Enemy(GameParticle):
         pass
 
 
-class EliteEnemy(Enemy):
+class DodgingEnemy(Enemy):
     def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle],
-                 radius=10, speed=PLAYER_SPEED, **kwargs):
-        super().__init__(x, y, target, parent_list, radius=radius, speed=speed, **kwargs)
+                 radius=10, speed=PLAYER_SPEED, hp=10, **kwargs):
+        super().__init__(x, y, target, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
-        self.shoot_cd = 0
-
-    def move(self):
-        super().move()
-        self.shoot_cd -= 1
-        if self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
-            self.parent_list.append(Bullet(
-                self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
-                color=ENEMY_BULLET_COLOR
-            ))
-            self.shoot_cd = 5
 
     def dodge_bullets(self, bullets: Sequence[GameParticle]):
         closest_bullet = None
@@ -115,27 +104,61 @@ class EliteEnemy(Enemy):
         return False
 
 
+class ShootingEnemy(Enemy):
+    def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle],
+                 radius=10, speed=PLAYER_SPEED, hp=10, **kwargs):
+        super().__init__(x, y, target, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
+        self.shoot_cd = 0
+
+    def move(self):
+        super().move()
+        self.shoot_cd -= 1
+        if self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
+            self.shoot()
+            self.shoot_cd = 20 * self.max_hp / self.hp
+
+    def shoot(self):
+        self.parent_list.append(Bullet(
+            self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
+            color=ENEMY_BULLET_COLOR
+        ))
+
+
+class EliteEnemy(ShootingEnemy, DodgingEnemy):
+    pass
+
+
 class EnemyMothership(Enemy):
     def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle], **kwargs):
         super().__init__(x, y, target, parent_list, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
-        self.shoot_cd = 0
+        self.spawn_cd = 0
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
 
-    def spawn_childs(self, total: int):
-        # if len(self.parent_list) + total > 300:
-        #     return
+    def move(self):
+        super().move()
+        self.spawn_elites()
+
+    def spawn_elites(self):
+        self.spawn_cd -= 1
+        if self.spawn_cd > 0 or self.distance_with(self.target) > ENEMY_SHOOT_RANGE:
+            return
+        self.spawn_cd = 1000 * self.max_hp / self.hp
+        count = int((self.hp / self.max_hp) * (self.score / 1000))
+        self.spawn_childs(count, spd=PLAYER_SPEED * 2)
+
+    def spawn_childs(self, total: int, _cls=Enemy, spd=PLAYER_SPEED):
         for i in range(total):
             angle = -math.pi + i / total * math.pi * 2
             x = self.x + math.cos(angle) * (total * (i % 3) + self.rad)
             y = self.y + math.sin(angle) * (total * (i % 3) + self.rad)
-            child = Enemy(x, y, self.target, self.parent_list, hp=1, variable_shape=True, speed=PLAYER_SPEED)
+            child = _cls(x, y, self.target, self.parent_list, variable_shape=True, speed=spd)
             child.angle = angle
             child.move()
             self.parent_list.append(child)
 
     def on_death(self):
-        self.spawn_childs(int(self.score / 500))
+        self.spawn_childs(int(self.score / 500), spd=PLAYER_SPEED * 2)
         super().on_death()

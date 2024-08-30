@@ -37,7 +37,7 @@ class WeaponType:
         self.color: tuple[int] = color
         self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else 60 * 4
         self.spawn_radius: float = spawn_radius
-        self.level: int = 100
+        self.level: int = 1
 
     @property
     def speed(self) -> float:
@@ -86,8 +86,8 @@ class MainWeaponEnum:
                         min_count=30, growth_factor=5)
     nova = WeaponType("nova", reload=0, min_count=1, max_count=3, velocity=1000,
                       bullet_class=NOVA_CLASS, growth_factor=0.2)
-    piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=25, max_count=5, radius=3,
-                                      growth_factor=0.5, offset_factor=0.1, dmg=2, hp=5)
+    piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=20, max_count=5, radius=3,
+                                      growth_factor=1, offset_factor=0.1, dmg=2, hp=5)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
                         min_count=1, max_count=20, growth_factor=0.5, spread=math.pi,
                         recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)
@@ -99,7 +99,7 @@ class SubWeaponEnum:
                              dmg=MainWeaponEnum.missile.dmg,
                              growth_factor=1, bullet_class=MISSILE_CLASS, radius=MISSILE_RADIUS)
 
-    sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=100, radius=1,
+    sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=10, radius=1,
                             dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
                             min_count=30, growth_factor=5)
 
