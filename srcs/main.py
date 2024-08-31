@@ -255,7 +255,7 @@ class Game:
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
         if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
             score = 20000 + self.score // 1000
-            hp = 50 + 150 * min(1.0, score / 100)
+            hp = 50 + 150 * min(1.0, score / 100000)
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
