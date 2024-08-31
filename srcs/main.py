@@ -26,13 +26,15 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
-dev_mode = 1
+dev_mode = 0
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
     god_mode = True
     start_score = 100000000
+    for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST:
+        w.level = w.max_lvl
     default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
 # Initialize Pygame
 pygame.init()
@@ -83,6 +85,7 @@ class Game:
         self.bullets = list([])
         self.collectibles = list([])
         self.water_particle_handler.clear()
+        self.spawn_collectible_at()
         self.score = start_score
         self.collectible_spawn_score = 10000
         self.kills = 0
@@ -90,6 +93,12 @@ class Game:
         self.main_weapon.overdrive_cd = 0.0
         self.main_weapon.set_weapon_by_index(0)
         self.background_update()
+        self.spawn_starter_pack()
+
+    def spawn_starter_pack(self):
+        self.spawn_collectible_at(self.player.x - 90, self.player.y - 40)
+        self.spawn_collectible_at(self.player.x - 100, self.player.y)
+        self.spawn_collectible_at(self.player.x - 90, self.player.y + 40)
 
     def background_update(self):
         threshold = min(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -208,7 +217,7 @@ class Game:
         not_obtained_sub_weapons = all_sub_weapon - sub_weapon_obtained
         maxed_main_weapons = len([i for i in self.main_weapon.all_weapon if i.is_max_lvl()])
         maxed_sub_weapons = len([i for i in self.sub_weapon.all_weapon if i.is_max_lvl()])
-        missing_hp = PLAYER_HP - self.player.hp
+        missing_hp = self.player.max_hp - self.player.hp
         collectibles = [
                             HealCollectible,
                             MainWeaponCollectible,
@@ -217,7 +226,7 @@ class Game:
                             SubWeaponUpgradeCollectible,
                        ]
         probabilities = [max(0, i) for i in [
-                            missing_hp + 1,
+                            missing_hp + 3,
                             not_obtained_main_weapons,
                             not_obtained_sub_weapons,
                             (all_main_weapon - maxed_main_weapons) * 2 + 2,
@@ -244,9 +253,9 @@ class Game:
             score = 300
             speed = PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 10000) / 10000000):
-            score = 1000 + self.score // 1000
-            hp = 200
+        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
+            score = 20000 + self.score // 1000
+            hp = 50 + 150 * min(1.0, score / 100)
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
@@ -325,7 +334,7 @@ class Game:
     def add_text_to_screen(self):
         info_str = f"""Score: {self.score}
   {self.main_weapon.index + 1}) {self.main_weapon.name}
-  {int(self.player.hp)} / {self.player.max_hp} hp
+  {int(self.player.hp)} / {int(self.player.max_hp)} hp
   """.strip()
         debug_str = f"""\
   fps             : {self.clock.get_fps():.0f}

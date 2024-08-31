@@ -50,10 +50,10 @@ class WeaponType:
     def max_lvl(self) -> int:
         if not self.growth_factor:
             return 1
-        return int((self.bullet_count - self.min_bullet_count) / self.growth_factor)
+        return int((self.bullet_count - self.min_bullet_count) / self.growth_factor) + 1
 
     def is_max_lvl(self) -> bool:
-        return int(self.level * self.growth_factor) + self.min_bullet_count >= self.bullet_count
+        return self.level >= self.max_lvl
 
     def get_max_dmg_constant(self) -> float:
         return self.dmg / max(1.0, self.shot_delay) * self.hp * self.bullet_count * 100
@@ -72,7 +72,7 @@ class WeaponType:
 
 class MainWeaponEnum:
     machine_gun = WeaponType("machine gun", reload=100, velocity=10, max_count=10, radius=2, growth_factor=1,
-                             offset_factor=0.1, dmg=2)
+                             offset_factor=0.1, dmg=2, recoil=1)
     lazer = WeaponType("lazer", reload=200, velocity=100, min_count=50, max_count=100, radius=1,
                        growth_factor=5, bullet_class=LAZER_CLASS)
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
@@ -87,9 +87,9 @@ class MainWeaponEnum:
     nova = WeaponType("nova", reload=0, min_count=1, max_count=3, velocity=1000,
                       bullet_class=NOVA_CLASS, growth_factor=0.2)
     piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=20, max_count=5, radius=3,
-                                      growth_factor=1, offset_factor=0.1, dmg=2, hp=5)
+                                      growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=2)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
-                        min_count=1, max_count=20, growth_factor=0.5, spread=math.pi,
+                        min_count=1, max_count=20, growth_factor=1, spread=math.pi,
                         recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)
 
 

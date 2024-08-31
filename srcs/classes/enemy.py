@@ -132,33 +132,40 @@ class EnemyMothership(Enemy):
     def __init__(self, x, y, target: GameParticle, parent_list: list[GameParticle], **kwargs):
         super().__init__(x, y, target, parent_list, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
-        self.spawn_cd = 0
+        self.child_speed = (PLAYER_SPEED, PLAYER_SPEED * 2)
+        self.child_count = 0
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
 
     def move(self):
         super().move()
-        self.spawn_elites()
+        self.spawn_with_cd()
 
-    def spawn_elites(self):
-        self.spawn_cd -= 1
-        if self.spawn_cd > 0 or self.distance_with(self.target) > ENEMY_SHOOT_RANGE:
+    def spawn_with_cd(self):
+        max_cap = (self.hp / self.max_hp) * (self.score / 1000)
+        spawn_cd = 1000  # (1000 * self.max_hp / self.hp)
+
+        if self.child_count + max_cap / spawn_cd < max_cap:  # cannot reach max_cap naturally
+            self.child_count += max_cap / spawn_cd
+        if self.child_count < max_cap:  # only false when is hit (hp decrease)
             return
-        self.spawn_cd = 1000 * self.max_hp / self.hp
-        count = int((self.hp / self.max_hp) * (self.score / 1000))
-        self.spawn_childs(count, spd=PLAYER_SPEED * 2)
+        if self.distance_with(self.target) > ENEMY_SHOOT_RANGE:
+            return
+        self.spawn_childs(int(self.child_count))
+        self.child_count = 0
 
-    def spawn_childs(self, total: int, _cls=Enemy, spd=PLAYER_SPEED):
-        for i in range(total):
-            angle = -math.pi + i / total * math.pi * 2
-            x = self.x + math.cos(angle) * (total * (i % 3) + self.rad)
-            y = self.y + math.sin(angle) * (total * (i % 3) + self.rad)
-            child = _cls(x, y, self.target, self.parent_list, variable_shape=True, speed=spd)
+    def spawn_childs(self, total: int, _cls=Enemy):
+        for i in range(int(total)):
+            angle = i / total * math.pi * 2
+            x = self.x + math.cos(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
+            y = self.y + math.sin(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
+            child = _cls(x, y, self.target, self.parent_list, variable_shape=True,
+                         speed=random.uniform(self.child_speed[0], self.child_speed[1]))
             child.angle = angle
             child.move()
             self.parent_list.append(child)
 
     def on_death(self):
-        self.spawn_childs(int(self.score / 500), spd=PLAYER_SPEED * 2)
+        self.spawn_childs(self.child_count)
         super().on_death()
