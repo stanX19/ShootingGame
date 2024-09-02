@@ -115,7 +115,7 @@ class ShootingEnemy(Enemy):
         self.shoot_cd -= 1
         if self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
             self.shoot()
-            self.shoot_cd = 20 * self.max_hp / self.hp
+            self.shoot_cd = 10 * self.max_hp / self.hp
 
     def shoot(self):
         self.parent_list.append(Bullet(
@@ -155,13 +155,14 @@ class EnemyMothership(Enemy):
         self.spawn_childs(int(self.child_count))
         self.child_count = 0
 
-    def spawn_childs(self, total: int, _cls=Enemy):
+    def spawn_childs(self, total: int, _cls=Enemy, **kwargs):
+        total = min(MAX_ENEMY_COUNT - len(self.parent_list), total)
         for i in range(int(total)):
             angle = i / total * math.pi * 2
             x = self.x + math.cos(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
             y = self.y + math.sin(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
             child = _cls(x, y, self.target, self.parent_list, variable_shape=True,
-                         speed=random.uniform(self.child_speed[0], self.child_speed[1]))
+                         speed=random.uniform(self.child_speed[0], self.child_speed[1]), **kwargs)
             child.angle = angle
             child.move()
             self.parent_list.append(child)

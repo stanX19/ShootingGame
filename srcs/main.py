@@ -14,7 +14,7 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
     import pygame
     import numpy
-from srcs.constants import *
+from srcs import constants
 from srcs.classes.weapon_handler import WeaponHandler
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.missile import Missile
@@ -32,7 +32,8 @@ start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
     god_mode = True
-    start_score = 100000000
+    start_score = 10000000000
+    constants.OVERDRIVE_CD = constants.OVERDRIVE_DURATION - 1
     for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST:
         w.level = w.max_lvl
     default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
@@ -40,8 +41,8 @@ if dev_mode:
 pygame.init()
 
 # Set up the display
-MAP_SURFACE = pygame.Surface((MAP_WIDTH, MAP_HEIGHT), pygame.SRCALPHA)
-SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+MAP_SURFACE = pygame.Surface((constants.MAP_WIDTH, constants.MAP_HEIGHT), pygame.SRCALPHA)
+SCREEN = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
 pygame.display.set_caption("Space Shooting Game")
 
 # Font for score
@@ -52,7 +53,7 @@ consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 # Game class
 class Game:
     def __init__(self):
-        self.player: Player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
+        self.player: Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.bullets: list[[Bullet, Missile]] = list([])
         self.enemies: list[Enemy] = list([])
         self.collectibles: list[Collectible] = list([])
@@ -77,7 +78,7 @@ class Game:
 
     def init_game(self):
         self.running = True
-        self.player = Player(MAP_WIDTH // 2, MAP_HEIGHT // 2)
+        self.player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.main_weapon = WeaponHandler(self, default_weapons[0])
         self.sub_weapon = WeaponHandler(self, default_weapons[1])
         self.center_focus(lerp_const=1.0)
@@ -101,7 +102,7 @@ class Game:
         self.spawn_collectible_at(self.player.x - 90, self.player.y + 40)
 
     def background_update(self):
-        threshold = min(SCREEN_WIDTH, SCREEN_HEIGHT)
+        threshold = min(constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT)
         while not any(e.distance_with(self.player) <= threshold for e in self.enemies):
             self.update()
 
@@ -150,9 +151,9 @@ class Game:
 
     def in_screen(self, particle):
         min_x = self.screen_x - particle.rad
-        max_x = self.screen_x + SCREEN_WIDTH + particle.rad
+        max_x = self.screen_x + constants.SCREEN_WIDTH + particle.rad
         min_y = self.screen_y - particle.rad
-        max_y = self.screen_y + SCREEN_HEIGHT + particle.rad
+        max_y = self.screen_y + constants.SCREEN_HEIGHT + particle.rad
         return min_x < particle.x < max_x and min_y < particle.y < max_y
 
     def shoot_bullets(self):
@@ -170,13 +171,13 @@ class Game:
     def move_player(self):
         dx, dy = 0, 0
         if self.pressed_keys[pygame.K_w]:
-            dy -= PLAYER_SPEED
+            dy -= constants.PLAYER_SPEED
         if self.pressed_keys[pygame.K_s]:
-            dy += PLAYER_SPEED
+            dy += constants.PLAYER_SPEED
         if self.pressed_keys[pygame.K_a]:
-            dx -= PLAYER_SPEED
+            dx -= constants.PLAYER_SPEED
         if self.pressed_keys[pygame.K_d]:
-            dx += PLAYER_SPEED
+            dx += constants.PLAYER_SPEED
         self.player.set_velocity(dx, dy)
         self.player.move()
 
@@ -185,24 +186,24 @@ class Game:
         if variable_shape:
             radius = Enemy.get_rad(hp)
         else:
-            radius = ENEMY_RADIUS
+            radius = constants.ENEMY_RADIUS
 
         side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
-            ex, ey = -radius, random.randint(0, MAP_HEIGHT)
+            ex, ey = -radius, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'right':
-            ex, ey = MAP_WIDTH + radius, random.randint(0, MAP_HEIGHT)
+            ex, ey = constants.MAP_WIDTH + radius, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'top':
-            ex, ey = random.randint(0, MAP_WIDTH), -radius
+            ex, ey = random.randint(0, constants.MAP_WIDTH), -radius
         elif side == 'bottom':
-            ex, ey = random.randint(0, MAP_WIDTH), MAP_HEIGHT + radius
+            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + radius
         else:
             ex, ey = -radius, -radius
         self.enemies.append(_constructor(ex, ey, self.player, parent_list=self.enemies, hp=hp,
                                          score=score, speed=speed, variable_shape=variable_shape))
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
-        return self.screen_x, self.screen_y, self.screen_x + SCREEN_WIDTH, self.screen_y + SCREEN_HEIGHT
+        return self.screen_x, self.screen_y, self.screen_x + constants.SCREEN_WIDTH, self.screen_y + constants.SCREEN_HEIGHT
 
     def spawn_collectible_at(self, x: Optional[float] = None, y: Optional[float] = None):
         # MIN_ON_MAP = 10
@@ -236,8 +237,8 @@ class Game:
         if x is None or y is None:
             x, y = generate_random_point(
                 rect_small=self.get_view_rect(),
-                rect_big=(0, 0, MAP_WIDTH, MAP_HEIGHT),
-                padding=COLLECTIBLE_RADIUS
+                rect_big=(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT),
+                padding=constants.COLLECTIBLE_RADIUS
             )
         self.collectibles.append(_class(x, y, self))
 
@@ -245,18 +246,18 @@ class Game:
     def spawn_enemies(self):
         hp = 1
         score = 100
-        speed = ENEMY_SPEED
+        speed = constants.ENEMY_SPEED
         if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
         if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 10000) / 10000000):
             hp = 10
             score = 300
-            speed = PLAYER_SPEED
+            speed = constants.PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
         if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
             score = 20000 + self.score // 1000
             hp = 50 + 150 * min(1.0, score / 100000)
-            speed = PLAYER_SPEED * 0.5
+            speed = constants.PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
     def collide_everything(self):
@@ -296,7 +297,7 @@ class Game:
 
         self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
         self.water_particle_handler.update()
-        self.water_particle_handler.remove_out_of_bounds(0, 0, MAP_WIDTH, MAP_HEIGHT)
+        self.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
         self.water_particle_handler.remove_zero_lifespan()
         self.water_particle_handler.remove_zero_hp()
         self.move_player()
@@ -309,13 +310,13 @@ class Game:
         if not self.player.is_dead():
             return
         game_over_text = font.render("Game Over", True, (255, 255, 255))
-        MAP_SURFACE.blit(game_over_text, (MAP_WIDTH // 2 - 50, MAP_HEIGHT // 2 - 20))
+        MAP_SURFACE.blit(game_over_text, (constants.MAP_WIDTH // 2 - 50, constants.MAP_HEIGHT // 2 - 20))
         pygame.display.flip()
         self.running = False
 
     def center_focus(self, lerp_const=0.1):
-        self.screen_x += (self.player.x - SCREEN_WIDTH / 2 - self.screen_x) * lerp_const
-        self.screen_y += (self.player.y - SCREEN_HEIGHT / 2 - self.screen_y) * lerp_const
+        self.screen_x += (self.player.x - constants.SCREEN_WIDTH / 2 - self.screen_x) * lerp_const
+        self.screen_y += (self.player.y - constants.SCREEN_HEIGHT / 2 - self.screen_y) * lerp_const
 
     def update(self):
         if not self.running:
@@ -338,13 +339,14 @@ class Game:
   """.strip()
         debug_str = f"""\
   fps             : {self.clock.get_fps():.0f}
-  weapon level    : {self.main_weapon.weapon.level if not self.main_weapon.weapon.is_max_lvl() else "Max"}
+  main weapon     : {self.main_weapon.name:20} (lvl {self.main_weapon.level_str})
+  sub weapon      : {self.sub_weapon.name:20} (lvl {self.sub_weapon.level_str})
   particle count  : {len(self.water_particle_handler.particles)}
   bullet count    : {len(self.bullets)}
   buff count      : {len(self.collectibles)}
   enemy count     : {len(self.enemies)}
   kills           : {self.kills}
-  overdrive       : {(1.0 - self.main_weapon.overdrive_cd / OVERDRIVE_CD) * 100:.0f}% (Q)
+  overdrive       : {(1.0 - self.main_weapon.overdrive_cd / constants.OVERDRIVE_CD) * 100:.0f}% (Q)
   auto fire       : {'on' if self.autofire else 'off':4}(E)""".title()
         y = 10
         for line in info_str.split("\n"):
@@ -357,7 +359,7 @@ class Game:
             y += text.get_height()
 
     def draw_everything(self):
-        MAP_SURFACE.fill(BACKGROUND_COLOR)
+        MAP_SURFACE.fill(constants.BACKGROUND_COLOR)
         self.player.draw(MAP_SURFACE)
 
         # particles
@@ -384,7 +386,7 @@ class Game:
             self.handle_events()
             self.update()
             self.draw_everything()
-            self.clock.tick(FPS)
+            self.clock.tick(constants.FPS)
         pygame.quit()
 
 
