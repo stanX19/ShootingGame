@@ -26,7 +26,7 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
-dev_mode = 0
+dev_mode = 1
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -241,7 +241,6 @@ class Game:
             )
         self.collectibles.append(_class(x, y, self))
 
-
     def spawn_enemies(self):
         hp = 1
         score = 100
@@ -255,7 +254,7 @@ class Game:
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
         if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
             score = 20000 + self.score // 1000
-            hp = 50 + 150 * min(1.0, score / 100000)
+            hp = 50  # + 150 * min(1.0, score / 100000)
             speed = PLAYER_SPEED * 0.5
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
@@ -323,6 +322,8 @@ class Game:
         self.current_time = pygame.time.get_ticks()
         self.score += self.current_time - self.start_ticks
         self.collectible_spawn_score += self.current_time - self.start_ticks
+        # recover to max in one minute
+        self.player.hp = min(self.player.max_hp, self.player.hp + (self.current_time - self.start_ticks) / 60000 * self.player.max_hp)
         self.start_ticks = self.current_time
         self.collide_everything()
         self.move_everything()

@@ -36,6 +36,7 @@ class Enemy(GameParticle):
             self.update_appearance_based_on_hp()
 
     def update_appearance_based_on_hp(self):
+        self.dmg = 1 / math.sqrt(self.max_hp)
         self.rad = Enemy.get_rad(self.hp)
         self.color = Enemy.get_color(self.hp, self.speed)
 
@@ -120,6 +121,7 @@ class ShootingEnemy(Enemy):
     def shoot(self):
         self.parent_list.append(Bullet(
             self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
+            dmg=self.target.max_hp / PLAYER_HP,
             color=ENEMY_BULLET_COLOR
         ))
 

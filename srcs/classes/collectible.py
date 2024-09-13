@@ -28,7 +28,7 @@ class Collectible(GameParticle):
 
 class HealCollectible(Collectible):
     def on_collect(self):
-        self.game.player.max_hp = max(self.game.player.max_hp, self.game.player.hp + HEAL_HP)
+        self.game.player.max_hp += HEAL_HP #max(self.game.player.max_hp, self.game.player.hp + HEAL_HP)
         self.game.player.hp = min(self.game.player.max_hp, self.game.player.hp + HEAL_HP)
 
     def draw(self, surface: pygame.Surface):
