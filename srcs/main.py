@@ -26,7 +26,7 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 
-dev_mode = 0
+dev_mode = 1
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -86,7 +86,6 @@ class Game:
         self.bullets = list([])
         self.collectibles = list([])
         self.water_particle_handler.clear()
-        self.spawn_collectible_at()
         self.score = start_score
         self.collectible_spawn_score = 10000
         self.kills = 0
@@ -181,26 +180,47 @@ class Game:
         self.player.set_velocity(dx, dy)
         self.player.move()
 
-    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy):
+    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy, rad=constants.ENEMY_RADIUS):
         # decide side
         if variable_shape:
-            radius = Enemy.get_rad(hp)
-        else:
-            radius = constants.ENEMY_RADIUS
+            rad = Enemy.get_rad(hp, hp, rad)
 
         side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
-            ex, ey = -radius, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = -rad, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'right':
-            ex, ey = constants.MAP_WIDTH + radius, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = constants.MAP_WIDTH + rad, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'top':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), -radius
+            ex, ey = random.randint(0, constants.MAP_WIDTH), -rad
         elif side == 'bottom':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + radius
+            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + rad
         else:
-            ex, ey = -radius, -radius
+            ex, ey = -rad, -rad
         self.enemies.append(_constructor(ex, ey, self.player, parent_list=self.enemies, hp=hp,
-                                         score=score, speed=speed, variable_shape=variable_shape))
+                                         score=score, speed=speed, variable_shape=variable_shape, radius=rad))
+
+    def spawn_enemies(self):
+        hp = 1
+        score = 100
+        speed = constants.ENEMY_SPEED
+        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
+            self._spawn_new_enemy(hp, score, speed, True)
+        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 10000) / 10000000):
+            hp = 10
+            score = 300
+            speed = constants.PLAYER_SPEED
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
+        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
+            score = min(40000, 20000 + self.score // 1000)
+            hp = 50  # + 150 * min(1.0, score / 100000)
+            speed = constants.PLAYER_SPEED * 0.5
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
+        if len(self.enemies) < 175 and random.random() < min(0.01, self.score / 100000):
+            hp = 400
+            score = 1000
+            speed = constants.ENEMY_SPEED / 2
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=Enemy, rad=50)
+
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
         return self.screen_x, self.screen_y, self.screen_x + constants.SCREEN_WIDTH, self.screen_y + constants.SCREEN_HEIGHT
@@ -242,22 +262,6 @@ class Game:
             )
         self.collectibles.append(_class(x, y, self))
 
-    def spawn_enemies(self):
-        hp = 1
-        score = 100
-        speed = constants.ENEMY_SPEED
-        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
-            self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 10000) / 10000000):
-            hp = 10
-            score = 300
-            speed = constants.PLAYER_SPEED
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
-            score = 20000 + self.score // 1000
-            hp = 50  # + 150 * min(1.0, score / 100000)
-            speed = constants.PLAYER_SPEED * 0.5
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.bullets + [self.player], self.enemies)
@@ -317,15 +321,19 @@ class Game:
         self.screen_x += (self.player.x - constants.SCREEN_WIDTH / 2 - self.screen_x) * lerp_const
         self.screen_y += (self.player.y - constants.SCREEN_HEIGHT / 2 - self.screen_y) * lerp_const
 
+    def increment_constants(self):
+        TIME_PASSED = self.current_time - self.start_ticks
+        self.score += TIME_PASSED
+        self.collectible_spawn_score += TIME_PASSED
+        # recover to 10 in one minute
+        self.player.hp = min(self.player.max_hp, self.player.hp + TIME_PASSED / 60000 * 10)
+        self.start_ticks = self.current_time
+
+
     def update(self):
         if not self.running:
             return
         self.current_time = pygame.time.get_ticks()
-        self.score += self.current_time - self.start_ticks
-        self.collectible_spawn_score += self.current_time - self.start_ticks
-        # recover to max in one minute
-        self.player.hp = min(self.player.max_hp, self.player.hp + (self.current_time - self.start_ticks) / 60000 * self.player.max_hp)
-        self.start_ticks = self.current_time
         self.collide_everything()
         self.move_everything()
         self.check_player_death()

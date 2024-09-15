@@ -2,7 +2,7 @@ from __future__ import annotations
 import pygame
 import math
 import random
-from typing import Sequence
+from typing import Sequence, Optional
 from srcs import utils
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
@@ -16,9 +16,9 @@ class Enemy(GameParticle):
         self.variable_shape: bool = variable_shape
         self.target: GameParticle = target
         self.parent_list: list[GameParticle] = parent_list
+        self.max_rad = None if radius == ENEMY_RADIUS else radius
 
-        if variable_shape:
-            self.update_appearance_based_on_hp()
+        self.update_appearance_based_on_hp()
 
     def move(self):
         dy = self.target.y - self.y
@@ -32,17 +32,21 @@ class Enemy(GameParticle):
         self.speed = spd
         super().move()
 
+        self.update_appearance_based_on_hp()
+
+    def update_shape_based_on_hp(self):
         if self.variable_shape:
-            self.update_appearance_based_on_hp()
+            self.rad = Enemy.get_rad(self.hp, self.max_hp, self.max_rad)
 
     def update_appearance_based_on_hp(self):
-        self.dmg = 1 / math.sqrt(self.max_hp)
-        self.rad = Enemy.get_rad(self.hp)
+        self.update_shape_based_on_hp()
+        self.dmg = 1  # / math.sqrt(self.max_hp)
         self.color = Enemy.get_color(self.hp, self.speed)
 
     @staticmethod
-    def get_rad(hp: float):
-        return ENEMY_RADIUS + (hp - 1)
+    def get_rad(hp: float, max_hp: float, max_rad: Optional[float]=None):
+        max_rad = max_rad or ENEMY_RADIUS + max_hp - 1
+        return ENEMY_RADIUS + (hp / max_hp) * max(0, max_rad - ENEMY_RADIUS)
 
     @staticmethod
     def get_color(hp: float, speed: float):

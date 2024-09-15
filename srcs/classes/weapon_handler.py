@@ -227,7 +227,6 @@ class WeaponHandler:
 
     def _fire_nova(self):
         mx, my = self.game.get_mouse_pos()
-        print(self.bullet_count)
         for i in range(self.bullet_count):
             self.game.water_particle_handler.spawn_at(mx, my)
         self.game.water_particle_handler.attract_to(mx, my)

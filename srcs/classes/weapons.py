@@ -79,7 +79,7 @@ class MainWeaponEnum:
                          recoil=PLAYER_SPEED, dmg=1, min_count=25, growth_factor=25, spread=math.pi * 0.4,
                          lifespan=(5, 20))
     bomb = WeaponType("destroyer", reload=800, velocity=5, max_count=1, radius=25, recoil=25, hp=10000, dmg=10)
-    missile = WeaponType("missile", 500, max_count=8, growth_factor=1, dmg=10,
+    missile = WeaponType("missile", 500, max_count=8, growth_factor=1, dmg=10, hp=0.000001,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
     shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=25, radius=1,
                         dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
@@ -106,7 +106,7 @@ class SubWeaponEnum:
     sub_dancer = WeaponType("sub dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.0, hp=1,
                             min_count=1, max_count=5, growth_factor=1, spread=math.pi,
                             recoil=-10, lifespan=(1, 60), bullet_class=LAZER_CLASS)
-    sub_inversed_dancer = WeaponType("sub inversed dancer", reload=0, velocity=(0, 5), radius=2, dmg=0.0, hp=1,
+    sub_inversed_dancer = WeaponType("sub inverted dancer", reload=0, velocity=(0, 5), radius=2, dmg=0.0, hp=1,
                             min_count=1, max_count=5, growth_factor=1, spread=math.pi,
                             recoil=10, lifespan=(1, 60), bullet_class=LAZER_CLASS)
 
