@@ -6,7 +6,7 @@ import pygame
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.weapons import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
 from srcs.classes.weapon_handler import WeaponHandler
-from srcs.constants import *
+from srcs import constants
 from srcs.classes import draw_utils
 
 
@@ -15,7 +15,7 @@ SUB_WEAPON_THEME = ((25, 255, 255), (0, 0, 255))
 
 
 class Collectible(GameParticle):
-    def __init__(self, x, y, game, color=(125, 125, 125), radius=COLLECTIBLE_RADIUS):
+    def __init__(self, x, y, game, color=(125, 125, 125), radius=constants.COLLECTIBLE_RADIUS):
         super().__init__(x, y, dmg=0, hp=1, color=color, radius=radius)
         self.game = game
 
@@ -28,8 +28,8 @@ class Collectible(GameParticle):
 
 class HealCollectible(Collectible):
     def on_collect(self):
-        self.game.player.max_hp += HEAL_HP #max(self.game.player.max_hp, self.game.player.hp + HEAL_HP)
-        self.game.player.hp = min(self.game.player.max_hp, self.game.player.hp + HEAL_HP)
+        self.game.player.max_hp += constants.HEAL_HP  #  max(self.game.player.max_hp, self.game.player.hp + constants.HEAL_HP)
+        self.game.player.hp = min(self.game.player.max_hp, self.game.player.hp + constants.HEAL_HP)
 
     def draw(self, surface: pygame.Surface):
         COLOR1 = (0, 255, 0)

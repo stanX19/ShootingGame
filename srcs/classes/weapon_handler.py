@@ -36,6 +36,10 @@ class WeaponHandler:
         self.overdrive_weapon = None
 
     @property
+    def level_str(self):
+        return self.weapon.level if not self.weapon.is_max_lvl() else "Max"
+
+    @property
     def current_time(self):
         return self.game.current_time
 
@@ -88,6 +92,7 @@ class WeaponHandler:
         self.overdrive_weapon.dmg *= 5
         self.overdrive_weapon.hp *= 5
         self.overdrive_weapon.shot_delay /= 10
+        self.overdrive_weapon.recoil *= 2
         constants.MAX_PARTICLE_COUNT *= 2
         # self.overdrive_weapon.speed *= 2
 
@@ -98,6 +103,7 @@ class WeaponHandler:
         self.overdrive_weapon.dmg /= 5
         self.overdrive_weapon.hp /= 5
         self.overdrive_weapon.shot_delay *= 10
+        self.overdrive_weapon.recoil /= 2
         constants.MAX_PARTICLE_COUNT /= 2
         # self.overdrive_weapon.speed /= 2
         self.overdrive_weapon = None
