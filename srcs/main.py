@@ -25,6 +25,7 @@ from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParti
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
+from srcs.classes.game_data import GameData
 
 dev_mode = 1
 god_mode: bool = False
@@ -53,192 +54,163 @@ consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 # Game class
 class Game:
     def __init__(self):
-        self.player: Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
-        self.bullets: list[[Bullet, Missile]] = list([])
-        self.enemies: list[Enemy] = list([])
-        self.collectibles: list[Collectible] = list([])
-        self.water_particle_handler: WaterParticleHandler = WaterParticleHandler()
-        self.score: int = start_score
-        self.collectible_spawn_score: int = 0
-        self.kills: int = 0
-        self.start_ticks = pygame.time.get_ticks()
-        self.left_mouse_down = False
-        self.right_mouse_down = False
-        self.autofire = False
-        self.pressed_keys: dict[int, bool] = {k: False for k in range(1000)}
-        self.main_weapon: Optional[WeaponHandler] = None
-        self.sub_weapon: Optional[WeaponHandler] = None
-        self.running: bool = True
-        self.quit: bool = False
-        self.clock: pygame.time.Clock = pygame.time.Clock()
-        self.current_time = pygame.time.get_ticks()
-        self.screen_x = 0
-        self.screen_y = 0
+        self.game_data: GameData = GameData()
         self.init_game()
 
     def init_game(self):
-        self.running = True
-        self.player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
-        self.main_weapon = WeaponHandler(self, default_weapons[0])
-        self.sub_weapon = WeaponHandler(self, default_weapons[1])
+        self.game_data.running = True
+        self.game_data.player = Player(self.game_data, constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
+        self.game_data.player.main_weapon.reinit_weapons(default_weapons[0])
+        self.game_data.player.sub_weapon.reinit_weapons(default_weapons[1])
         self.center_focus(lerp_const=1.0)
-        self.enemies = list([])
-        self.bullets = list([])
-        self.collectibles = list([])
-        self.water_particle_handler.clear()
-        self.score = start_score
-        self.collectible_spawn_score = 10000
-        self.kills = 0
-        self.autofire = False
-        self.main_weapon.overdrive_cd = 0.0
-        self.main_weapon.set_weapon_by_index(0)
+        self.game_data.enemies = []
+        self.game_data.bullets = []
+        self.game_data.collectibles = []
+        self.game_data.water_particle_handler.clear()
+        self.game_data.score = start_score
+        self.game_data.kills = 0
+        self.game_data.autofire = False
+        self.game_data.player.main_weapon.overdrive_cd = 0.0
+        self.game_data.player.main_weapon.set_weapon_by_index(0)
+        self.game_data.collectible_spawn_score = 10000
         self.background_update()
         self.spawn_starter_pack()
 
     def spawn_starter_pack(self):
-        self.spawn_collectible_at(self.player.x - 90, self.player.y - 40)
-        self.spawn_collectible_at(self.player.x - 100, self.player.y)
-        self.spawn_collectible_at(self.player.x - 90, self.player.y + 40)
+        self.spawn_collectible_at(self.game_data.player.x - 90, self.game_data.player.y - 40)
+        self.spawn_collectible_at(self.game_data.player.x - 100, self.game_data.player.y)
+        self.spawn_collectible_at(self.game_data.player.x - 90, self.game_data.player.y + 40)
 
     def background_update(self):
         threshold = min(constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT)
-        while not any(e.distance_with(self.player) <= threshold for e in self.enemies):
+        while not any(e.distance_with(self.game_data.player) <= threshold for e in self.game_data.enemies):
             self.update()
 
     def handle_events(self):
         pygame.event.pump()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.quit = True
+                self.game_data.quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.quit = True
+                    self.game_data.quit = True
                 if event.key == pygame.K_q:
-                    self.main_weapon.overdrive_start()
+                    self.game_data.player.main_weapon.overdrive_start()
                 if event.key == pygame.K_TAB:
-                    self.sub_weapon.change_weapon()
+                    self.game_data.player.sub_weapon.change_weapon()
                 if event.key == pygame.K_e:
-                    self.autofire = not self.autofire
-                self.pressed_keys[event.key] = True
+                    self.game_data.autofire = not self.game_data.autofire
+                self.game_data.pressed_keys[event.key] = True
             elif event.type == pygame.KEYUP:
-                self.pressed_keys[event.key] = False
+                self.game_data.pressed_keys[event.key] = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if not self.running:
+                if not self.game_data.running:
                     self.init_game()
-                    self.running = True
+                    self.game_data.running = True
                 if event.button == 1:  # Left mouse button
-                    self.left_mouse_down = True
+                    self.game_data.left_mouse_down = True
                 elif event.button == 3:  # Right mouse button
-                    self.right_mouse_down = True
+                    self.game_data.right_mouse_down = True
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
-                    self.left_mouse_down = False
-                    self.main_weapon.on_mouse_up()
+                    self.game_data.left_mouse_down = False
+                    self.game_data.player.main_weapon.on_mouse_up()
                 elif event.button == 3:  # Right mouse button
-                    self.right_mouse_down = False
-
-    def get_mouse_angle(self):
-        mx, my = self.get_mouse_pos()
-        px, py = self.player.get_xy()
-        return math.atan2(my - py, mx - px)
-
-    def get_mouse_pos(self):
-        mx, my = pygame.mouse.get_pos()
-        mx += self.screen_x
-        my += self.screen_y
-        return mx, my
+                    self.game_data.right_mouse_down = False
 
     def in_screen(self, particle):
-        min_x = self.screen_x - particle.rad
-        max_x = self.screen_x + constants.SCREEN_WIDTH + particle.rad
-        min_y = self.screen_y - particle.rad
-        max_y = self.screen_y + constants.SCREEN_HEIGHT + particle.rad
+        min_x = self.game_data.screen_x - particle.rad
+        max_x = self.game_data.screen_x + constants.SCREEN_WIDTH + particle.rad
+        min_y = self.game_data.screen_y - particle.rad
+        max_y = self.game_data.screen_y + constants.SCREEN_HEIGHT + particle.rad
         return min_x < particle.x < max_x and min_y < particle.y < max_y
 
     def shoot_bullets(self):
         for k in range(49, 58):
-            if self.pressed_keys[k]:
-                self.main_weapon.change_weapon(k - 49)
+            if self.game_data.pressed_keys[k]:
+                self.game_data.player.main_weapon.change_weapon(k - 49)
                 break
 
-        if self.autofire or self.right_mouse_down:
-            self.sub_weapon.fire()
+        if self.game_data.autofire or self.game_data.right_mouse_down:
+            self.game_data.player.sub_weapon.fire()
 
-        if self.autofire or self.left_mouse_down:
-            self.main_weapon.fire()
+        if self.game_data.autofire or self.game_data.left_mouse_down:
+            self.game_data.player.main_weapon.fire()
 
     def move_player(self):
         dx, dy = 0, 0
-        if self.pressed_keys[pygame.K_w]:
+        if self.game_data.pressed_keys[pygame.K_w]:
             dy -= constants.PLAYER_SPEED
-        if self.pressed_keys[pygame.K_s]:
+        if self.game_data.pressed_keys[pygame.K_s]:
             dy += constants.PLAYER_SPEED
-        if self.pressed_keys[pygame.K_a]:
+        if self.game_data.pressed_keys[pygame.K_a]:
             dx -= constants.PLAYER_SPEED
-        if self.pressed_keys[pygame.K_d]:
+        if self.game_data.pressed_keys[pygame.K_d]:
             dx += constants.PLAYER_SPEED
-        self.player.set_velocity(dx, dy)
-        self.player.move()
+        self.game_data.player.set_velocity(dx, dy)
+        self.game_data.player.move()
 
-    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy, rad=constants.ENEMY_RADIUS):
+    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy,
+                         radius=constants.ENEMY_RADIUS, **kwargs):
         # decide side
         if variable_shape:
-            rad = Enemy.get_rad(hp, hp, rad)
+            radius = Enemy.get_rad(hp, hp, radius)
 
         side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
-            ex, ey = -rad, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = -radius, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'right':
-            ex, ey = constants.MAP_WIDTH + rad, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = constants.MAP_WIDTH + radius, random.randint(0, constants.MAP_HEIGHT)
         elif side == 'top':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), -rad
+            ex, ey = random.randint(0, constants.MAP_WIDTH), -radius
         elif side == 'bottom':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + rad
+            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + radius
         else:
-            ex, ey = -rad, -rad
-        self.enemies.append(_constructor(ex, ey, self.player, parent_list=self.enemies, hp=hp,
-                                         score=score, speed=speed, variable_shape=variable_shape, radius=rad))
+            ex, ey = -radius, -radius
+        self.game_data.enemies.append(_constructor(self.game_data, ex, ey, self.game_data.player, parent_list=self.game_data.enemies, hp=hp,
+                                         score=score, speed=speed, variable_shape=variable_shape, radius=radius,
+                                         **kwargs))
 
     def spawn_enemies(self):
         hp = 1
         score = 100
         speed = constants.ENEMY_SPEED
-        if len(self.enemies) < 150 and random.random() < 0.02 + self.score / 100000:
+        if len(self.game_data.enemies) < 150 and random.random() < 0.02 + self.game_data.score / 100000:
             self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.enemies) < 160 and random.random() < min(0.02, (self.score - 10000) / 10000000):
+        if len(self.game_data.enemies) < 160 and random.random() < min(0.02, (self.game_data.score - 10000) / 10000000):
             hp = 10
             score = 300
             speed = constants.PLAYER_SPEED
             self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-        if len(self.enemies) < 170 and random.random() < min(0.01, (self.score - 20000) / 10000000):
-            score = min(40000, 20000 + self.score // 1000)
+        if len(self.game_data.enemies) < 170 and random.random() < min(0.01, (self.game_data.score - 20000) / 10000000):
+            score = min(40000, 20000 + self.game_data.score // 1000)
             hp = 50  # + 150 * min(1.0, score / 100000)
             speed = constants.PLAYER_SPEED * 0.5
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership)
-        if len(self.enemies) < 175 and random.random() < min(0.01, self.score / 100000):
-            hp = 400
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership, dmg=0.1)
+        if len(self.game_data.enemies) < 175 and random.random() < min(0.005, self.game_data.score / 100000):
+            hp = 50
             score = 1000
             speed = constants.ENEMY_SPEED / 2
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=Enemy, rad=50)
+            self._spawn_new_enemy(hp, score, speed, True, _constructor=Enemy, radius=30, dmg=5)
 
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
-        return self.screen_x, self.screen_y, self.screen_x + constants.SCREEN_WIDTH, self.screen_y + constants.SCREEN_HEIGHT
+        return self.game_data.screen_x, self.game_data.screen_y, self.game_data.screen_x + constants.SCREEN_WIDTH, self.game_data.screen_y + constants.SCREEN_HEIGHT
 
     def spawn_collectible_at(self, x: Optional[float] = None, y: Optional[float] = None):
         # MIN_ON_MAP = 10
         # MAX_ON_MAP = 50
-        # if len(self.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.collectibles)):
+        # if len(self.game_data.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.game_data.collectibles)):
         #     return
         all_main_weapon = len(ALL_MAIN_WEAPON_LIST)
         all_sub_weapon = len(ALL_SUB_WEAPON_LIST)
-        main_weapon_obtained = len(self.main_weapon.all_weapon)
-        sub_weapon_obtained = len(self.sub_weapon.all_weapon)
+        main_weapon_obtained = len(self.game_data.player.main_weapon.all_weapon)
+        sub_weapon_obtained = len(self.game_data.player.sub_weapon.all_weapon)
         not_obtained_main_weapons = all_main_weapon - main_weapon_obtained
         not_obtained_sub_weapons = all_sub_weapon - sub_weapon_obtained
-        maxed_main_weapons = len([i for i in self.main_weapon.all_weapon if i.is_max_lvl()])
-        maxed_sub_weapons = len([i for i in self.sub_weapon.all_weapon if i.is_max_lvl()])
-        missing_hp = self.player.max_hp - self.player.hp
+        maxed_main_weapons = len([i for i in self.game_data.player.main_weapon.all_weapon if i.is_max_lvl()])
+        maxed_sub_weapons = len([i for i in self.game_data.player.sub_weapon.all_weapon if i.is_max_lvl()])
+        missing_hp = self.game_data.player.max_hp - self.game_data.player.hp
         collectibles = [
                             HealCollectible,
                             MainWeaponCollectible,
@@ -260,80 +232,80 @@ class Game:
                 rect_big=(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT),
                 padding=constants.COLLECTIBLE_RADIUS
             )
-        self.collectibles.append(_class(x, y, self))
+        self.game_data.collectibles.append(_class(x, y, self.game_data))
 
 
     def collide_everything(self):
-        collide_enemy_and_bullets(self.bullets + [self.player], self.enemies)
-        collide_enemy_and_bullets([self.player], self.collectibles)
-        self.water_particle_handler.collide_with_enemies(self.enemies)
+        collide_enemy_and_bullets(self.game_data.bullets + [self.game_data.player], self.game_data.enemies)
+        collide_enemy_and_bullets([self.game_data.player], self.game_data.collectibles)
+        self.game_data.water_particle_handler.collide_with_enemies(self.game_data.enemies)
 
-        for enemy in self.enemies:
+        for enemy in self.game_data.enemies:
             if not enemy.is_dead():
                 continue
             enemy.on_death()
-            self.collectible_spawn_score += enemy.score
+            self.game_data.collectible_spawn_score += enemy.score
             #                                                   60 seconds per drop
-            if random.random() < self.collectible_spawn_score / 60000 - len(self.collectibles) / 50:
+            if random.random() < self.game_data.collectible_spawn_score / 60000 - len(self.game_data.collectibles) / 50:
                 self.spawn_collectible_at(enemy.x, enemy.y)
-                self.collectible_spawn_score = 0
-            self.score += enemy.score
-            self.kills += 1
+                self.game_data.collectible_spawn_score = 0
+            self.game_data.score += enemy.score
+            self.game_data.kills += 1
 
-        self.enemies[:] = [e for e in self.enemies if not e.is_dead()]
+        self.game_data.enemies[:] = [e for e in self.game_data.enemies if not e.is_dead()]
 
-        self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
+        self.game_data.bullets[:] = [b for b in self.game_data.bullets if not b.is_dead()]
 
-        for collectible in self.collectibles:
-            if collectible.is_dead():
+        for collectible in self.game_data.collectibles:
+            if collectible.is_dead() and isinstance(collectible, Collectible):
                 collectible.on_collect()
-        self.collectibles[:] = [c for c in self.collectibles if not c.is_dead()]
+        self.game_data.collectibles[:] = [c for c in self.game_data.collectibles if not c.is_dead()]
 
     def move_everything(self):
-        for enemy in self.enemies:
+        for enemy in self.game_data.enemies:
             if isinstance(enemy, DodgingEnemy):
-                enemy.dodge_bullets(self.bullets)
+                enemy.dodge_bullets(self.game_data.bullets)
             enemy.move()
 
-        for bullet in self.bullets:
+        for bullet in self.game_data.bullets:
             bullet.move()
 
-        self.bullets[:] = [b for b in self.bullets if not b.is_dead()]
-        self.water_particle_handler.update()
-        self.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
-        self.water_particle_handler.remove_zero_lifespan()
-        self.water_particle_handler.remove_zero_hp()
+        self.game_data.bullets[:] = [b for b in self.game_data.bullets if not b.is_dead()]
+        self.game_data.water_particle_handler.update()
+        self.game_data.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
+        self.game_data.water_particle_handler.remove_zero_lifespan()
+        self.game_data.water_particle_handler.remove_zero_hp()
         self.move_player()
 
     def check_player_death(self):
         if god_mode:
-            self.player.hp = max(0.01, self.player.hp)
+            self.game_data.player.hp = max(0.01, self.game_data.player.hp)
             return
-        self.player.hp = max(0.0, min(self.player.max_hp, self.player.hp))
-        if not self.player.is_dead():
+        self.game_data.player.hp = max(0.0, min(self.game_data.player.max_hp, self.game_data.player.hp))
+        if not self.game_data.player.is_dead():
             return
         game_over_text = font.render("Game Over", True, (255, 255, 255))
         MAP_SURFACE.blit(game_over_text, (constants.MAP_WIDTH // 2 - 50, constants.MAP_HEIGHT // 2 - 20))
         pygame.display.flip()
-        self.running = False
+        self.game_data.running = False
 
     def center_focus(self, lerp_const=0.1):
-        self.screen_x += (self.player.x - constants.SCREEN_WIDTH / 2 - self.screen_x) * lerp_const
-        self.screen_y += (self.player.y - constants.SCREEN_HEIGHT / 2 - self.screen_y) * lerp_const
+        self.game_data.screen_x += (self.game_data.player.x - constants.SCREEN_WIDTH / 2 - self.game_data.screen_x) * lerp_const
+        self.game_data.screen_y += (self.game_data.player.y - constants.SCREEN_HEIGHT / 2 - self.game_data.screen_y) * lerp_const
 
     def increment_constants(self):
-        TIME_PASSED = self.current_time - self.start_ticks
-        self.score += TIME_PASSED
-        self.collectible_spawn_score += TIME_PASSED
+        TIME_PASSED = self.game_data.current_time - self.game_data.start_ticks
+        self.game_data.score += TIME_PASSED
+        self.game_data.collectible_spawn_score += TIME_PASSED
         # recover to 10 in one minute
-        self.player.hp = min(self.player.max_hp, self.player.hp + TIME_PASSED / 60000 * 10)
-        self.start_ticks = self.current_time
+        self.game_data.player.hp = min(self.game_data.player.max_hp, self.game_data.player.hp + TIME_PASSED / 60000 * 10)
+        self.game_data.start_ticks = self.game_data.current_time
 
 
     def update(self):
-        if not self.running:
+        if not self.game_data.running:
             return
-        self.current_time = pygame.time.get_ticks()
+        self.game_data.current_time = pygame.time.get_ticks()
         self.collide_everything()
         self.move_everything()
         self.check_player_death()
@@ -342,21 +314,21 @@ class Game:
         self.center_focus()
 
     def add_text_to_screen(self):
-        info_str = f"""Score: {self.score}
-  {self.main_weapon.index + 1}) {self.main_weapon.name}
-  {int(self.player.hp)} / {int(self.player.max_hp)} hp
+        info_str = f"""Score: {self.game_data.score}
+  {self.game_data.player.main_weapon.index + 1}) {self.game_data.player.main_weapon.name}
+  {int(self.game_data.player.hp)} / {int(self.game_data.player.max_hp)} hp
   """.strip()
         debug_str = f"""\
-  fps             : {self.clock.get_fps():.0f}
-  main weapon     : {self.main_weapon.name:20} (lvl {self.main_weapon.level_str})
-  sub weapon      : {self.sub_weapon.name:20} (lvl {self.sub_weapon.level_str})
-  particle count  : {len(self.water_particle_handler.particles)}
-  bullet count    : {len(self.bullets)}
-  buff count      : {len(self.collectibles)}
-  enemy count     : {len(self.enemies)}
-  kills           : {self.kills}
-  overdrive       : {(1.0 - self.main_weapon.overdrive_cd / constants.OVERDRIVE_CD) * 100:.0f}% (Q)
-  auto fire       : {'on' if self.autofire else 'off':4}(E)""".title()
+  fps             : {self.game_data.clock.get_fps():.0f}
+  main weapon     : {self.game_data.player.main_weapon.name:20} (lvl {self.game_data.player.main_weapon.level_str})
+  sub weapon      : {self.game_data.player.sub_weapon.name:20} (lvl {self.game_data.player.sub_weapon.level_str})
+  particle count  : {len(self.game_data.water_particle_handler.particles)}
+  bullet count    : {len(self.game_data.bullets)}
+  buff count      : {len(self.game_data.collectibles)}
+  enemy count     : {len(self.game_data.enemies)}
+  kills           : {self.game_data.kills}
+  overdrive       : {(1.0 - self.game_data.player.main_weapon.overdrive_cd / constants.OVERDRIVE_CD) * 100:.0f}% (Q)
+  auto fire       : {'on' if self.game_data.autofire else 'off':4}(E)""".title()
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))
@@ -369,7 +341,7 @@ class Game:
 
     def draw_everything(self):
         MAP_SURFACE.fill(constants.BACKGROUND_COLOR)
-        self.player.draw(MAP_SURFACE)
+        self.game_data.player.draw(MAP_SURFACE)
 
         # particles
         def draw_particles(particles: [GameParticle]):
@@ -378,24 +350,24 @@ class Game:
                     continue
                 particle.draw(MAP_SURFACE)
 
-        draw_particles(self.collectibles)
-        draw_particles(self.bullets)
-        draw_particles(self.enemies)
+        draw_particles(self.game_data.collectibles)
+        draw_particles(self.game_data.bullets)
+        draw_particles(self.game_data.enemies)
 
-        self.water_particle_handler.draw_everything(MAP_SURFACE, (self.screen_x, self.screen_y))
+        self.game_data.water_particle_handler.draw_everything(MAP_SURFACE, (self.game_data.screen_x, self.game_data.screen_y))
 
         SCREEN.fill((100, 100, 100))
-        SCREEN.blit(MAP_SURFACE, (-self.screen_x, -self.screen_y))
+        SCREEN.blit(MAP_SURFACE, (-self.game_data.screen_x, -self.game_data.screen_y))
         self.add_text_to_screen()
 
         pygame.display.flip()
 
     def run(self):
-        while not self.quit:
+        while not self.game_data.quit:
             self.handle_events()
             self.update()
             self.draw_everything()
-            self.clock.tick(constants.FPS)
+            self.game_data.clock.tick(constants.FPS)
         pygame.quit()
 
 

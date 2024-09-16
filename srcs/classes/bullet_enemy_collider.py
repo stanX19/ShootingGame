@@ -2,8 +2,6 @@ from __future__ import annotations
 import math
 from typing import Sequence
 from srcs.constants import *
-from srcs.classes.bullet import Bullet
-from srcs.classes.enemy import Enemy
 from srcs.classes.game_particle import GameParticle
 
 

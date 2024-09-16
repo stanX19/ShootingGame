@@ -1,14 +1,21 @@
 from __future__ import annotations
 import math
+from typing import Optional
+
 import pygame
 from srcs import utils
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
+from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.game_data import GameData
 
 
 class Player(GameParticle):
-    def __init__(self, x: float, y: float, rad=PLAYER_RADIUS):
+    def __init__(self, game_data: GameData, x: float, y: float, rad=PLAYER_RADIUS):
         super().__init__(x, y, radius=rad, color=PLAYER_COLOR, hp=PLAYER_HP)
+        self.game_data: GameData = game_data
+        self.main_weapon: Optional[WeaponHandler] = WeaponHandler(game_data)
+        self.sub_weapon: Optional[WeaponHandler] = WeaponHandler(game_data)
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.circle(surface, PLAYER_COLOR, (self.x, self.y), self.rad)

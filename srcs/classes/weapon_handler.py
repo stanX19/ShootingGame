@@ -6,11 +6,30 @@ from srcs import constants
 from srcs import utils
 from srcs.classes.bullet import Bullet
 from srcs.classes.missile import Missile
-from srcs.classes.weapons import *
+from srcs.classes.weapons import WeaponType
+from srcs.classes.weapons import MISSILE_CLASS, LAZER_CLASS, NOVA_CLASS
+from srcs.classes.game_data import GameData
 
 
 class WeaponHandler:
-    def __init__(self, game, weapons: [None, list[WeaponType], type] = None):
+    def __init__(self, game_data: GameData, weapons: [None, list[WeaponType], type] = None):
+        self.weapon: [WeaponType, None] = None
+        self.all_weapon: list[WeaponType] = []
+        self.reinit_weapons(weapons)
+        self.last_shot_time = {}
+        self.weapon_change_energy = 10000
+        self.last_reload_time = 0
+        self.game_data: GameData = game_data
+        self.mx, self.my = 0, 0
+        self.dy, self.dx = 0, 0
+        self.hypot = 0.0
+        self.angle = 0.0
+        self.bullet_count = 1
+        self._overdrive_end_time = -constants.OVERDRIVE_CD
+        self._overdrive_start_time = -constants.OVERDRIVE_CD
+        self.overdrive_weapon = None
+
+    def reinit_weapons(self, weapons: [None, list[WeaponType], type] = None):
         if isinstance(weapons, list):
             weapons = [copy.copy(weapon) for weapon in weapons if isinstance(weapon, WeaponType)]
         elif isinstance(weapons, WeaponType):
@@ -22,38 +41,10 @@ class WeaponHandler:
 
         self.weapon: [WeaponType, None] = weapons[0] if weapons else None
         self.all_weapon = weapons
-        self.last_shot_time = {}
-        self.weapon_change_energy = 10000
-        self.last_reload_time = 0
-        self.game = game
-        self.mx, self.my = 0, 0
-        self.dy, self.dx = 0, 0
-        self.hypot = 0.0
-        self.angle = 0.0
-        self.bullet_count = 1
-        self._overdrive_end_time = -constants.OVERDRIVE_CD
-        self._overdrive_start_time = -constants.OVERDRIVE_CD
-        self.overdrive_weapon = None
 
     @property
     def level_str(self):
         return self.weapon.level if not self.weapon.is_max_lvl() else "Max"
-
-    @property
-    def current_time(self):
-        return self.game.current_time
-
-    @property
-    def player(self):
-        return self.game.player
-
-    @property
-    def bullets_list(self):
-        return self.game.bullets
-
-    @property
-    def score(self):
-        return self.game.score
 
     @property
     def index(self):
@@ -71,21 +62,21 @@ class WeaponHandler:
 
     @property
     def overdrive_cd(self):
-        return max(0.0, constants.OVERDRIVE_CD - (self.current_time - self._overdrive_end_time))
+        return max(0.0, constants.OVERDRIVE_CD - (self.game_data.current_time - self._overdrive_end_time))
 
     @overdrive_cd.setter
     def overdrive_cd(self, val):
         if val < 0.0:
             val = 0.0
-        self._overdrive_end_time = self.current_time - constants.OVERDRIVE_CD + val
+        self._overdrive_end_time = self.game_data.current_time - constants.OVERDRIVE_CD + val
 
     def overdrive_start(self):
         if self.overdrive_weapon:
             return
         if self.overdrive_cd:
             return
-        self._overdrive_start_time = self.current_time
-        self._overdrive_end_time = self.current_time
+        self._overdrive_start_time = self.game_data.current_time
+        self._overdrive_end_time = self.game_data.current_time
         self.overdrive_weapon = self.weapon
         self.last_shot_time[self.overdrive_weapon] = -self.weapon.shot_delay
         self.overdrive_weapon.rad *= 2
@@ -110,7 +101,7 @@ class WeaponHandler:
 
     def upgrade_weapon(self):
         if self.weapon.is_max_lvl():
-            self.overdrive_cd -= OVERDRIVE_CD * 0.25
+            self.overdrive_cd -= constants.OVERDRIVE_CD * 0.25
         else:
             self.weapon.level += 1
 
@@ -140,8 +131,8 @@ class WeaponHandler:
     def _change_in_cooldown(self):
         MAX_CONSECUTIVE_CHANGE = 2
         COOLDOWN = 2000  # ms
-        self.weapon_change_energy += self.current_time - self.last_reload_time
-        self.last_reload_time = self.current_time
+        self.weapon_change_energy += self.game_data.current_time - self.last_reload_time
+        self.last_reload_time = self.game_data.current_time
         self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, MAX_CONSECUTIVE_CHANGE * COOLDOWN)
         if self.weapon_change_energy < COOLDOWN:
             return True
@@ -169,9 +160,9 @@ class WeaponHandler:
         lazer_dy = self.dy / self.hypot * constants.BULLET_RADIUS
         lazer_dx = self.dx / self.hypot * constants.BULLET_RADIUS
         for i in range(self.bullet_count):
-            self.game.bullets.append(Bullet(
-                self.player.x + lazer_dx * i,
-                self.player.y + lazer_dy * i,
+            self.game_data.bullets.append(Bullet(
+                self.game_data.player.x + lazer_dx * i,
+                self.game_data.player.y + lazer_dy * i,
                 self.angle,
                 weapon=self.weapon
             ))
@@ -185,8 +176,8 @@ class WeaponHandler:
     #         speed = random.uniform(self.weapon.speed / 2, self.weapon.speed)
     #         self.bullets_list.append(
     #             Bullet(
-    #                 self.player.x,
-    #                 self.player.y,
+    #                 self.game_data.player.x,
+    #                 self.game_data.player.y,
     #                 shoot_angle,
     #                 speed=speed,
     #                 weapon=self.weapon
@@ -195,11 +186,11 @@ class WeaponHandler:
     def _fire_missile(self):
         direction_count = self.bullet_count
         angle_offset = math.pi * 2 / direction_count
-        target = Missile.find_target_at(self.mx, self.my, self.game.enemies)
+        target = Missile.find_target_at(self.mx, self.my, self.game_data.enemies)
         for i in range(self.bullet_count):
             offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.bullets_list.append(Missile(self.player.x, self.player.y, shoot_angle, self.game.enemies, target,
+            self.game_data.bullets.append(Missile(self.game_data.player.x, self.game_data.player.y, shoot_angle, self.game_data.enemies, target,
                                      dmg=self.weapon.dmg))
 
     def _fire_default(self):
@@ -218,29 +209,29 @@ class WeaponHandler:
             bullet_angle = self.angle + offset * self.weapon.offset_factor
             dy, dx = math.sin(shoot_angle) * self.weapon.spawn_radius, math.cos(shoot_angle) * self.weapon.spawn_radius
             dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(self.angle) * self.weapon.spawn_radius
-            self.bullets_list.append(Bullet(
-                self.player.x + dx,
-                self.player.y + dy,
+            self.game_data.bullets.append(Bullet(
+                self.game_data.player.x + dx,
+                self.game_data.player.y + dy,
                 bullet_angle,
                 weapon=self.weapon
             ))
 
     def _fire_nova(self):
-        mx, my = self.game.get_mouse_pos()
+        mx, my = self.game_data.get_mouse_pos()
         for i in range(self.bullet_count):
-            self.game.water_particle_handler.spawn_at(mx, my)
-        self.game.water_particle_handler.attract_to(mx, my)
+            self.game_data.water_particle_handler.spawn_at(mx, my)
+        self.game_data.water_particle_handler.attract_to(mx, my)
 
     def _update_fire_constants(self):
-        self.mx, self.my = self.game.get_mouse_pos()
-        self.dy, self.dx = self.my - self.player.y, self.mx - self.player.x
+        self.mx, self.my = self.game_data.get_mouse_pos()
+        self.dy, self.dx = self.my - self.game_data.player.y, self.mx - self.game_data.player.x
         self.hypot = math.hypot(self.dy, self.dx)
         self.angle = math.atan2(self.dy, self.dx)
         self.bullet_count = self._get_bullet_count()
 
     @property
     def overdrive_on(self) -> bool:
-        return self.current_time - self._overdrive_start_time < constants.OVERDRIVE_DURATION
+        return self.game_data.current_time - self._overdrive_start_time < constants.OVERDRIVE_DURATION
 
     def _update_overdrive(self):
         if self.overdrive_on:
@@ -250,9 +241,9 @@ class WeaponHandler:
     def fire(self):
         if self.weapon is None:
             return
-        if self.current_time - self.last_shot_time.get(self.weapon, -10000000000) < self.weapon.shot_delay:
+        if self.game_data.current_time - self.last_shot_time.get(self.weapon, -10000000000) < self.weapon.shot_delay:
             return
-        self.last_shot_time[self.weapon] = self.current_time
+        self.last_shot_time[self.weapon] = self.game_data.current_time
 
         self._update_overdrive()
         self._update_fire_constants()
@@ -267,13 +258,13 @@ class WeaponHandler:
         fire_func()
         # self._fire_default()
 
-        self.player.recoil(self.angle, self.weapon.recoil)
+        self.game_data.player.recoil(self.angle, self.weapon.recoil)
 
     def on_mouse_up(self):
         if self.weapon.bullet_class is NOVA_CLASS:
-            self.game.water_particle_handler.release(
-                *self.game.get_mouse_pos(),
-                self.game.get_mouse_angle(),
+            self.game_data.water_particle_handler.release(
+                *self.game_data.get_mouse_pos(),
+                self.game_data.get_mouse_angle(),
                 self.weapon.speed,
-                self.player
+                self.game_data.player
             )
