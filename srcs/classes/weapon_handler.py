@@ -176,8 +176,8 @@ class WeaponHandler:
     #         speed = random.uniform(self.weapon.speed / 2, self.weapon.speed)
     #         self.bullets_list.append(
     #             Bullet(
-    #                 self.game_data.player.x,
-    #                 self.game_data.player.y,
+    #                 self.data.player.x,
+    #                 self.data.player.y,
     #                 shoot_angle,
     #                 speed=speed,
     #                 weapon=self.weapon
