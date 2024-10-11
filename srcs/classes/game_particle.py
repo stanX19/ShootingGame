@@ -54,16 +54,16 @@ class GameParticle(Particle):
         self.dmg: float = dmg
         self.score: int = score
 
-    def on_death(self, *args, **kwargs):
-        pass
+    def on_death(self, *args, **kwargs) -> None:
+        return
 
-    def is_dead(self):
+    def is_dead(self) -> bool:
         return self.hp <= 0.0
 
-    def angle_with(self, other: Particle):
+    def angle_with(self, other: Particle) -> float:
         try:
             y_dis = other.y - self.y
             x_dis = other.x - self.x
             return math.atan2(y_dis, x_dis)
         except AttributeError:
-            return 0
+            return 0.0

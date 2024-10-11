@@ -27,7 +27,7 @@ from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 from srcs.classes.game_data import GameData
 
-dev_mode = 0
+dev_mode = 1
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -117,13 +117,6 @@ class Game:
                     self.data.player.main_weapon.on_mouse_up()
                 elif event.button == 3:  # Right mouse button
                     self.data.right_mouse_down = False
-
-    def in_screen(self, particle):
-        min_x = self.data.screen_x - particle.rad
-        max_x = self.data.screen_x + constants.SCREEN_WIDTH + particle.rad
-        min_y = self.data.screen_y - particle.rad
-        max_y = self.data.screen_y + constants.SCREEN_HEIGHT + particle.rad
-        return min_x < particle.x < max_x and min_y < particle.y < max_y
 
     def shoot_bullets(self):
         for k in range(49, 58):
@@ -244,7 +237,6 @@ class Game:
         for enemy in self.data.enemies:
             if not enemy.is_dead():
                 continue
-            enemy.on_death()
             self.data.collectible_spawn_score += enemy.score
             #                                                   60 seconds per drop
             if random.random() < self.data.collectible_spawn_score / 60000 - len(self.data.collectibles) / 50:
@@ -253,9 +245,10 @@ class Game:
             self.data.score += enemy.score
             self.data.kills += 1
 
-        self.data.enemies[:] = [e for e in self.data.enemies if not e.is_dead()]
-
-        self.data.bullets[:] = [b for b in self.data.bullets if not b.is_dead()]
+    def remove_dead_particles(self):
+        self.data.enemies[:] = [p for p in self.data.enemies if not (p.is_dead() and not p.on_death())]
+        self.data.bullets[:] = [p for p in self.data.bullets if not (p.is_dead() and not p.on_death())]
+        self.data.effects[:] = [p for p in self.data.effects if not (p.is_dead() and not p.on_death())]
 
         for collectible in self.data.collectibles:
             if collectible.is_dead() and isinstance(collectible, Collectible):
@@ -270,6 +263,9 @@ class Game:
 
         for bullet in self.data.bullets:
             bullet.move()
+
+        for effect in self.data.effects:
+            effect.move()
 
         self.data.bullets[:] = [b for b in self.data.bullets if not b.is_dead()]
         self.data.water_particle_handler.update()
@@ -308,6 +304,7 @@ class Game:
             return
         self.data.current_time = pygame.time.get_ticks()
         self.collide_everything()
+        self.remove_dead_particles()
         self.move_everything()
         self.check_player_death()
         self.shoot_bullets()
@@ -347,13 +344,14 @@ class Game:
         # particles
         def draw_particles(particles: [GameParticle]):
             for particle in sorted(particles, key=lambda p: p.rad):
-                if not self.in_screen(particle):
+                if not self.data.in_screen(particle):
                     continue
                 particle.draw(MAP_SURFACE)
 
         draw_particles(self.data.collectibles)
         draw_particles(self.data.bullets)
         draw_particles(self.data.enemies)
+        draw_particles(self.data.effects)
 
         self.data.water_particle_handler.draw_everything(MAP_SURFACE, (self.data.screen_x, self.data.screen_y))
 

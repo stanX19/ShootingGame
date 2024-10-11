@@ -3,13 +3,13 @@ from typing import Optional
 from srcs.classes.game_particle import GameParticle
 # from srcs.classes.player import Player
 from srcs.classes.water_particle_handler import WaterParticleHandler
-# from srcs import constants
+from srcs import constants
 import pygame
 
 
 class GameData:
     def __init__(self):
-        self.inert_particles: list[GameParticle] = []
+        self.effects: list[GameParticle] = []
         self.player = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.bullets: list[GameParticle] = []
         self.enemies: list[GameParticle] = []
@@ -41,3 +41,10 @@ class GameData:
         mx += self.screen_x
         my += self.screen_y
         return mx, my
+
+    def in_screen(self, particle):
+        min_x = self.screen_x - particle.rad
+        max_x = self.screen_x + constants.SCREEN_WIDTH + particle.rad
+        min_y = self.screen_y - particle.rad
+        max_y = self.screen_y + constants.SCREEN_HEIGHT + particle.rad
+        return min_x < particle.x < max_x and min_y < particle.y < max_y

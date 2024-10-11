@@ -5,15 +5,18 @@ from srcs.classes.bullet import Bullet
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.algo import calculate_intercept_angle
 from srcs.constants import *
+from srcs.classes.game_data import GameData
+from srcs.classes.effect import Effect
 
 
 class Missile(Bullet):
-    def __init__(self, x: float, y: float, angle: float, enemies_list: list[GameParticle],
+    def __init__(self, game_data: GameData, x: float, y: float, angle: float, enemies_list: list[GameParticle],
                  target: [GameParticle, None] = None,
                  radius=MISSILE_RADIUS,
                  speed=MISSILE_SPEED,
                  hp=1, dmg=10, lifespan=60 * 2):
         super().__init__(x, y, angle, speed, radius, MISSILE_COLOR, hp, dmg, lifespan)
+        self.game_data: GameData = game_data
         self.target: [GameParticle, None] = target
         self.enemies_list: list[GameParticle] = enemies_list
         self.reached_target: bool = False
@@ -41,8 +44,6 @@ class Missile(Bullet):
     def update(self):
         if self.target not in self.enemies_list:
             self.find_target()
-        if self.lifespan <= 0:
-            self.explode()
         if isinstance(self.target, GameParticle):
             target_angle = calculate_intercept_angle(self, self.target)
             angle_diff = utils.angle_diff(target_angle, self.angle)
@@ -53,5 +54,9 @@ class Missile(Bullet):
         self.update()
         super().move()
 
-    def explode(self):
-        pass
+    def on_death(self):
+        self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle, 0, rad=self.rad,
+                                             lifespan=10,
+                                             color=self.color,
+                                             fade_off=True))
+        return super().on_death()

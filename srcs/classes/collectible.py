@@ -40,7 +40,7 @@ class HealCollectible(Collectible):
 class MainWeaponCollectible(Collectible):
     def __init__(self, x, y, game):
         super().__init__(x, y, game)
-        self.weapon_handler: WeaponHandler = game.main_weapon
+        self.weapon_handler: WeaponHandler = game.player.main_weapon
 
     def _get_not_collected(self):
         collected_names = [i.name for i in self.game_data.player.main_weapon.all_weapon]
@@ -64,7 +64,7 @@ class MainWeaponCollectible(Collectible):
 class SubWeaponCollectible(MainWeaponCollectible):
     def __init__(self, x, y, game):
         super().__init__(x, y, game)
-        self.weapon_handler: WeaponHandler = game.sub_weapon
+        self.weapon_handler: WeaponHandler = game.player.sub_weapon
 
     def _get_not_collected(self):
         collected_names = [i.name for i in self.game_data.player.sub_weapon.all_weapon]

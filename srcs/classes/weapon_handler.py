@@ -190,8 +190,8 @@ class WeaponHandler:
         for i in range(self.bullet_count):
             offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.game_data.bullets.append(Missile(self.game_data.player.x, self.game_data.player.y, shoot_angle, self.game_data.enemies, target,
-                                     dmg=self.weapon.dmg))
+            self.game_data.bullets.append(Missile(self.game_data, self.game_data.player.x, self.game_data.player.y,
+                                                  shoot_angle, self.game_data.enemies, target, dmg=self.weapon.dmg))
 
     def _fire_default(self):
         if self.weapon.bullet_class is MISSILE_CLASS:

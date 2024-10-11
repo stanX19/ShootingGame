@@ -7,6 +7,7 @@ from srcs import utils
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.bullet import Bullet
+from srcs.classes.effect import Effect
 from srcs.classes.game_data import GameData
 
 
@@ -56,8 +57,10 @@ class Enemy(GameParticle):
         return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
 
     def on_death(self):
-        pass
-
+        self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle,
+                                             speed=0, rad=self.rad, lifespan=3,
+                                             color=self.color, fade_off=True))
+        return super().on_death()
 
 class DodgingEnemy(Enemy):
     def __init__(self, game_data: GameData, x, y, target: GameParticle, parent_list: list[GameParticle],
@@ -178,4 +181,4 @@ class EnemyMothership(Enemy):
 
     def on_death(self):
         self.spawn_childs(self.child_count)
-        super().on_death()
+        return super().on_death()
