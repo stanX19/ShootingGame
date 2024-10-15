@@ -58,7 +58,7 @@ class Enemy(GameParticle):
 
     def on_death(self):
         self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle,
-                                             speed=0, rad=self.rad, lifespan=3,
+                                             speed=self.speed, rad=self.rad, lifespan=3,
                                              color=self.color, fade_off=True))
         return super().on_death()
 
@@ -130,7 +130,7 @@ class ShootingEnemy(Enemy):
 
     def shoot(self):
         self.parent_list.append(Bullet(
-            self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
+            self.game_data, self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
             # dmg=self.target.max_hp / PLAYER_HP,
             color=ENEMY_BULLET_COLOR
         ))

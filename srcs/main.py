@@ -14,18 +14,14 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
     import pygame
     import numpy
-from srcs import constants
-from srcs.classes.weapon_handler import WeaponHandler
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
-from srcs.classes.missile import Missile
-from srcs.classes.bullet import Bullet
 from srcs.classes.player import Player
 from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy
-from srcs.classes.water_particle_handler import WaterParticleHandler, WaterParticle
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 from srcs.classes.game_data import GameData
+from srcs.classes.water_particle_handler import WaterParticleHandler
 
 dev_mode = 1
 god_mode: bool = False
@@ -66,7 +62,7 @@ class Game:
         self.data.enemies = []
         self.data.bullets = []
         self.data.collectibles = []
-        self.data.water_particle_handler.clear()
+        self.data.water_particle_handler = WaterParticleHandler()
         self.data.score = start_score
         self.data.kills = 0
         self.data.autofire = False
@@ -103,6 +99,8 @@ class Game:
                 self.data.pressed_keys[event.key] = True
             elif event.type == pygame.KEYUP:
                 self.data.pressed_keys[event.key] = False
+            if event.type == pygame.MOUSEWHEEL:
+                self.data.player.main_weapon.cycle_weapon(- event.y)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if not self.data.running:
                     self.init_game()
@@ -198,12 +196,12 @@ class Game:
         #     return
         all_main_weapon = len(ALL_MAIN_WEAPON_LIST)
         all_sub_weapon = len(ALL_SUB_WEAPON_LIST)
-        main_weapon_obtained = len(self.data.player.main_weapon.all_weapon)
-        sub_weapon_obtained = len(self.data.player.sub_weapon.all_weapon)
+        main_weapon_obtained = len(self.data.player.main_weapon.all_weapons)
+        sub_weapon_obtained = len(self.data.player.sub_weapon.all_weapons)
         not_obtained_main_weapons = all_main_weapon - main_weapon_obtained
         not_obtained_sub_weapons = all_sub_weapon - sub_weapon_obtained
-        maxed_main_weapons = len([i for i in self.data.player.main_weapon.all_weapon if i.is_max_lvl()])
-        maxed_sub_weapons = len([i for i in self.data.player.sub_weapon.all_weapon if i.is_max_lvl()])
+        maxed_main_weapons = len([i for i in self.data.player.main_weapon.all_weapons if i.is_max_lvl()])
+        maxed_sub_weapons = len([i for i in self.data.player.sub_weapon.all_weapons if i.is_max_lvl()])
         missing_hp = self.data.player.max_hp - self.data.player.hp
         collectibles = [
                             HealCollectible,
@@ -267,7 +265,6 @@ class Game:
         for effect in self.data.effects:
             effect.move()
 
-        self.data.bullets[:] = [b for b in self.data.bullets if not b.is_dead()]
         self.data.water_particle_handler.update()
         self.data.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
         self.data.water_particle_handler.remove_zero_lifespan()

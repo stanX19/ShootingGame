@@ -43,7 +43,7 @@ class MainWeaponCollectible(Collectible):
         self.weapon_handler: WeaponHandler = game.player.main_weapon
 
     def _get_not_collected(self):
-        collected_names = [i.name for i in self.game_data.player.main_weapon.all_weapon]
+        collected_names = [i.name for i in self.game_data.player.main_weapon.all_weapons]
         not_collected = [i for i in ALL_MAIN_WEAPON_LIST if i.name not in collected_names]
         return not_collected
 
@@ -67,7 +67,7 @@ class SubWeaponCollectible(MainWeaponCollectible):
         self.weapon_handler: WeaponHandler = game.player.sub_weapon
 
     def _get_not_collected(self):
-        collected_names = [i.name for i in self.game_data.player.sub_weapon.all_weapon]
+        collected_names = [i.name for i in self.game_data.player.sub_weapon.all_weapons]
         not_collected = [i for i in ALL_SUB_WEAPON_LIST if i.name not in collected_names]
         return not_collected
 

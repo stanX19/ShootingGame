@@ -5,16 +5,17 @@ import copy
 from srcs import constants
 from srcs import utils
 from srcs.classes.bullet import Bullet
+from srcs.classes.explosive import Explosive
 from srcs.classes.missile import Missile
 from srcs.classes.weapons import WeaponType
-from srcs.classes.weapons import MISSILE_CLASS, LAZER_CLASS, NOVA_CLASS
+from srcs.classes.weapons import MISSILE_CLASS, LAZER_CLASS, NOVA_CLASS, EXPLOSIVE_CLASS
 from srcs.classes.game_data import GameData
 
 
 class WeaponHandler:
     def __init__(self, game_data: GameData, weapons: [None, list[WeaponType], type] = None):
         self.weapon: [WeaponType, None] = None
-        self.all_weapon: list[WeaponType] = []
+        self.all_weapons: list[WeaponType] = []
         self.reinit_weapons(weapons)
         self.last_shot_time = {}
         self.weapon_change_energy = 10000
@@ -40,7 +41,7 @@ class WeaponHandler:
             weapons = []
 
         self.weapon: [WeaponType, None] = weapons[0] if weapons else None
-        self.all_weapon = weapons
+        self.all_weapons = weapons
 
     @property
     def level_str(self):
@@ -49,7 +50,7 @@ class WeaponHandler:
     @property
     def index(self):
         try:
-            return self.all_weapon.index(self.weapon)
+            return self.all_weapons.index(self.weapon)
         except ValueError:
             return -1
 
@@ -110,26 +111,26 @@ class WeaponHandler:
             return
         if self._change_in_cooldown():
             return
-        if weapon.name in [w.name for w in self.all_weapon]:
-            weapon = [w for w in self.all_weapon if w.name == weapon.name][0]
+        if weapon.name in [w.name for w in self.all_weapons]:
+            weapon = [w for w in self.all_weapons if w.name == weapon.name][0]
         else:
             weapon = copy.copy(weapon)
-            self.all_weapon.append(weapon)
+            self.all_weapons.append(weapon)
         self.on_mouse_up()
         self.overdrive_end()
         self.weapon = weapon
 
-    def cycle_weapon(self):
-        idx = (self.index + 1) % len(self.all_weapon)
-        self._set_weapon(self.all_weapon[idx])
+    def cycle_weapon(self, change: int = 1):
+        idx = (self.index + change) % len(self.all_weapons)
+        self._set_weapon(self.all_weapons[idx])
 
     def set_weapon_by_index(self, index: int):
-        if index < 0 or index >= len(self.all_weapon):
+        if index < 0 or index >= len(self.all_weapons):
             return
-        self._set_weapon(self.all_weapon[index])
+        self._set_weapon(self.all_weapons[index])
 
     def _change_in_cooldown(self):
-        MAX_CONSECUTIVE_CHANGE = 2
+        MAX_CONSECUTIVE_CHANGE = 3
         COOLDOWN = 2000  # ms
         self.weapon_change_energy += self.game_data.current_time - self.last_reload_time
         self.last_reload_time = self.game_data.current_time
@@ -161,6 +162,7 @@ class WeaponHandler:
         lazer_dx = self.dx / self.hypot * constants.BULLET_RADIUS
         for i in range(self.bullet_count):
             self.game_data.bullets.append(Bullet(
+                self.game_data,
                 self.game_data.player.x + lazer_dx * i,
                 self.game_data.player.y + lazer_dy * i,
                 self.angle,
@@ -202,6 +204,9 @@ class WeaponHandler:
             return self._fire_nova()
         if self.bullet_count == 0:
             return
+        bullet_class = Bullet
+        if self.weapon.bullet_class is EXPLOSIVE_CLASS:
+            bullet_class = Explosive
         angle_offset = self.weapon.spread / self.bullet_count
         for i in range(self.bullet_count):
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
@@ -209,7 +214,8 @@ class WeaponHandler:
             bullet_angle = self.angle + offset * self.weapon.offset_factor
             dy, dx = math.sin(shoot_angle) * self.weapon.spawn_radius, math.cos(shoot_angle) * self.weapon.spawn_radius
             dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(self.angle) * self.weapon.spawn_radius
-            self.game_data.bullets.append(Bullet(
+            self.game_data.bullets.append(bullet_class(
+                self.game_data,
                 self.game_data.player.x + dx,
                 self.game_data.player.y + dy,
                 bullet_angle,
@@ -251,7 +257,7 @@ class WeaponHandler:
         fire_dict = {
             LAZER_CLASS: self._fire_lazer,
             MISSILE_CLASS: self._fire_missile,
-            NOVA_CLASS: self._fire_nova
+            NOVA_CLASS: self._fire_nova,
         }
         # fire according to matched weapon and function
         fire_func = fire_dict.get(self.weapon.bullet_class, self._fire_default)

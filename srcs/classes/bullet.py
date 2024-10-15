@@ -6,6 +6,7 @@ import pygame
 from srcs.constants import *
 from srcs.classes.weapons import WeaponType
 from srcs.classes.game_particle import GameParticle
+from srcs.classes.game_data import GameData
 
 
 def _safe_value(value, default, reject=None):
@@ -14,8 +15,10 @@ def _safe_value(value, default, reject=None):
 
 # Bullet class
 class Bullet(GameParticle):
-    def __init__(self, x, y, angle, speed=None, rad=None,
+    def __init__(self, game_data: GameData, x, y, angle, speed=None, rad=None,
                  color=None, hp=1.0, dmg=1.0, lifespan=None, weapon=None):
+        self.game_data: GameData = game_data
+
         if isinstance(weapon, WeaponType):
             speed = _safe_value(speed, weapon.speed)
             rad = _safe_value(rad, weapon.rad)

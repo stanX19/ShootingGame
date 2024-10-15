@@ -2,7 +2,7 @@ import math
 from typing import Optional
 from srcs.classes.game_particle import GameParticle
 # from srcs.classes.player import Player
-from srcs.classes.water_particle_handler import WaterParticleHandler
+# from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs import constants
 import pygame
 
@@ -10,11 +10,11 @@ import pygame
 class GameData:
     def __init__(self):
         self.effects: list[GameParticle] = []
-        self.player = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
+        self.player: 'Player' = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.bullets: list[GameParticle] = []
         self.enemies: list[GameParticle] = []
         self.collectibles: list[GameParticle] = []
-        self.water_particle_handler: WaterParticleHandler = WaterParticleHandler()
+        self.water_particle_handler: 'WaterParticleHandler' = None
         self.score: int = 0
         self.collectible_spawn_score: int = 0
         self.kills: int = 0

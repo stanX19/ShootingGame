@@ -7,9 +7,9 @@ from srcs.classes.bullet import Bullet
 
 
 class WaterParticle(Bullet):
-    def __init__(self, x, y, angle, speed=3, rad=3,
+    def __init__(self, x: float, y: float, angle, speed=3, rad=3,
                 hp=1, dmg=0, lifespan=60 * 4, weapon=None):
-        super().__init__(x, y, angle, speed, rad, hp=hp, dmg=dmg,
+        super().__init__(None, x, y, angle, speed, rad, hp=hp, dmg=dmg,
                          lifespan=lifespan,weapon=weapon)
         self.collide_rad: float = rad / 5
         self.mass: float = 10
