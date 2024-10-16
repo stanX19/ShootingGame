@@ -2,19 +2,22 @@ from __future__ import annotations
 import math
 import random
 import copy
+from typing import Optional
+
 from srcs import constants
 from srcs import utils
 from srcs.classes.bullet import Bullet
 from srcs.classes.explosive import Explosive
 from srcs.classes.missile import Missile
+from srcs.classes.enemy import ShootingEnemy
 from srcs.classes.weapons import WeaponType
-from srcs.classes.weapons import MISSILE_CLASS, LAZER_CLASS, NOVA_CLASS, EXPLOSIVE_CLASS
+from srcs.classes.weapons import MISSILE_CLASS, LAZER_CLASS, NOVA_CLASS, EXPLOSIVE_CLASS, UNIT_CLASS
 from srcs.classes.game_data import GameData
 
 
 class WeaponHandler:
     def __init__(self, game_data: GameData, weapons: [None, list[WeaponType], type] = None):
-        self.weapon: [WeaponType, None] = None
+        self.weapon: Optional[WeaponType] = None
         self.all_weapons: list[WeaponType] = []
         self.reinit_weapons(weapons)
         self.last_shot_time = {}
@@ -195,6 +198,28 @@ class WeaponHandler:
             self.game_data.bullets.append(Missile(self.game_data, self.game_data.player.x, self.game_data.player.y,
                                                   shoot_angle, self.game_data.enemies, target, dmg=self.weapon.dmg))
 
+    def _fire_unit(self):
+        angle_offset = self.weapon.spread / self.bullet_count
+        for i in range(self.bullet_count):
+            offset = (i - (self.bullet_count - 1) / 2) * angle_offset
+            shoot_angle = self.angle + offset
+            bullet_angle = self.angle + offset * self.weapon.offset_factor
+            dy, dx = math.sin(shoot_angle) * self.weapon.spawn_radius, math.cos(shoot_angle) * self.weapon.spawn_radius
+            dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(
+                self.angle) * self.weapon.spawn_radius
+            self.game_data.bullets.append(ShootingEnemy(
+                self.game_data,
+                self.game_data.player.x + dx,
+                self.game_data.player.y + dy,
+                self.game_data.enemies,
+                self.game_data.bullets,
+                hp=self.weapon.hp,
+                dmg=self.weapon.dmg,
+                speed=self.weapon.speed,
+                radius=self.weapon.rad,
+                color=self.weapon.color,
+                variable_color=False,
+            ))
     def _fire_default(self):
         if self.weapon.bullet_class is MISSILE_CLASS:
             return self._fire_missile()
@@ -258,6 +283,7 @@ class WeaponHandler:
             LAZER_CLASS: self._fire_lazer,
             MISSILE_CLASS: self._fire_missile,
             NOVA_CLASS: self._fire_nova,
+            UNIT_CLASS: self._fire_unit,
         }
         # fire according to matched weapon and function
         fire_func = fire_dict.get(self.weapon.bullet_class, self._fire_default)

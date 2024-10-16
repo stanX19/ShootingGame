@@ -11,6 +11,7 @@ LAZER_CLASS = "lazer"
 NOVA_CLASS = "nova"
 BULLET_CLASS = "bullet"
 EXPLOSIVE_CLASS = "explosive"
+UNIT_CLASS = "enemy"
 
 
 class WeaponType:
@@ -83,13 +84,15 @@ class MainWeaponEnum:
                       bullet_class=EXPLOSIVE_CLASS, lifespan=10000000)
     missile = WeaponType("missile", 1000, max_count=8, growth_factor=1, dmg=10, hp=0.000001,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
-    shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=25, radius=1,
-                        dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
-                        min_count=30, growth_factor=5)
+    spawner = WeaponType("Spawner", reload=2000, velocity=1, max_count=1, hp=10, radius=30,
+                              dmg=1, bullet_class=UNIT_CLASS, color=PLAYER_COLOR)
+    # shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=25, radius=1,
+    #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
+    #                     min_count=30, growth_factor=5)
     nova = WeaponType("nova", reload=0, min_count=1, max_count=3, velocity=1000,
                       bullet_class=NOVA_CLASS, growth_factor=0.2)
-    piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=25, max_count=5, radius=3,
-                                      growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
+    # piercing_machine_gun = WeaponType("piercing machine gun", reload=250, velocity=25, max_count=5, radius=3,
+    #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
                         min_count=1, max_count=20, growth_factor=1, spread=math.pi,
                         recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)

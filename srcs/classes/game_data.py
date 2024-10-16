@@ -48,3 +48,10 @@ class GameData:
         min_y = self.screen_y - particle.rad
         max_y = self.screen_y + constants.SCREEN_HEIGHT + particle.rad
         return min_x < particle.x < max_x and min_y < particle.y < max_y
+
+    def in_map(self, particle):
+        min_x = 0 - particle.rad
+        max_x = constants.MAP_WIDTH + particle.rad
+        min_y = 0 - particle.rad
+        max_y = constants.MAP_HEIGHT + particle.rad
+        return min_x < particle.x < max_x and min_y < particle.y < max_y

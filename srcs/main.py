@@ -58,9 +58,9 @@ class Game:
         self.data.player = Player(self.data, constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.data.player.main_weapon.reinit_weapons(default_weapons[0])
         self.data.player.sub_weapon.reinit_weapons(default_weapons[1])
-        self.center_focus(lerp_const=1.0)
+        self.data.bullets = [self.data.player]
         self.data.enemies = []
-        self.data.bullets = []
+        self.center_focus(lerp_const=1.0)
         self.data.collectibles = []
         self.data.water_particle_handler = WaterParticleHandler()
         self.data.score = start_score
@@ -158,7 +158,7 @@ class Game:
             ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + radius
         else:
             ex, ey = -radius, -radius
-        self.data.enemies.append(_constructor(self.data, ex, ey, self.data.player, parent_list=self.data.enemies, hp=hp,
+        self.data.enemies.append(_constructor(self.data, ex, ey, self.data.bullets, parent_list=self.data.enemies, hp=hp,
                                               score=score, speed=speed, variable_shape=variable_shape, radius=radius,
                                               **kwargs))
 
@@ -228,7 +228,7 @@ class Game:
 
 
     def collide_everything(self):
-        collide_enemy_and_bullets(self.data.bullets + [self.data.player], self.data.enemies)
+        collide_enemy_and_bullets(self.data.bullets, self.data.enemies)
         collide_enemy_and_bullets([self.data.player], self.data.collectibles)
         self.data.water_particle_handler.collide_with_enemies(self.data.enemies)
 

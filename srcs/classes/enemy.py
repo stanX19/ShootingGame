@@ -12,40 +12,66 @@ from srcs.classes.game_data import GameData
 
 
 class Enemy(GameParticle):
-    def __init__(self, game_data: GameData, x, y, target: GameParticle, parent_list: list[GameParticle],
+    def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
                  speed=ENEMY_SPEED, angle=0.0, radius=ENEMY_RADIUS, color=ENEMY_COLOR,
-                 hp=1, dmg=1, score=100, variable_shape=False):
+                 hp=1, dmg=1, score=100, variable_shape=True, variable_color=True):
         super().__init__(x, y, angle, speed, radius, color, hp, dmg, score)
         self.game_data: GameData = game_data
         self.variable_shape: bool = variable_shape
-        self.target: GameParticle = target
+        self.variable_color: bool = variable_color
+        self.targets: list[GameParticle] = targets
+        self.target: Optional[GameParticle] = None
         self.parent_list: list[GameParticle] = parent_list
         self.max_rad = None if radius == ENEMY_RADIUS else radius
 
+        # Initially find the closest target
+        self.find_new_target()
+
         self.update_appearance_based_on_hp()
+
+    def find_new_target(self):
+        """Find the closest target from the list of targets."""
+        if not self.targets:
+            self.target = None
+            return
+
+        # Find the closest target
+        targets = [i for i in self.targets if self.game_data.in_map(i)]
+        closest_target = None
+        min_distance = float('inf')
+
+        for target in targets:
+            distance = self.distance_with(target) + 100 * isinstance(target, Bullet)
+            if distance < min_distance:
+                min_distance = distance
+                closest_target = target
+
+        self.target = closest_target
 
     def move(self):
-        dy = self.target.y - self.y
-        dx = self.target.x - self.x
-        dis = math.hypot(dy, dx)
-        dy /= dis
-        dx /= dis
-        spd = self.speed
-        self.xv += dx
-        self.yv += dy
-        self.speed = spd
-        super().move()
+        if self.target is None or self.target.is_dead():
+            self.find_new_target()
 
+        if self.target:
+            dy = self.target.y - self.y
+            dx = self.target.x - self.x
+            dis = math.hypot(dy, dx)
+            if dis > 0:
+                dy /= dis
+                dx /= dis
+            spd = self.speed
+            self.xv += dx
+            self.yv += dy
+            self.speed = spd
+
+        super().move()
         self.update_appearance_based_on_hp()
 
-    def update_shape_based_on_hp(self):
+    def update_appearance_based_on_hp(self):
         if self.variable_shape:
             self.rad = Enemy.get_rad(self.hp, self.max_hp, self.max_rad)
-
-    def update_appearance_based_on_hp(self):
-        self.update_shape_based_on_hp()
-        # self.dmg = 1  # / math.sqrt(self.max_hp)
-        self.color = Enemy.get_color(self.hp, self.speed)
+        if self.variable_color:
+            self.color = Enemy.get_color(self.hp, self.speed)
 
     @staticmethod
     def get_rad(hp: float, max_hp: float, max_rad: Optional[float]=None):
@@ -62,10 +88,11 @@ class Enemy(GameParticle):
                                              color=self.color, fade_off=True))
         return super().on_death()
 
+
 class DodgingEnemy(Enemy):
-    def __init__(self, game_data: GameData, x, y, target: GameParticle, parent_list: list[GameParticle],
+    def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
                  radius=10, speed=PLAYER_SPEED, hp=10, **kwargs):
-        super().__init__(game_data, x, y, target, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
+        super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
 
     def dodge_bullets(self, bullets: Sequence[GameParticle]):
@@ -94,7 +121,7 @@ class DodgingEnemy(Enemy):
 
             # Quadratic formula to find the smallest positive time to collision
             discriminant = b ** 2 - 4 * a * c
-            if discriminant >= 0:
+            if discriminant >= 0 and a:
                 t1 = (-b - math.sqrt(discriminant)) / (2 * a)
                 t2 = (-b + math.sqrt(discriminant)) / (2 * a)
                 t_collision = min(t1, t2) if t1 > 0 else t2
@@ -116,15 +143,15 @@ class DodgingEnemy(Enemy):
 
 
 class ShootingEnemy(Enemy):
-    def __init__(self, game_data: GameData, x, y, target: GameParticle, parent_list: list[GameParticle],
+    def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
                  radius=10, speed=PLAYER_SPEED, hp=10, **kwargs):
-        super().__init__(game_data, x, y, target, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
+        super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
         self.shoot_cd = 0
 
     def move(self):
         super().move()
         self.shoot_cd -= 1
-        if self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
+        if self.target and self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
             self.shoot()
             self.shoot_cd = 10 * self.max_hp / self.hp
 
@@ -132,7 +159,7 @@ class ShootingEnemy(Enemy):
         self.parent_list.append(Bullet(
             self.game_data, self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
             # dmg=self.target.max_hp / PLAYER_HP,
-            color=ENEMY_BULLET_COLOR
+            color=self.color
         ))
 
 
@@ -141,8 +168,8 @@ class EliteEnemy(ShootingEnemy, DodgingEnemy):
 
 
 class EnemyMothership(Enemy):
-    def __init__(self, game_data: GameData, x, y, target: GameParticle, parent_list: list[GameParticle], **kwargs):
-        super().__init__(game_data, x, y, target, parent_list, **kwargs)
+    def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle], **kwargs):
+        super().__init__(game_data, x, y, targets, parent_list, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
         self.child_speed = (PLAYER_SPEED, PLAYER_SPEED * 2)
         self.child_count = 0
@@ -173,7 +200,7 @@ class EnemyMothership(Enemy):
             angle = i / total * math.pi * 2
             x = self.x + math.cos(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
             y = self.y + math.sin(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
-            child = _cls(self.game_data, x, y, self.target, self.parent_list, variable_shape=True,
+            child = _cls(self.game_data, x, y, self.targets, self.parent_list, variable_shape=True,
                          speed=random.uniform(self.child_speed[0], self.child_speed[1]), **kwargs)
             child.angle = angle
             child.move()
