@@ -85,7 +85,7 @@ class WeaponHandler:
         self.last_shot_time[self.overdrive_weapon] = -self.weapon.shot_delay
         self.overdrive_weapon.rad *= 2
         self.overdrive_weapon.dmg *= 5
-        self.overdrive_weapon.hp *= 5
+        self.overdrive_weapon.hp *= 2
         self.overdrive_weapon.shot_delay /= 10
         self.overdrive_weapon.recoil *= 2
         constants.MAX_PARTICLE_COUNT *= 2
@@ -96,7 +96,7 @@ class WeaponHandler:
             return
         self.overdrive_weapon.rad /= 2
         self.overdrive_weapon.dmg /= 5
-        self.overdrive_weapon.hp /= 5
+        self.overdrive_weapon.hp /= 2
         self.overdrive_weapon.shot_delay *= 10
         self.overdrive_weapon.recoil /= 2
         constants.MAX_PARTICLE_COUNT /= 2

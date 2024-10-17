@@ -34,7 +34,9 @@ class Particle:
         self.xv = speed * math.cos(new_angle)
         self.yv = speed * math.sin(new_angle)
 
-    def distance_with(self, other):
+    def distance_with(self, other) -> float:
+        if other is None:
+            return 0
         return math.hypot(self.x - other.x, self.y - other.y)
 
     def draw(self, surface: pygame.Surface):

@@ -84,7 +84,7 @@ class MainWeaponEnum:
                       bullet_class=EXPLOSIVE_CLASS, lifespan=10000000)
     missile = WeaponType("missile", 1000, max_count=8, growth_factor=1, dmg=10, hp=0.000001,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
-    spawner = WeaponType("Spawner", reload=2000, velocity=1, max_count=1, hp=10, radius=30,
+    spawner = WeaponType("Spawner", reload=2000, velocity=1, max_count=1, hp=3, radius=10,
                               dmg=1, bullet_class=UNIT_CLASS, color=PLAYER_COLOR)
     # shield = WeaponType("shield", reload=2500, velocity=1, max_count=100, hp=25, radius=1,
     #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,

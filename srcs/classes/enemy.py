@@ -41,7 +41,7 @@ class Enemy(GameParticle):
         min_distance = float('inf')
 
         for target in targets:
-            distance = self.distance_with(target) + 100 * isinstance(target, Bullet)
+            distance = self.distance_with(target) + 1000 * isinstance(target, Bullet)
             if distance < min_distance:
                 min_distance = distance
                 closest_target = target
@@ -156,9 +156,39 @@ class ShootingEnemy(Enemy):
             self.shoot_cd = 10 * self.max_hp / self.hp
 
     def shoot(self):
+        # Get the current position and velocity of the target
+        target_x, target_y = self.target.x, self.target.y
+        target_xv, target_yv = self.target.xv, self.target.yv
+
+        # Calculate the distance to the target
+        distance = self.distance_with(self.target)
+
+        # Bullet speed (constant)
+        bullet_speed = BULLET_SPEED
+
+        # Solve for the lead time: time = distance / relative speed
+        # We use an iterative method to find the future point where the bullet can hit
+        # it accounts for the fact that the target is moving and the bullet is too.
+
+        lead_time = 0.0
+        lead_x = 0
+        lead_y = 0
+
+        try:
+            # find distance -> find time needed to hit -> predict target location -> repeat
+            for _ in range(10):
+                lead_x = target_x + target_xv * lead_time
+                lead_y = target_y + target_yv * lead_time
+                future_distance = math.hypot(lead_x - self.x, lead_y - self.y)
+                lead_time = future_distance / bullet_speed
+
+            lead_angle = math.atan2(lead_y - self.y, lead_x - self.x)
+
+        except ZeroDivisionError:
+            lead_angle = self.angle_with(self.target)
+
         self.parent_list.append(Bullet(
-            self.game_data, self.x, self.y, self.angle_with(self.target), speed=BULLET_SPEED, rad=ENEMY_BULLET_RAD,
-            # dmg=self.target.max_hp / PLAYER_HP,
+            self.game_data, self.x, self.y, lead_angle, speed=bullet_speed, rad=ENEMY_BULLET_RAD,
             color=self.color
         ))
 
