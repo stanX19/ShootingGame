@@ -141,49 +141,71 @@ class Game:
         self.data.player.set_velocity(dx, dy)
         self.data.player.move()
 
-    def _spawn_new_enemy(self, hp, score, speed, variable_shape, _constructor=Enemy,
-                         radius=constants.ENEMY_RADIUS, **kwargs):
-        # decide side
+    def _spawn_new_unit(self, hp, score, speed, variable_shape, _constructor=Enemy,
+                        radius=constants.ENEMY_RADIUS, color: tuple=constants.ENEMY_COLOR,
+                        parent_list: Optional[list[GameParticle]]=None,
+                        target_list: Optional[list[GameParticle]]=None,
+                        side='top', **kwargs):
+        if parent_list is None:
+            parent_list = self.data.enemies
+        if target_list is None:
+            target_list = self.data.bullets
         if variable_shape:
             radius = Enemy.get_rad(hp, hp, radius)
 
-        side = random.choice(['left', 'right', 'top', 'bottom'])
+        # side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
-            ex, ey = -radius, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = -radius, random.randint(radius, constants.MAP_HEIGHT - radius)
         elif side == 'right':
-            ex, ey = constants.MAP_WIDTH + radius, random.randint(0, constants.MAP_HEIGHT)
+            ex, ey = constants.MAP_WIDTH + radius, random.randint(radius, constants.MAP_HEIGHT - radius)
         elif side == 'top':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), -radius
+            ex, ey = random.randint(radius, constants.MAP_WIDTH - radius), -radius
         elif side == 'bottom':
-            ex, ey = random.randint(0, constants.MAP_WIDTH), constants.MAP_HEIGHT + radius
+            ex, ey = random.randint(radius, constants.MAP_WIDTH - radius), constants.MAP_HEIGHT + radius
         else:
             ex, ey = -radius, -radius
-        self.data.enemies.append(_constructor(self.data, ex, ey, self.data.bullets, parent_list=self.data.enemies, hp=hp,
+        parent_list.append(_constructor(self.data, ex, ey, target_list, parent_list=parent_list, hp=hp,
                                               score=score, speed=speed, variable_shape=variable_shape, radius=radius,
+                                              color=color,
                                               **kwargs))
 
-    def spawn_enemies(self):
+    def _spawn_units(self, color=constants.ENEMY_COLOR,
+                     parent_list: Optional[list[GameParticle]]=None,
+                     target_list: Optional[list[GameParticle]]=None,
+                     side='top'):
+        if parent_list is None:
+            parent_list = self.data.enemies
+        if target_list is None:
+            target_list = self.data.bullets
         hp = 1
         score = 100
         speed = constants.ENEMY_SPEED
-        if len(self.data.enemies) < 150 and random.random() < 0.02 + self.data.score / 100000:
-            self._spawn_new_enemy(hp, score, speed, True)
-        if len(self.data.enemies) < 160 and random.random() < min(0.02, (self.data.score - 10000) / 10000000):
+        if len(parent_list) < 50 and random.random() < 0.02 + self.data.score / 100000:
+            self._spawn_new_unit(hp, score, speed, True,
+                                 color=color, parent_list=parent_list, target_list=target_list, side=side)
+
+        if len(parent_list) < 60 and random.random() < min(0.02, (self.data.score - 10000) / 10000000):
             hp = 10
             score = 300
             speed = constants.PLAYER_SPEED
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EliteEnemy)
-        if len(self.data.enemies) < 170 and random.random() < min(0.01, (self.data.score - 20000) / 10000000):
+            self._spawn_new_unit(hp, score, speed, True, _constructor=EliteEnemy,
+                                 color=color, parent_list=parent_list, target_list=target_list, side=side)
+
+        if len(parent_list) < 70 and random.random() < min(0.01, (self.data.score - 20000) / 10000000):
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 100  # + 150 * min(1.0, score / 100000)
             speed = constants.PLAYER_SPEED * 0.5
-            self._spawn_new_enemy(hp, score, speed, True, _constructor=EnemyMothership, dmg=0.1,
-                                  radius=60 + constants.ENEMY_RADIUS)
-        # if len(self.data.enemies) < 175 and random.random() < min(0.005, self.data.score / 100000):
-        #     hp = 50
-        #     score = 1000
-        #     speed = constants.ENEMY_SPEED / 2
-        #     self._spawn_new_enemy(hp, score, speed, True, _constructor=Enemy, radius=30, dmg=5)
+            self._spawn_new_unit(hp, score, speed, True, _constructor=EnemyMothership, dmg=2,
+                                 radius=60 + constants.ENEMY_RADIUS,
+                                 color=color, parent_list=parent_list, target_list=target_list, side=side)
+
+    def spawn_enemies(self):
+        self._spawn_units(color=constants.ENEMY_COLOR, parent_list=self.data.enemies,
+                          target_list=self.data.bullets, side='top')
+
+    def spawn_allies(self):
+        self._spawn_units(color=constants.PLAYER_COLOR, parent_list=self.data.bullets,
+                          target_list=self.data.enemies, side='bottom')
 
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
@@ -255,8 +277,6 @@ class Game:
 
     def move_everything(self):
         for enemy in self.data.enemies:
-            if isinstance(enemy, DodgingEnemy):
-                enemy.dodge_bullets(self.data.bullets)
             enemy.move()
 
         for bullet in self.data.bullets:
@@ -274,6 +294,8 @@ class Game:
     def check_player_death(self):
         if god_mode:
             self.data.player.hp = max(0.01, self.data.player.hp)
+            if self.data.player not in self.data.bullets:
+                self.data.bullets.append(self.data.player)
             return
         self.data.player.hp = max(0.0, min(self.data.player.max_hp, self.data.player.hp))
         if not self.data.player.is_dead():
@@ -305,7 +327,8 @@ class Game:
         self.move_everything()
         self.check_player_death()
         self.shoot_bullets()
-        self.spawn_enemies()
+        self._spawn_units()
+        self.spawn_allies()
         self.center_focus()
 
     def add_text_to_screen(self):

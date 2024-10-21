@@ -218,7 +218,6 @@ class WeaponHandler:
                 speed=self.weapon.speed,
                 radius=self.weapon.rad,
                 color=self.weapon.color,
-                variable_color=False,
             ))
     def _fire_default(self):
         if self.weapon.bullet_class is MISSILE_CLASS:

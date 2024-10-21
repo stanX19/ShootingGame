@@ -19,24 +19,24 @@ class Enemy(GameParticle):
         self.game_data: GameData = game_data
         self.variable_shape: bool = variable_shape
         self.variable_color: bool = variable_color
-        self.targets: list[GameParticle] = targets
+        self.original_color: tuple = color
+        self.target_list: list[GameParticle] = targets
         self.target: Optional[GameParticle] = None
         self.parent_list: list[GameParticle] = parent_list
         self.max_rad = None if radius == ENEMY_RADIUS else radius
 
-        # Initially find the closest target
         self.find_new_target()
 
         self.update_appearance_based_on_hp()
 
     def find_new_target(self):
-        """Find the closest target from the list of targets."""
-        if not self.targets:
+        """Find the closest target from the list of target_list."""
+        if not self.target_list:
             self.target = None
             return
 
         # Find the closest target
-        targets = [i for i in self.targets if self.game_data.in_map(i)]
+        targets = [i for i in self.target_list if self.game_data.in_map(i)]
         closest_target = None
         min_distance = float('inf')
 
@@ -48,30 +48,36 @@ class Enemy(GameParticle):
 
         self.target = closest_target
 
+    def turn_to(self, new_angle, lerp=0.1):
+        self.angle += (new_angle - self.angle) * lerp
+
     def move(self):
-        if self.target is None or self.target.is_dead():
-            self.find_new_target()
+        # if self.target is None or self.target.is_dead():
+        self.find_new_target()
 
         if self.target:
-            dy = self.target.y - self.y
-            dx = self.target.x - self.x
-            dis = math.hypot(dy, dx)
-            if dis > 0:
-                dy /= dis
-                dx /= dis
-            spd = self.speed
-            self.xv += dx
-            self.yv += dy
-            self.speed = spd
+            self.turn_to(self.angle_with(self.target))
 
+        spd = self.speed
+        if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
+            self.xv = 0
+        if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
+            self.yv = 0
+        self.speed = spd
         super().move()
         self.update_appearance_based_on_hp()
 
+    def update_rad(self):
+        self.rad = Enemy.get_rad(self.hp, self.max_hp, self.max_rad)
+
+    def update_color(self):
+        self.color = Enemy.get_color(self.hp, self.speed, self.original_color)
+
     def update_appearance_based_on_hp(self):
         if self.variable_shape:
-            self.rad = Enemy.get_rad(self.hp, self.max_hp, self.max_rad)
+            self.update_rad()
         if self.variable_color:
-            self.color = Enemy.get_color(self.hp, self.speed)
+            self.update_color()
 
     @staticmethod
     def get_rad(hp: float, max_hp: float, max_rad: Optional[float]=None):
@@ -79,8 +85,16 @@ class Enemy(GameParticle):
         return ENEMY_RADIUS + (hp / max_hp) * max(0, max_rad - ENEMY_RADIUS)
 
     @staticmethod
-    def get_color(hp: float, speed: float):
-        return utils.color_norm((255, 105 - hp, 80 - hp + speed * 50))
+    def get_color(hp: float, speed: float, base_color: tuple):
+        r, g, b = base_color
+
+        max_change = 100
+        hp_factor = min(1.0, hp / 100)
+        speed_factor = min((speed - ENEMY_SPEED) / (PLAYER_SPEED - ENEMY_SPEED), 1)
+        b = b + max_change * speed_factor
+        g = g - max_change * hp_factor
+
+        return utils.color_norm((r, g, b))
 
     def on_death(self):
         self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle,
@@ -131,15 +145,16 @@ class DodgingEnemy(Enemy):
                     closest_bullet = bullet
                     break
 
-        if closest_bullet and min_time_to_collision < float('inf'):
-            angle = math.atan2(closest_bullet.yv, closest_bullet.xv) + self.dodge_angle
-            dodge_xv = self.speed * math.cos(angle)
-            dodge_yv = self.speed * math.sin(angle)
-
-            self.x += dodge_xv
-            self.y += dodge_yv
+        if closest_bullet and min_time_to_collision < ENEMY_SHOOT_RANGE:
+            rel_xv = closest_bullet.xv
+            rel_yv = closest_bullet.yv
+            self.turn_to(math.atan2(rel_yv, rel_xv) + self.dodge_angle, lerp=0.3)
             return True
         return False
+
+    def move(self):
+        self.dodge_bullets(self.target_list)
+        super().move()
 
 
 class ShootingEnemy(Enemy):
@@ -230,8 +245,9 @@ class EnemyMothership(Enemy):
             angle = i / total * math.pi * 2
             x = self.x + math.cos(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
             y = self.y + math.sin(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
-            child = _cls(self.game_data, x, y, self.targets, self.parent_list, variable_shape=True,
-                         speed=random.uniform(self.child_speed[0], self.child_speed[1]), **kwargs)
+            child = _cls(self.game_data, x, y, self.target_list, self.parent_list, variable_shape=True,
+                         speed=random.uniform(self.child_speed[0], self.child_speed[1]), **kwargs,
+                         color=self.color)
             child.angle = angle
             child.move()
             self.parent_list.append(child)

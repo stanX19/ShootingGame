@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from srcs import utils
-from srcs.classes.explosive import Explosive
+from srcs.classes.explosive import Explosive, Bullet
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.algo import calculate_intercept_angle
 from srcs.constants import *
@@ -34,7 +34,7 @@ class Missile(Explosive):
         for enemy in target_list:
             y_dis = enemy.y - y
             x_dis = enemy.x - x
-            distance = math.hypot(x_dis, y_dis)
+            distance = math.hypot(x_dis, y_dis) + 1000 * isinstance(enemy, Bullet)
             if distance < lowest_distance + enemy.rad:
                 lowest_distance = distance
                 target = enemy

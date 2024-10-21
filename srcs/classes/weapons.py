@@ -95,7 +95,7 @@ class MainWeaponEnum:
     #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
                         min_count=1, max_count=20, growth_factor=1, spread=math.pi,
-                        recoil=-20, lifespan=(1, 120), bullet_class=LAZER_CLASS)
+                        recoil=-20, lifespan=(1, 30), bullet_class=LAZER_CLASS)
 
 
 

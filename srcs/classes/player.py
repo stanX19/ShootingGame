@@ -33,5 +33,5 @@ class Player(GameParticle):
         return self.x, self.y
 
     def recoil(self, shooting_angle: float, magnitude: float):
-        self.x -= math.cos(shooting_angle) * magnitude
-        self.y -= math.sin(shooting_angle) * magnitude
+        self.xv -= math.cos(shooting_angle) * magnitude
+        self.yv -= math.sin(shooting_angle) * magnitude
