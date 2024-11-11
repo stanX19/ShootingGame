@@ -21,6 +21,7 @@ from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
 from srcs.classes.game_data import GameData
+from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
 dev_mode = 1
@@ -74,6 +75,8 @@ class Game:
         self.spawn_starter_pack()
 
     def spawn_starter_pack(self):
+        self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=100000000000000, dmg=1,
+                                        rad=self.data.player.rad + 50, parent=self.data.player))
         self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y - 40)
         self.spawn_collectible_at(self.data.player.x - 100, self.data.player.y)
         self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y + 40)

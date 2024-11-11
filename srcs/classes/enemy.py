@@ -4,6 +4,7 @@ import math
 import random
 from typing import Sequence, Optional
 from srcs import utils
+from srcs.classes.shield import Shield
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.bullet import Bullet
@@ -97,7 +98,7 @@ class Enemy(GameParticle):
     @staticmethod
     def get_rad(hp: float, max_hp: float, max_rad: Optional[float]=None):
         max_rad = max_rad or ENEMY_RADIUS + max_hp - 1
-        return ENEMY_RADIUS + (hp / max_hp) * max(0, max_rad - ENEMY_RADIUS)
+        return int(ENEMY_RADIUS + (hp / max_hp) * max(0, max_rad - ENEMY_RADIUS))
 
     @staticmethod
     def get_color(hp: float, speed: float, base_color: tuple):
@@ -187,7 +188,8 @@ class ShootingEnemy(Enemy):
     def move(self):
         super().move()
         self.shoot_timer -= 1
-        if self.target and self.shoot_timer <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
+        if (self.target and self.shoot_timer <= 0
+                and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE and self.hp):
             self.shoot()
             self.shoot_timer = self.shoot_cd * self.max_hp / self.hp
 
@@ -229,8 +231,15 @@ class ShootingEnemy(Enemy):
             color=self.color, dmg=self.dmg, hp=self.hp / 10
         ))
 
+class ShieldedEnemy(Enemy):
+    def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
+                 radius=10, speed=PLAYER_SPEED, hp=10, shield_hp=10, **kwargs):
+        super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
+        self.shoot_timer = 0
+        self.parent_list.append(Shield(game_data, x, y, self.rad + 50, color=self.color, hp=10, parent=self))
 
-class EliteEnemy(ShootingEnemy, DodgingEnemy):
+
+class EliteEnemy(ShootingEnemy, DodgingEnemy, ShieldedEnemy):
     pass
 
 

@@ -16,3 +16,13 @@ def angle_diff(dst, src):
 
 def color_norm(color):
     return tuple(min(max(i, 0), 255) for i in color)
+
+def color_intensity_shift(color: tuple, intensity: float):
+    """
+
+    :param color: (R, G, B)
+    :param intensity: 0.0 ~ 1.0
+    :return:
+    """
+    intensity = min(1.0, max(0.0, intensity))
+    return color[0] * intensity, color[1] * intensity, color[2] * intensity
