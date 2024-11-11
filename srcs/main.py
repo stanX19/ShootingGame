@@ -5,6 +5,7 @@ import random
 import subprocess
 import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
     import pygame
@@ -24,7 +25,7 @@ from srcs.classes.game_data import GameData
 from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
-dev_mode = 1
+dev_mode = 0
 god_mode: bool = False
 start_score: int = 0
 default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -40,7 +41,7 @@ pygame.init()
 
 # Set up the display
 MAP_SURFACE = pygame.Surface((constants.MAP_WIDTH, constants.MAP_HEIGHT), pygame.SRCALPHA)
-SCREEN = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
+SCREEN = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Space Shooting Game")
 
 # Font for score
@@ -75,7 +76,7 @@ class Game:
         self.spawn_starter_pack()
 
     def spawn_starter_pack(self):
-        self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=100000000000000, dmg=1,
+        self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=10, dmg=1,
                                         rad=self.data.player.rad + 50, parent=self.data.player))
         self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y - 40)
         self.spawn_collectible_at(self.data.player.x - 100, self.data.player.y)
@@ -184,22 +185,23 @@ class Game:
             parent_list = self.data.enemies
         if target_list is None:
             target_list = self.data.bullets
+        BASE_CAP = constants.SPAWN_CAP
         hp = 1
         score = 100
         speed = constants.ENEMY_SPEED
-        if len(parent_list) < 50 and random.random() < 0.02 + self.data.score / 100000:
+        if len(parent_list) < BASE_CAP and random.random() < 0.02 + self.data.score / 100000:
             self._spawn_new_unit(hp, score, speed, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 _constructor=ShootingEnemy)
+                                 _constructor=ShootingEnemy, shoot_cd=20)
 
-        if len(parent_list) < 60 and random.random() < min(0.02, (self.data.score - 10000) / 10000000):
+        if len(parent_list) < BASE_CAP + 10 and random.random() < min(0.02, (self.data.score - 10000) / 10000000):
             hp = 10
             score = 300
             speed = constants.PLAYER_SPEED
             self._spawn_new_unit(hp, score, speed, True, _constructor=EliteEnemy,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side)
 
-        if len(parent_list) < 70 and random.random() < min(0.01, (self.data.score - 20000) / 10000000):
+        if len(parent_list) < BASE_CAP + 20 and random.random() < min(0.01, (self.data.score - 50000) / 50000000):
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 100  # + 150 * min(1.0, score / 100000)
             speed = constants.PLAYER_SPEED * 0.5

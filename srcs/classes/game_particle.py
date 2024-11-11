@@ -53,6 +53,7 @@ class GameParticle(Particle):
         super().__init__(x, y, angle, speed, radius, color)
         self.hp: float = hp
         self.max_hp: float = hp
+        self.max_rad: float = radius
         self.dmg: float = dmg
         self.score: int = score
 

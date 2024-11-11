@@ -14,9 +14,9 @@ from srcs import utils
 
 class Shield(GameParticle):
     def __init__(self, game_data: GameData, x, y, rad=100,
-                 color=(0, 255, 255), hp=1.0, dmg=1.0,
+                 color=(0, 255, 255), hp=100, dmg=1.0,
                  parent: Optional[GameParticle] = None,
-                 regen_rate: float=1):
+                 regen_rate: float=0.25):
         super().__init__(x, y, 0, 0, rad, color, hp, dmg)
         self.game_data: GameData = game_data
         self.parent: Optional[GameParticle] = parent
@@ -27,7 +27,7 @@ class Shield(GameParticle):
         self.show_duration = 60
         self.tick = 0
         self.regen_rate = regen_rate
-        self.down_cd = 20
+        self.down_cd = 180
         self.down_timer = 0
 
     def move(self):
@@ -37,8 +37,12 @@ class Shield(GameParticle):
             self.down_timer = self.down_cd
         else:
             self.down_timer -= 1
-        self.hp = min(self.hp + self.regen_rate * (self.down_timer <= 0), self.max_hp)
+        self.hp = min(self.hp + self.regen_rate, self.max_hp)
         self.prev_hp = self.hp
+        if self.down_timer > 0:
+            self.rad = 0
+        else:
+            self.rad = self.parent.rad + (self.max_rad - self.parent.rad) * (self.hp / self.max_hp) + 5
 
         if self.parent is not None:
             self.x = self.parent.x
@@ -65,8 +69,8 @@ class Shield(GameParticle):
                                self.rad - self.width, width=self.width)
             self.show_timer -= 1
 
-    def parent_is_dead(self):
-        return self.parent is None or self.parent.is_dead()
-
     def is_dead(self):
-        return super().is_dead() and self.parent_is_dead()
+        if self.parent:
+            return self.parent.is_dead()
+        else:
+            return super().is_dead()
