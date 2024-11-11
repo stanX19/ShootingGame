@@ -3,6 +3,7 @@ import math
 from typing import Sequence
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
+from srcs.classes.enemy import Enemy
 
 
 def handle_collision(bullet: GameParticle, enemy: GameParticle):
@@ -12,6 +13,10 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
         return
     enemy.hp -= bullet.dmg
     bullet.hp -= enemy.dmg
+    # if enemy.hp > 0 and isinstance(enemy, Enemy):
+    #     enemy.find_new_target()
+    # if bullet.hp > 0 and isinstance(bullet, Enemy):
+    #     bullet.find_new_target()
 
 
 def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int):

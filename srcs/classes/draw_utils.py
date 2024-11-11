@@ -1,5 +1,25 @@
 from __future__ import annotations
 import pygame
+import math
+
+t_cord = tuple[float, float]
+
+import pygame
+import math
+
+
+def draw_arrow(surface: pygame.Surface, start: tuple, end: tuple, color=(255, 255, 255), width=1):
+    pygame.draw.line(surface, color, start, end, width)
+
+    SIDE_LENGTH = 10
+    ARROW_ANGLE = math.radians(30)
+    theta = math.atan2(end[1] - start[1], end[0] - start[0])
+    s1 = (end[0] - SIDE_LENGTH * math.cos(theta + ARROW_ANGLE),
+          end[1] - SIDE_LENGTH * math.sin(theta + ARROW_ANGLE))
+    s2 = (end[0] - SIDE_LENGTH * math.cos(theta - ARROW_ANGLE),
+          end[1] - SIDE_LENGTH * math.sin(theta - ARROW_ANGLE))
+    pygame.draw.line(surface, color, s1, end, width)
+    pygame.draw.line(surface, color, s2, end, width)
 
 
 def draw_cross(surface, x, y, rad, color1, color2):
@@ -41,7 +61,7 @@ def draw_star(surface, x, y, rad, color1, color2):
     pygame.draw.polygon(surface, color1, draw_points)
 
 
-def draw_arrow(surface, x, y, rad, color1, color2):
+def draw_up_arrow(surface, x, y, rad, color1, color2):
     w = rad
     h = rad
     pygame.draw.polygon(surface, color2, (

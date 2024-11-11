@@ -22,7 +22,7 @@ class Explosive(Bullet):
                                              lifespan=10,
                                              color=self.explosion_color,
                                              fade_off=True,
-                                             max_rad = self.rad * 10))
+                                             target_rad = self.rad * 10))
         # self.game_data.bullets.append(Bullet(self.game_data, self.x, self.y, self.angle, 0, self.rad * 10, (0, 0, 0),
         #                                      100000000, self.dmg / 10, lifespan=10))
         return super().on_death()

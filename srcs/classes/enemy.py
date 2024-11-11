@@ -9,6 +9,7 @@ from srcs.classes.game_particle import GameParticle
 from srcs.classes.bullet import Bullet
 from srcs.classes.effect import Effect
 from srcs.classes.game_data import GameData
+from srcs.classes.draw_utils import draw_arrow
 
 
 class Enemy(GameParticle):
@@ -22,6 +23,7 @@ class Enemy(GameParticle):
         self.original_color: tuple = color
         self.target_list: list[GameParticle] = targets
         self.target: Optional[GameParticle] = None
+        self.warned_target: bool = False
         self.parent_list: list[GameParticle] = parent_list
         self.max_rad = None if radius == ENEMY_RADIUS else radius
 
@@ -40,23 +42,36 @@ class Enemy(GameParticle):
         closest_target = None
         min_distance = float('inf')
 
+        K = ENEMY_SHOOT_RANGE
         for target in targets:
-            distance = self.distance_with(target) + 1000 * isinstance(target, Bullet)
+            dis = self.distance_with(target)
+            distance = dis\
+                       + isinstance(target, Bullet) * 2 * K\
+                       - target.dmg * 10\
+                       - (dis < ENEMY_SHOOT_RANGE) * K \
+                       - (isinstance(target, Enemy) and target.target is self) * 2 * K
             if distance < min_distance:
                 min_distance = distance
                 closest_target = target
 
         self.target = closest_target
+        self.warned_target = False
 
     def turn_to(self, new_angle, lerp=0.1):
-        self.angle += (new_angle - self.angle) * lerp
+        # turn_angle = new_angle + math.pi - self.angle
+        # self.angle += turn_angle * lerp
+        self.angle = new_angle
 
     def move(self):
-        # if self.target is None or self.target.is_dead():
-        self.find_new_target()
+        if self.target is None or self.target.is_dead():
+            self.find_new_target()
 
         if self.target:
             self.turn_to(self.angle_with(self.target))
+            if not self.warned_target and isinstance(self.target, Enemy)\
+                    and self.distance_with(self.target) < ENEMY_SHOOT_RANGE:
+                self.target.find_new_target()
+                self.warned_target = True
 
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
@@ -101,6 +116,11 @@ class Enemy(GameParticle):
                                              speed=self.speed, rad=self.rad, lifespan=3,
                                              color=self.color, fade_off=True))
         return super().on_death()
+
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y))
+
 
 
 class DodgingEnemy(Enemy):
@@ -159,16 +179,17 @@ class DodgingEnemy(Enemy):
 
 class ShootingEnemy(Enemy):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
-                 radius=10, speed=PLAYER_SPEED, hp=10, **kwargs):
+                 radius=10, speed=PLAYER_SPEED, hp=10, shoot_cd=10, **kwargs):
         super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.shoot_cd = 0
+        self.shoot_timer = 0
+        self.shoot_cd = shoot_cd
 
     def move(self):
         super().move()
-        self.shoot_cd -= 1
-        if self.target and self.shoot_cd <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
+        self.shoot_timer -= 1
+        if self.target and self.shoot_timer <= 0 and self.distance_with(self.target) <= ENEMY_SHOOT_RANGE:
             self.shoot()
-            self.shoot_cd = 10 * self.max_hp / self.hp
+            self.shoot_timer = self.shoot_cd * self.max_hp / self.hp
 
     def shoot(self):
         # Get the current position and velocity of the target
@@ -203,8 +224,9 @@ class ShootingEnemy(Enemy):
             lead_angle = self.angle_with(self.target)
 
         self.parent_list.append(Bullet(
-            self.game_data, self.x, self.y, lead_angle, speed=bullet_speed, rad=ENEMY_BULLET_RAD,
-            color=self.color
+            self.game_data, self.x, self.y, lead_angle, speed=bullet_speed,
+            rad=max(self.rad / 5, ENEMY_BULLET_RAD),
+            color=self.color, dmg=self.dmg, hp=self.hp / 10
         ))
 
 
@@ -212,9 +234,9 @@ class EliteEnemy(ShootingEnemy, DodgingEnemy):
     pass
 
 
-class EnemyMothership(Enemy):
+class EnemyMothership(EliteEnemy):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle], **kwargs):
-        super().__init__(game_data, x, y, targets, parent_list, **kwargs)
+        super().__init__(game_data, x, y, targets, parent_list, shoot_cd=10, **kwargs)
         self.dodge_angle: float = random.choice([math.pi / 2, -math.pi / 2])
         self.child_speed = (PLAYER_SPEED, PLAYER_SPEED * 2)
         self.child_count = 0
@@ -230,9 +252,11 @@ class EnemyMothership(Enemy):
         max_cap = (self.hp / self.max_hp) * (self.score / 1000)
         spawn_cd = 1000  # (1000 * self.max_hp / self.hp)
 
-        if self.child_count + max_cap / spawn_cd < max_cap:  # cannot reach max_cap naturally
+        if self.child_count + max_cap / spawn_cd < max_cap:
             self.child_count += max_cap / spawn_cd
-        if self.child_count < max_cap:  # only false when is hit (hp decrease)
+        # max_cap - 1: only spawn when is hit (hp decrease)
+        # max_cap: can spawn naturally
+        if self.child_count < max_cap - 1:
             return
         if self.distance_with(self.target) > ENEMY_SHOOT_RANGE:
             return

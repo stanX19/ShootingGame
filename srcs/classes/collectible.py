@@ -80,7 +80,7 @@ class WeaponUpgradeCollectible(Collectible):
         self.game_data.player.main_weapon.upgrade_weapon()
 
     def draw(self, surface: pygame.Surface):
-        draw_utils.draw_arrow(surface, self.x, self.y, self.rad, *MAIN_WEAPON_THEME)
+        draw_utils.draw_up_arrow(surface, self.x, self.y, self.rad, *MAIN_WEAPON_THEME)
 
 
 class SubWeaponUpgradeCollectible(Collectible):
@@ -88,4 +88,4 @@ class SubWeaponUpgradeCollectible(Collectible):
         self.game_data.player.sub_weapon.upgrade_weapon()
 
     def draw(self, surface: pygame.Surface):
-        draw_utils.draw_arrow(surface, self.x, self.y, self.rad, *SUB_WEAPON_THEME)
+        draw_utils.draw_up_arrow(surface, self.x, self.y, self.rad, *SUB_WEAPON_THEME)

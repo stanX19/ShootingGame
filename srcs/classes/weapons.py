@@ -111,7 +111,7 @@ class SubWeaponEnum:
     sub_dancer = WeaponType("sub dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.0, hp=1,
                             min_count=1, max_count=5, growth_factor=1, spread=math.pi,
                             recoil=-10, lifespan=(1, 60), bullet_class=LAZER_CLASS)
-    sub_inversed_dancer = WeaponType("sub inverted dancer", reload=0, velocity=(0, 5), radius=2, dmg=0.0, hp=1,
+    sub_inverted_dancer = WeaponType("sub inverted dancer", reload=0, velocity=(0, 5), radius=2, dmg=0.0, hp=1,
                             min_count=1, max_count=5, growth_factor=1, spread=math.pi,
                             recoil=10, lifespan=(1, 60), bullet_class=LAZER_CLASS)
 

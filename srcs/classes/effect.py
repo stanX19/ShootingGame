@@ -14,7 +14,7 @@ DEATH_OPACITY = 0.25
 class Effect(GameParticle):
     def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=1,
                  color=(255, 255, 255), hp=1.0, dmg=1.0, lifespan=None,
-                 fade_off=False, max_rad=None):
+                 fade_off=False, target_rad=None, **kwargs):
         super().__init__(x, y, angle, speed, rad, color, hp, dmg)
         if isinstance(lifespan, tuple) and len(lifespan) > 1:
             self.lifespan = random.randint(lifespan[0], lifespan[1])
@@ -25,10 +25,10 @@ class Effect(GameParticle):
         self.game_data: GameData = game_data
         self.fade_off = fade_off
         self.opacity = 1.0
-        self.max_rad = max_rad if max_rad else rad * 2
+        self.target_rad = target_rad if target_rad else rad * 2
 
         # Calculate the expansion rate and fade-off rate
-        self.rad_increase_rate = (self.max_rad - self.rad) / self.lifespan
+        self.rad_increase_rate = (self.target_rad - self.rad) / self.lifespan
         self.opacity_decrease_rate = (1.0 - DEATH_OPACITY) / self.lifespan
 
     def apply_fade_off(self):
@@ -50,5 +50,4 @@ class Effect(GameParticle):
 
     def is_dead(self):
         return super().is_dead() or self.x < 0 or self.x > MAP_WIDTH or\
-            self.y < 0 or self.y > MAP_HEIGHT or self.lifespan <= 0 or\
-            (self.max_rad and self.rad > self.max_rad) or self.opacity < DEATH_OPACITY
+            self.y < 0 or self.y > MAP_HEIGHT or self.lifespan <= 0

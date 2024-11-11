@@ -7,6 +7,7 @@ from srcs.constants import *
 from srcs.classes.weapons import WeaponType
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.game_data import GameData
+from srcs.classes.effect import Effect
 
 
 def _safe_value(value, default, reject=None):

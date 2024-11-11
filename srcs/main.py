@@ -16,7 +16,7 @@ except ImportError:
     import numpy
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy
+from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy, ShootingEnemy
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
@@ -51,6 +51,7 @@ consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 class Game:
     def __init__(self):
         self.data: GameData = GameData()
+        self.throttled_refresh_timer = 0
         self.init_game()
 
     def init_game(self):
@@ -92,15 +93,18 @@ class Game:
                     self.data.quit = True
                 if event.key == pygame.K_q:
                     self.data.player.main_weapon.overdrive_start()
-                if event.key == pygame.K_TAB:
-                    self.data.player.sub_weapon.change_weapon()
+                # if event.key == pygame.K_TAB:
+                #     self.data.player.sub_weapon.change_weapon()
                 if event.key == pygame.K_e:
                     self.data.autofire = not self.data.autofire
                 self.data.pressed_keys[event.key] = True
             elif event.type == pygame.KEYUP:
                 self.data.pressed_keys[event.key] = False
             if event.type == pygame.MOUSEWHEEL:
-                self.data.player.main_weapon.cycle_weapon(- event.y)
+                if self.data.pressed_keys[pygame.K_TAB]:
+                    self.data.player.sub_weapon.cycle_weapon(- event.y)
+                else:
+                    self.data.player.main_weapon.cycle_weapon(- event.y)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if not self.data.running:
                     self.init_game()
@@ -182,7 +186,8 @@ class Game:
         speed = constants.ENEMY_SPEED
         if len(parent_list) < 50 and random.random() < 0.02 + self.data.score / 100000:
             self._spawn_new_unit(hp, score, speed, True,
-                                 color=color, parent_list=parent_list, target_list=target_list, side=side)
+                                 color=color, parent_list=parent_list, target_list=target_list, side=side,
+                                 _constructor=ShootingEnemy)
 
         if len(parent_list) < 60 and random.random() < min(0.02, (self.data.score - 10000) / 10000000):
             hp = 10
@@ -195,17 +200,17 @@ class Game:
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 100  # + 150 * min(1.0, score / 100000)
             speed = constants.PLAYER_SPEED * 0.5
-            self._spawn_new_unit(hp, score, speed, True, _constructor=EnemyMothership, dmg=2,
+            self._spawn_new_unit(hp, score, speed, True, _constructor=EnemyMothership, dmg=10,
                                  radius=60 + constants.ENEMY_RADIUS,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side)
 
     def spawn_enemies(self):
         self._spawn_units(color=constants.ENEMY_COLOR, parent_list=self.data.enemies,
-                          target_list=self.data.bullets, side='top')
+                          target_list=self.data.bullets, side='right')
 
     def spawn_allies(self):
         self._spawn_units(color=constants.PLAYER_COLOR, parent_list=self.data.bullets,
-                          target_list=self.data.enemies, side='bottom')
+                          target_list=self.data.enemies, side='left')
 
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
@@ -253,6 +258,7 @@ class Game:
         collide_enemy_and_bullets(self.data.bullets, self.data.enemies)
         collide_enemy_and_bullets([self.data.player], self.data.collectibles)
         self.data.water_particle_handler.collide_with_enemies(self.data.enemies)
+        self.data.water_particle_handler.collide_with_enemies(self.data.bullets)
 
         for enemy in self.data.enemies:
             if not enemy.is_dead():
@@ -316,20 +322,34 @@ class Game:
         # recover to 10 in one minute
         self.data.player.hp = min(self.data.player.max_hp, self.data.player.hp + TIME_PASSED / 60000 * 10)
         self.data.start_ticks = self.data.current_time
+        self.throttled_refresh_timer += 1
 
+    def throttled_refresh(self):
+        lst = self.data.enemies + self.data.bullets
+        if self.throttled_refresh_timer >= len(lst):
+            self.throttled_refresh_timer = 0
+        # count = 0 | while count < 3 and ...
+        while self.throttled_refresh_timer < len(lst):
+            e = lst[self.throttled_refresh_timer]
+            if isinstance(e, Enemy):
+                e.find_new_target()
+                return
+            self.throttled_refresh_timer += 1
 
     def update(self):
         if not self.data.running:
             return
         self.data.current_time = pygame.time.get_ticks()
+        self.increment_constants()
         self.collide_everything()
         self.remove_dead_particles()
         self.move_everything()
         self.check_player_death()
         self.shoot_bullets()
-        self._spawn_units()
+        self.spawn_enemies()
         self.spawn_allies()
         self.center_focus()
+        # self.throttled_refresh()
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.data.score}

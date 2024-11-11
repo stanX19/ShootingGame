@@ -20,6 +20,8 @@ class WeaponHandler:
         self.weapon: Optional[WeaponType] = None
         self.all_weapons: list[WeaponType] = []
         self.reinit_weapons(weapons)
+        self.change_cd = 2000  # ms
+        self.is_first_shot = True
         self.last_shot_time = {}
         self.weapon_change_energy = 10000
         self.last_reload_time = 0
@@ -122,6 +124,7 @@ class WeaponHandler:
         self.on_mouse_up()
         self.overdrive_end()
         self.weapon = weapon
+        self.is_first_shot = True
 
     def cycle_weapon(self, change: int = 1):
         idx = (self.index + change) % len(self.all_weapons)
@@ -133,14 +136,14 @@ class WeaponHandler:
         self._set_weapon(self.all_weapons[index])
 
     def _change_in_cooldown(self):
-        MAX_CONSECUTIVE_CHANGE = 3
-        COOLDOWN = 2000  # ms
+        MAX_CONSECUTIVE_CHANGE = 1
         self.weapon_change_energy += self.game_data.current_time - self.last_reload_time
         self.last_reload_time = self.game_data.current_time
-        self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, MAX_CONSECUTIVE_CHANGE * COOLDOWN)
-        if self.weapon_change_energy < COOLDOWN:
+        self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, MAX_CONSECUTIVE_CHANGE * self.change_cd)
+        if self.weapon_change_energy < self.change_cd:
             return True
-        self.weapon_change_energy -= COOLDOWN
+
+        # self.weapon_change_energy -= change_cd
         return False
 
     def change_weapon(self, weapon=None):
@@ -273,6 +276,9 @@ class WeaponHandler:
             return
         if self.game_data.current_time - self.last_shot_time.get(self.weapon, -10000000000) < self.weapon.shot_delay:
             return
+        if self.is_first_shot:
+            self.weapon_change_energy -= self.change_cd
+            self.is_first_shot = False
         self.last_shot_time[self.weapon] = self.game_data.current_time
 
         self._update_overdrive()
