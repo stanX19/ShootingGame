@@ -17,7 +17,7 @@ except ImportError:
     import numpy
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy, ShootingEnemy
+from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy, ShootingEnemy, ShieldedEnemy
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
@@ -189,6 +189,10 @@ class Game:
         hp = 1
         score = 100
         speed = constants.ENEMY_SPEED
+        if len(parent_list) < BASE_CAP and random.random() < 0.02 + self.data.score / 100000:
+            self._spawn_new_unit(hp, score, speed, True,
+                                 color=color, parent_list=parent_list, target_list=target_list, side=side,
+                                 _constructor=Enemy)
         if len(parent_list) < BASE_CAP and random.random() < 0.02 + self.data.score / 100000:
             self._spawn_new_unit(hp, score, speed, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,

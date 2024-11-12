@@ -24,7 +24,7 @@ class Shield(GameParticle):
         self.is_hit = False
         self.show_timer = 0
         self.width = 3
-        self.show_duration = 60
+        self.show_duration = 30
         self.tick = 0
         self.regen_rate = regen_rate
         self.down_cd = 180

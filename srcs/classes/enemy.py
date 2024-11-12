@@ -236,7 +236,8 @@ class ShieldedEnemy(Enemy):
                  radius=10, speed=PLAYER_SPEED, hp=10, shield_hp=10, **kwargs):
         super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
         self.shoot_timer = 0
-        self.parent_list.append(Shield(game_data, x, y, self.rad + 50, color=self.color, hp=2 * hp, parent=self))
+        self.parent_list.append(Shield(game_data, x, y, self.rad + 2 * hp, color=self.color,
+                                       hp=2 * hp, parent=self, regen_rate=0.1))
 
 
 class EliteEnemy(ShootingEnemy, DodgingEnemy, ShieldedEnemy):
