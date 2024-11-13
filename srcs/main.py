@@ -7,8 +7,6 @@ import subprocess
 import sys
 import os
 
-from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
@@ -19,6 +17,7 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
     import pygame
     import numpy
+from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.player import Player
 from srcs.classes.unit import Unit, EliteUnit, UnitMothership, ShieldedUnit, ShootingUnit

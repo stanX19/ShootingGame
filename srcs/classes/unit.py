@@ -64,7 +64,7 @@ class ShieldedUnit(Unit):
         shield_rad = shield_rad if shield_rad is not None else max(50, self.rad + 2 * hp)
         shield_hp = shield_hp if shield_hp is not None else 2 * hp
         self.parent_list.append(Shield(game_data, x, y, shield_rad, color=self.color,
-                                       hp=shield_hp, parent=self, regen_rate=shield_hp / 100))
+                                       hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
 
 class SpawningUnit(Unit):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
