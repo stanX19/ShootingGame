@@ -7,7 +7,7 @@ import subprocess
 import sys
 import os
 
-from srcs.constants import BULLET_SPEED, ENEMY_SHOOT_RANGE
+from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -21,7 +21,7 @@ except ImportError:
     import numpy
 from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 from srcs.classes.player import Player
-from srcs.classes.enemy import Enemy, EliteEnemy, EnemyMothership, DodgingEnemy, ShootingEnemy, ShieldedEnemy
+from srcs.classes.unit import Unit, EliteUnit, UnitMothership, ShieldedUnit, ShootingUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.algo import generate_random_point
@@ -153,8 +153,8 @@ class Game:
         self.data.player.set_velocity(dx, dy)
         self.data.player.move()
 
-    def _spawn_new_unit(self, hp, score, speed, variable_shape, _constructor=Enemy,
-                        radius=constants.ENEMY_RADIUS, color: tuple=constants.ENEMY_COLOR,
+    def _spawn_new_unit(self, hp, score, speed, variable_shape, _constructor=Unit,
+                        radius=constants.UNIT_RADIUS, color: tuple=constants.ENEMY_COLOR,
                         parent_list: Optional[list[GameParticle]]=None,
                         target_list: Optional[list[GameParticle]]=None,
                         side='top', **kwargs):
@@ -164,7 +164,7 @@ class Game:
             target_list = self.data.bullets
         spawn_rad = radius + 300
         if variable_shape:
-            spawn_rad = Enemy.get_rad(hp, hp, radius)
+            spawn_rad = Unit.get_rad(hp, hp, radius)
 
         # side = random.choice(['left', 'right', 'top', 'bottom'])
         if side == 'left':
@@ -193,28 +193,28 @@ class Game:
         BASE_CAP = constants.SPAWN_CAP
         hp = 1
         score = 100
-        speed = constants.ENEMY_SPEED
+        speed = constants.UNIT_SPEED
         if len(parent_list) < BASE_CAP and random.random() < 0.02 + self.data.score / 100000:
             self._spawn_new_unit(hp, score, speed * 2, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 _constructor=Enemy)
+                                 _constructor=Unit)
         if len(parent_list) < BASE_CAP and random.random() < (self.data.score - 10000) / 100000:
             self._spawn_new_unit(hp, score, speed, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 _constructor=ShootingEnemy, shoot_cd=20)
+                                 _constructor=ShootingUnit, shoot_cd=20)
         if len(parent_list) < BASE_CAP + 10 and random.random() < min(0.02, (self.data.score - 20000) / 10000000):
             hp = 10
             score = 300
             speed = constants.PLAYER_SPEED
-            self._spawn_new_unit(hp, score, speed, True, _constructor=EliteEnemy, dmg=1,
+            self._spawn_new_unit(hp, score, speed, True, _constructor=EliteUnit, dmg=1,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side)
 
         if len(parent_list) < BASE_CAP + 20 and random.random() < min(0.01, (self.data.score - 40000) / 50000000):
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 100  # + 150 * min(1.0, score / 100000)
             speed = constants.PLAYER_SPEED * 0.5
-            self._spawn_new_unit(hp, score, speed, True, _constructor=EnemyMothership, dmg=10,
-                                 radius=60 + constants.ENEMY_RADIUS,
+            self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
+                                 radius=60 + constants.UNIT_RADIUS,
                                  child_kwargs={"hp": 1, "dmg": 10},
                                  color=color, parent_list=parent_list, target_list=target_list, side=side)
 
@@ -222,8 +222,8 @@ class Game:
             hp = 20
             score = 600
             speed = constants.PLAYER_SPEED
-            self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingEnemy, dmg=10,
-                                 bullet_speed=BULLET_SPEED * 2, shoot_cd=20, shoot_range=ENEMY_SHOOT_RANGE * 1.5,
+            self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingUnit, dmg=10,
+                                 bullet_speed=BULLET_SPEED * 2, shoot_cd=20, shoot_range=UNIT_SHOOT_RANGE * 1.5,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side)
         # if len(parent_list) < BASE_CAP + 30 and random.random() < min(0.01, (self.data.score - 100000) / 100000000):
         #     score = min(40000, 20000 + self.data.score // 1000)
@@ -362,7 +362,7 @@ class Game:
         # count = 0 | while count < 3 and ...
         while self.throttled_refresh_timer < len(lst):
             e = lst[self.throttled_refresh_timer]
-            if isinstance(e, Enemy):
+            if isinstance(e, Unit):
                 e.find_new_target()
                 return
             self.throttled_refresh_timer += 1

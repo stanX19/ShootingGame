@@ -105,7 +105,7 @@ class SubWeaponEnum:
                              growth_factor=1, bullet_class=MISSILE_CLASS, radius=MISSILE_RADIUS)
 
     sub_shield = WeaponType("sub shield", reload=7500, velocity=1, max_count=100, hp=10, radius=1,
-                            dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
+                            dmg=2.5 / UNIT_RADIUS * UNIT_SPEED, spread=2 * math.pi,
                             min_count=30, growth_factor=5)
 
     sub_dancer = WeaponType("sub dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.0, hp=1,

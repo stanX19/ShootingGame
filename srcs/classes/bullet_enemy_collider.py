@@ -45,7 +45,7 @@ def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence
     bullets = sorted(bullets, key=lambda b: b.x - b.rad)
     enemies = sorted(enemies, key=lambda b: b.x - b.rad)
     # sep
-    CUTTING_LINE = ENEMY_RADIUS + 20
+    CUTTING_LINE = UNIT_RADIUS + 20
 
     small_enemies = [p for p in enemies if p.rad <= CUTTING_LINE]
     big_enemies = [p for p in enemies if p.rad > CUTTING_LINE]

@@ -19,9 +19,9 @@ from srcs.classes import algo
 
 class Enemy(GameParticle):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],
-                 speed=ENEMY_SPEED, angle=0.0, radius=ENEMY_RADIUS, color=ENEMY_COLOR,
+                 speed=UNIT_SPEED, angle=0.0, radius=UNIT_RADIUS, color=ENEMY_COLOR,
                  hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
-                 shoot_range=ENEMY_SHOOT_RANGE):
+                 shoot_range=UNIT_SHOOT_RANGE):
         super().__init__(x, y, angle, speed, radius, color, hp, dmg, score)
         self.game_data: GameData = game_data
         self.variable_shape: bool = variable_shape
@@ -31,7 +31,7 @@ class Enemy(GameParticle):
         self.target: Optional[GameParticle] = None
         self.warned_target: bool = False
         self.parent_list: list[GameParticle] = parent_list
-        self.max_rad = None if radius == ENEMY_RADIUS else radius
+        self.max_rad = None if radius == UNIT_RADIUS else radius
         self.shoot_range = shoot_range
 
         self.find_new_target()
@@ -105,8 +105,8 @@ class Enemy(GameParticle):
 
     @staticmethod
     def get_rad(hp: float, max_hp: float, max_rad: Optional[float]=None):
-        max_rad = max_rad or ENEMY_RADIUS + max_hp - 1
-        return int(ENEMY_RADIUS + (hp / max_hp) * max(0, max_rad - ENEMY_RADIUS))
+        max_rad = max_rad or UNIT_RADIUS + max_hp - 1
+        return int(UNIT_RADIUS + (hp / max_hp) * max(0, max_rad - UNIT_RADIUS))
 
     @staticmethod
     def get_color(hp: float, speed: float, base_color: tuple):
@@ -114,7 +114,7 @@ class Enemy(GameParticle):
 
         max_change = 100
         hp_factor = min(1.0, hp / 100)
-        speed_factor = min((speed - ENEMY_SPEED) / (PLAYER_SPEED - ENEMY_SPEED), 1)
+        speed_factor = min((speed - UNIT_SPEED) / (PLAYER_SPEED - UNIT_SPEED), 1)
         b = b + max_change * speed_factor
         g = g - max_change * hp_factor
 
@@ -282,8 +282,8 @@ class SpawningEnemy(Enemy):
         total = min(MAX_ENEMY_COUNT - len(self.parent_list), total)
         for i in range(int(total)):
             angle = i / total * math.pi * 2
-            x = self.x + math.cos(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
-            y = self.y + math.sin(angle) * (ENEMY_RADIUS * 3 * (i % 3) + self.rad)
+            x = self.x + math.cos(angle) * (UNIT_RADIUS * 3 * (i % 3) + self.rad)
+            y = self.y + math.sin(angle) * (UNIT_RADIUS * 3 * (i % 3) + self.rad)
             child = self.child_class(self.game_data, x, y, self.target_list, self.parent_list,
                                      speed=random.uniform(self.child_speed[0], self.child_speed[1]),
                                      angle=angle,
