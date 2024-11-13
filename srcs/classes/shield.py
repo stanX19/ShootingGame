@@ -33,16 +33,22 @@ class Shield(GameParticle):
     def move(self):
         super().move()
         self.is_hit = self.hp < self.prev_hp
+        self.show_timer = self.show_duration if self.is_hit else self.show_timer
+
+        # need to happen before prev_hp and down_timer is overwritten
+        if self.down_timer > 0:
+            self.rad = 0
+        else:
+            self.rad = self.parent.rad + (self.max_rad - self.parent.rad) * (self.prev_hp / self.max_hp) + 15
+
         if self.hp <= 0 and self.down_timer <= 0:
             self.down_timer = self.down_cd
         else:
             self.down_timer -= 1
-        self.hp = min(self.hp + self.regen_rate, self.max_hp)
+
+        regen_rate = self.regen_rate if self.show_timer <= 0 else self.regen_rate / 10
+        self.regen_hp(regen_rate)
         self.prev_hp = self.hp
-        if self.down_timer > 0:
-            self.rad = 0
-        else:
-            self.rad = self.parent.rad + (self.max_rad - self.parent.rad) * (self.hp / self.max_hp) + 5
 
         if self.parent is not None:
             self.x = self.parent.x
@@ -53,21 +59,21 @@ class Shield(GameParticle):
             # self.parent.hp += transferred_hp
 
     def draw(self, surface: pygame.Surface):
-        if super().is_dead():
+        if self.rad <= 0:
             return
-        self.show_timer = self.show_duration if self.is_hit else self.show_timer
         self.tick = (self.tick + self.is_hit) % 3
         if not self.is_hit:
             self.tick = 2
-        if self.show_timer > 0:
-            if self.tick < 1:
-                color = utils.color_intensity_shift(self.color, 0.5 * self.show_timer / self.show_duration)
-            else:
-                color = utils.color_intensity_shift(self.color, 2 * self.show_timer / self.show_duration)
-            pygame.draw.circle(surface,
-                               color, (int(self.x), int(self.y)),
-                               self.rad - self.width, width=self.width)
-            self.show_timer -= 1
+        if self.show_timer <= 0:
+            return
+        if self.tick < 1:
+            color = utils.color_intensity_shift(self.color, 0.5 * self.show_timer / self.show_duration)
+        else:
+            color = utils.color_intensity_shift(self.color, 2 * self.show_timer / self.show_duration)
+        pygame.draw.circle(surface,
+                           color, (int(self.x), int(self.y)),
+                           self.rad - self.width, width=self.width)
+        self.show_timer -= 1
 
     def is_dead(self):
         if self.parent:

@@ -4,6 +4,16 @@ import random
 from srcs.classes.game_particle import GameParticle
 
 
+def can_catch_up(self: GameParticle, target: GameParticle):
+    dx = target.x - self.x
+    dy = target.y - self.y
+    a = target.speed ** 2 - self.speed ** 2
+    b = 2 * (dx * target.xv + dy * target.yv)
+    c = dx ** 2 + dy ** 2
+    disc = b ** 2 - 4 * a * c
+    return disc >= 0
+
+
 def calculate_intercept_angle(self: GameParticle, target: GameParticle):
     tx = target.x
     ty = target.y
@@ -12,7 +22,7 @@ def calculate_intercept_angle(self: GameParticle, target: GameParticle):
     dx = tx - self.x
     dy = ty - self.y
     target_speed = math.hypot(tvx, tvy)
-    a = target_speed ** 2 - (self.speed * 0.1) ** 2
+    a = target_speed ** 2 - self.speed ** 2
     b = 2 * (dx * tvx + dy * tvy)
     c = dx ** 2 + dy ** 2
     disc = b ** 2 - 4 * a * c

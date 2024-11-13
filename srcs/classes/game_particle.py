@@ -57,6 +57,9 @@ class GameParticle(Particle):
         self.dmg: float = dmg
         self.score: int = score
 
+    def regen_hp(self, regen_amount: float):
+        self.hp = min(self.hp + regen_amount, self.max_hp)
+
     def on_death(self, *args, **kwargs) -> None:
         return
 
