@@ -5,9 +5,10 @@ from typing import Optional
 from srcs import constants, utils
 from srcs.classes.base_unit import BaseUnit
 from srcs.classes.bullet import Bullet
+from srcs.classes.explosive import Explosive
 from srcs.classes.game_data import GameData
 from srcs.classes.missile import Missile
-from srcs.classes.weapons import WeaponType, LAZER_CLASS, MISSILE_CLASS, NOVA_CLASS, UNIT_CLASS
+from srcs.classes.weapons import WeaponType, LAZER_CLASS, MISSILE_CLASS, NOVA_CLASS, EXPLOSIVE_CLASS
 
 
 class WeaponHandler:
@@ -128,10 +129,10 @@ class WeaponHandler:
         self.is_first_shot = True
 
     def _change_in_cooldown(self):
-        MAX_CONSECUTIVE_CHANGE = 1
+        max_consecutive_change = 1
         self.weapon_change_energy += self.unit.game_data.current_time - self.last_reload_time
         self.last_reload_time = self.unit.game_data.current_time
-        self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, MAX_CONSECUTIVE_CHANGE * self.change_cd)
+        self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0, max_consecutive_change * self.change_cd)
         return self.weapon_change_energy < self.change_cd
 
     def _get_bullet_count(self) -> int:
@@ -156,17 +157,19 @@ class WeaponHandler:
             LAZER_CLASS: self._fire_lazer,
             MISSILE_CLASS: self._fire_missile,
             NOVA_CLASS: self._fire_nova,
-            UNIT_CLASS: self._fire_unit,
+            # UNIT_CLASS: self._fire_unit,
         }
         fire_func = fire_dict.get(self.weapon.bullet_class, self._fire_default)
         fire_func()
 
     def _fire_lazer(self):
+        lazer_dy = math.sin(self.angle) * self.weapon.rad
+        lazer_dx = math.cos(self.angle) * self.weapon.rad
         for i in range(self.bullet_count):
             self.unit.parent_list.append(Bullet(
-                self.unit.game_data,
-                self.unit.x,
-                self.unit.y,
+                self.game_data,
+                self.unit.x + lazer_dx * i,
+                self.unit.y + lazer_dy * i,
                 self.angle,
                 weapon=self.weapon
             ))
@@ -174,37 +177,48 @@ class WeaponHandler:
     def _fire_missile(self):
         direction_count = self.bullet_count
         angle_offset = math.pi * 2 / direction_count
-        target = Missile.find_target_at(self.unit.x, self.unit.y, self.unit.target_list)
+        dy = math.sin(self.angle) * constants.UNIT_SHOOT_RANGE / 2
+        dx = math.cos(self.angle) * constants.UNIT_SHOOT_RANGE / 2
+        target = Missile.find_target_at(dx, dy, self.unit.target_list)
         for i in range(self.bullet_count):
-            offset = (i - (direction_count - 1) / 2) * angle_offset
+            offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.unit.parent_list.append(Missile(
-                self.unit.game_data,
-                self.unit.x,
-                self.unit.y,
-                shoot_angle,
-                self.unit.target_list,
-                target,
-                dmg=self.weapon.dmg
-            ))
+            self.unit.parent_list.append(Missile(self.game_data, self.unit.x, self.unit.y,
+                                                 shoot_angle, self.unit.target_list, target,
+                                                 dmg=self.weapon.dmg))
 
     def _fire_default(self):
+        if self.weapon.bullet_class is MISSILE_CLASS:
+            return self._fire_missile()
+        elif self.weapon.bullet_class is LAZER_CLASS:
+            return self._fire_lazer()
+        elif self.weapon.bullet_class is NOVA_CLASS:
+            return self._fire_nova()
+        if self.bullet_count == 0:
+            return
+        bullet_class = Bullet
+        if self.weapon.bullet_class is EXPLOSIVE_CLASS:
+            bullet_class = Explosive
         angle_offset = self.weapon.spread / self.bullet_count
         for i in range(self.bullet_count):
             offset = (i - (self.bullet_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.unit.parent_list.append(Bullet(
-                self.unit.game_data,
-                self.unit.x,
-                self.unit.y,
-                shoot_angle,
+            bullet_angle = self.angle + offset * self.weapon.offset_factor
+            dy, dx = math.sin(shoot_angle) * self.weapon.spawn_radius, math.cos(shoot_angle) * self.weapon.spawn_radius
+            dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(self.angle) * self.weapon.spawn_radius
+            self.unit.parent_list.append(bullet_class(
+                self.game_data,
+                self.unit.x + dx,
+                self.unit.y + dy,
+                bullet_angle,
                 weapon=self.weapon
             ))
 
     def _fire_nova(self):
+        mx, my = self.game_data.get_mouse_pos()
         for i in range(self.bullet_count):
-            self.unit.game_data.water_particle_handler.spawn_at(self.unit.x, self.unit.y)
+            self.game_data.water_particle_handler.spawn_at(mx, my)
+        self.game_data.water_particle_handler.attract_to(mx, my)
 
-    def _fire_unit(self):
-        # Implement the logic for firing units
-        pass
+
+

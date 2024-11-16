@@ -7,6 +7,8 @@ from typing import Sequence, Optional
 from srcs import utils
 from srcs.classes.shield import Shield
 from srcs.classes.base_unit import BaseUnit
+from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.weapons import ALL_MAIN_WEAPON_LIST
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.bullet import Bullet
@@ -38,25 +40,12 @@ class ShootingUnit(Unit):
                  radius=10, speed=UNIT_SPEED * 2.5, hp=10, shoot_cd=10,
                  bullet_class=Bullet, **kwargs):
         super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.shoot_timer = 0
-        self.shoot_cd = shoot_cd
-        self.bullet_class = bullet_class
+        self.weapon_handler: WeaponHandler = WeaponHandler(self.game_data, self, ALL_MAIN_WEAPON_LIST[1])
 
     def move(self):
         super().move()
-        self.shoot_timer -= 1
-        if self.shoot_timer <= 0 and self.hp and self.controller.fire_main:
-            self.shoot()
-            self.shoot_timer = self.shoot_cd * self.max_hp / self.hp
-
-    def shoot(self):
-        self.parent_list.append(self.bullet_class(
-            self.game_data, self.x, self.y,
-            angle=self.controller.aim_angle,
-            speed=self.bullet_speed,
-            rad=max(self.rad / 5, ENEMY_BULLET_RAD),
-            color=self.color, dmg=self.dmg, hp=self.hp / 10
-        ))
+        if self.hp and self.controller.fire_main:
+            self.weapon_handler.fire(self.controller.aim_angle)
 
 class ShieldedUnit(Unit):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],

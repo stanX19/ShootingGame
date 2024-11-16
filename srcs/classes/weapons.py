@@ -75,8 +75,8 @@ class WeaponType:
 class MainWeaponEnum:
     machine_gun = WeaponType("machine gun", reload=100, velocity=15, max_count=5, radius=2, growth_factor=1,
                              offset_factor=0.1, dmg=1, recoil=2)
-    lazer = WeaponType("lazer", reload=200, velocity=100, min_count=50, max_count=100, radius=1,
-                       growth_factor=5, bullet_class=LAZER_CLASS)
+    lazer = WeaponType("lazer", reload=600, velocity=100, min_count=50, max_count=100, radius=1,
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=(7, 14))
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
                          recoil=PLAYER_SPEED, dmg=1, min_count=25, growth_factor=25, spread=math.pi * 0.4,
                          lifespan=(5, 20))
