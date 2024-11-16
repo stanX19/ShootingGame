@@ -22,6 +22,7 @@ class BaseController:
     """
 
     def __init__(self):
+        self.is_moving: bool = True
         self.move_angle: float = 0.0
         self.aim_angle: float = 0.0
         self.fire_main: bool = False
@@ -30,6 +31,9 @@ class BaseController:
     def update_based_on(self, unit: BaseUnit):
         """Update decision values based on unit state or player input."""
         pass
+
+    def copy(self):
+        return self.__class__()
 
 
 class AIController(BaseController):
@@ -79,16 +83,31 @@ class PlayerController(BaseController):
     """Player control logic for player-controlled units."""
     def update_based_on(self, unit: BaseUnit):
         keys = pygame.key.get_pressed()
+        dy, dx = 0, 0
         if keys[pygame.K_w]:
-            self.move_angle = 0
-        elif keys[pygame.K_s]:
-            self.move_angle = math.pi
-        elif keys[pygame.K_a]:
-            self.move_angle = math.pi * 1.5
-        elif keys[pygame.K_d]:
-            self.move_angle = math.pi / 2
+            dy -= 1
+        if keys[pygame.K_s]:
+            dy += 1
+        if keys[pygame.K_a]:
+            dx -= 1
+        if keys[pygame.K_d]:
+            dx += 1
+        self.is_moving = bool(dy or dx)
 
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        self.aim_angle = math.atan2(mouse_y - unit.y, mouse_x - unit.x)
-        self.fire_main = pygame.mouse.get_pressed()[0]
-        self.fire_sub = pygame.mouse.get_pressed()[2]
+        self.move_angle = math.atan2(dy, dx)
+        self.aim_angle = unit.game_data.get_mouse_angle(unit)
+        self.fire_main = unit.game_data.left_mouse_down or unit.game_data.autofire
+        self.fire_sub = unit.game_data.right_mouse_down or unit.game_data.autofire
+
+class PlayerDroneController(AIController):
+    """non-player control for units that supports player"""
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        affected = unit.distance_with(unit.game_data.player) <= max(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
+        if not affected:
+            return
+        if unit.game_data.left_mouse_down:
+            self.aim_angle = unit.game_data.get_mouse_angle(unit)
+        self.move_angle = self.aim_angle
+        self.fire_main = unit.game_data.left_mouse_down or self.fire_main
+        self.fire_sub = unit.game_data.right_mouse_down or self.fire_main

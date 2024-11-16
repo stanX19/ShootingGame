@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 import pygame
@@ -61,10 +62,13 @@ class BaseUnit(GameParticle):
         self.target = closest_target
         self.warned_target = False
 
+    import math
+
     def turn_to(self, new_angle, lerp=0.1):
-        # turn_angle = new_angle - self.angle
-        # self.angle += turn_angle * lerp
-        self.angle = new_angle
+        turn_angle = new_angle - self.angle
+        turn_angle = (turn_angle + math.pi) % (2 * math.pi) - math.pi
+        self.angle += turn_angle * lerp
+        self.angle = (self.angle + math.pi) % (2 * math.pi) - math.pi
 
     def move(self):
         self.update_appearance_based_on_hp()

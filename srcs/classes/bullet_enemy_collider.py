@@ -3,7 +3,6 @@ import math
 from typing import Sequence
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
-from srcs.classes.enemy import Enemy
 
 
 def handle_collision(bullet: GameParticle, enemy: GameParticle):

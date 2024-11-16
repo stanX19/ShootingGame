@@ -10,7 +10,7 @@ import pygame
 class GameData:
     def __init__(self):
         self.effects: list[GameParticle] = []
-        self.player: 'Player' = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
+        self.player: GameParticle = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
         self.bullets: list[GameParticle] = []
         self.enemies: list[GameParticle] = []
         self.collectibles: list[GameParticle] = []
@@ -30,10 +30,9 @@ class GameData:
         self.screen_x = 0
         self.screen_y = 0
 
-
-    def get_mouse_angle(self):
+    def get_mouse_angle(self, unit: GameParticle):
         mx, my = self.get_mouse_pos()
-        px, py = self.player.get_xy()
+        px, py = unit.x, unit.y
         return math.atan2(my - py, mx - px)
 
     def get_mouse_pos(self):
