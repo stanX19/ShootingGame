@@ -7,6 +7,7 @@ from srcs.classes.base_unit import BaseUnit
 from srcs.classes.bullet import Bullet
 from srcs.classes.explosive import Explosive
 from srcs.classes.game_data import GameData
+from srcs.classes.lazer import Lazer
 from srcs.classes.missile import Missile
 from srcs.classes.weapons import WeaponType, LAZER_CLASS, MISSILE_CLASS, NOVA_CLASS, EXPLOSIVE_CLASS
 
@@ -33,10 +34,12 @@ class WeaponHandler:
         if isinstance(weapons, list):
             weapons = [copy.copy(weapon) for weapon in weapons if isinstance(weapon, WeaponType)]
         elif isinstance(weapons, WeaponType):
-            weapons = [weapons]
+            weapons = [copy.copy(weapons)]
         else:
             weapons = []
 
+        for w in weapons:
+            w.color = utils.color_mix(self.unit.color, w.color)
         self.weapon: Optional[WeaponType] = weapons[0] if weapons else None
         self.all_weapons = weapons
 
@@ -163,16 +166,17 @@ class WeaponHandler:
         fire_func()
 
     def _fire_lazer(self):
-        lazer_dy = math.sin(self.angle) * self.weapon.rad
-        lazer_dx = math.cos(self.angle) * self.weapon.rad
-        for i in range(self.bullet_count):
-            self.unit.parent_list.append(Bullet(
-                self.game_data,
-                self.unit.x + lazer_dx * i,
-                self.unit.y + lazer_dy * i,
-                self.angle,
-                weapon=self.weapon
-            ))
+        # lazer_dy = math.sin(self.angle) * self.weapon.rad
+        # lazer_dx = math.cos(self.angle) * self.weapon.rad
+        # for i in range(self.bullet_count):
+        #     self.unit.parent_list.append(Bullet(
+        #         self.game_data,
+        #         self.unit.x + lazer_dx * i,
+        #         self.unit.y + lazer_dy * i,
+        #         self.angle,
+        #         weapon=self.weapon
+        #     ))
+        self.unit.parent_list.append(Lazer(self.game_data, self.unit.x, self.unit.y, self.angle, weapon=self.weapon))
 
     def _fire_missile(self):
         direction_count = self.bullet_count

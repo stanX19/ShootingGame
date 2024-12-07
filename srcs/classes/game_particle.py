@@ -7,6 +7,8 @@ import pygame
 
 class Particle:
     def __init__(self, x: float, y: float, angle=0.0, speed=0.0, rad=1.0, color=(255, 255, 255), *wargs, **kwargs):
+        self.prev_x = x
+        self.prev_y = y
         self.x: float = x
         self.y: float = y
         self.xv: float = speed * math.cos(angle)
@@ -43,6 +45,8 @@ class Particle:
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.rad)
 
     def move(self):
+        self.prev_x = self.x
+        self.prev_y = self.y
         self.x += self.xv
         self.y += self.yv
 

@@ -13,8 +13,10 @@ from srcs import utils
 
 
 class Shield(GameParticle):
+    default_color = (0, 255, 255)
+
     def __init__(self, game_data: GameData, x, y, rad=100,
-                 color=(0, 255, 255), hp=100, dmg=1.0,
+                 color=default_color, hp=100, dmg=1.0,
                  parent: Optional[GameParticle] = None,
                  regen_rate: float=0.25):
         super().__init__(x, y, 0, 0, rad, color, hp, dmg)

@@ -8,6 +8,7 @@ from srcs import utils
 from srcs.classes.shield import Shield
 from srcs.classes.base_unit import BaseUnit
 from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.weapons import WeaponType, MainWeaponEnum
 from srcs.classes.weapons import ALL_MAIN_WEAPON_LIST
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
@@ -37,10 +38,10 @@ class Unit(BaseUnit):
 class ShootingUnit(Unit):
     def __init__(self, game_data: GameData, x: float, y: float,
                  targets: list[GameParticle], parent_list: list[GameParticle],
-                 radius=10, speed=UNIT_SPEED * 2.5, hp=10, shoot_cd=10,
-                 bullet_class=Bullet, **kwargs):
+                 radius=10, speed=UNIT_SPEED * 2.5, hp=10,
+                 weapons: list[WeaponType] | None = MainWeaponEnum.machine_gun, **kwargs):
         super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.weapon_handler: WeaponHandler = WeaponHandler(self.game_data, self, ALL_MAIN_WEAPON_LIST[1])
+        self.weapon_handler: WeaponHandler = WeaponHandler(self.game_data, self, weapons)
 
     def move(self):
         super().move()
@@ -54,7 +55,7 @@ class ShieldedUnit(Unit):
         self.shoot_timer = 0
         shield_rad = shield_rad if shield_rad is not None else max(50, self.rad + 2 * self.hp)
         shield_hp = shield_hp if shield_hp is not None else 2 * self.hp
-        self.parent_list.append(Shield(game_data, x, y, shield_rad, color=self.color,
+        self.parent_list.append(Shield(game_data, x, y, shield_rad, color=utils.color_mix(self.color, Shield.default_color),
                                        hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
 
 class SpawningUnit(Unit):
@@ -98,6 +99,7 @@ class SpawningUnit(Unit):
                                      speed=random.uniform(self.child_speed[0], self.child_speed[1]),
                                      angle=angle,
                                      color=self.color,
+                                     controller=self.controller.get_child(),
                                      **kwargs, **self.child_kwargs)
             child.angle = angle
             child.move()

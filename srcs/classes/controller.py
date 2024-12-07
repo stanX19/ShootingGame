@@ -1,18 +1,12 @@
 from __future__ import annotations
-import pygame
+
 import math
 import random
-from typing import Sequence, Optional
 
-from srcs import utils
+import pygame
+
 from srcs.classes.base_unit import BaseUnit
-from srcs.classes.shield import Shield
 from srcs.constants import *
-from srcs.classes.game_particle import GameParticle
-from srcs.classes.bullet import Bullet
-from srcs.classes.effect import Effect
-from srcs.classes.game_data import GameData
-from srcs.classes.draw_utils import draw_arrow
 
 
 class BaseController:
@@ -22,6 +16,9 @@ class BaseController:
     """
 
     def __init__(self):
+        self._turn_direction = random.choice((-math.pi / 2, math.pi / 2))
+        self._prev_hp: int = 0
+        self._retreat: int = 0  # frames to retreat
         self.is_moving: bool = True
         self.move_angle: float = 0.0
         self.aim_angle: float = 0.0
@@ -35,9 +32,20 @@ class BaseController:
     def copy(self):
         return self.__class__()
 
+    def get_child(self):
+        return self.copy()
+
+
+class BotController(BaseController):
+    def update_based_on(self, unit: BaseUnit):
+        self.is_moving = False
+        self.fire_main = True
+        self.fire_sub = True
+
 
 class AIController(BaseController):
     """AI decision-making logic for automated units."""
+
     def update_based_on(self, unit: BaseUnit):
         if unit.target is None or unit.target.is_dead():
             unit.find_new_target()
@@ -46,6 +54,14 @@ class AIController(BaseController):
             self.aim_angle = AIController.calculate_shoot_angle(unit)
             self.fire_main = unit.distance_with(unit.target) <= unit.shoot_range
             self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
+            if self._prev_hp > unit.hp:
+                self._retreat = 4 * FPS
+            if self._retreat > 0:
+                self._retreat -= 1
+                self.move_angle += math.pi
+            elif unit.distance_with(unit.target) <= unit.shoot_range:
+                self.move_angle += self._turn_direction
+            self._prev_hp = unit.hp
 
     @staticmethod
     def calculate_shoot_angle(unit: BaseUnit):
@@ -79,8 +95,24 @@ class AIController(BaseController):
         return lead_angle
 
 
+class PlayerDroneController(AIController):
+    """non-player control for units that supports player"""
+
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        affected = unit.distance_with(unit.game_data.player) <= max(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
+        if not affected:
+            return
+        if unit.game_data.left_mouse_down:
+            self.aim_angle = unit.game_data.get_mouse_angle(unit)
+        self.move_angle = self.aim_angle
+        self.fire_main = unit.game_data.left_mouse_down or self.fire_main
+        self.fire_sub = unit.game_data.right_mouse_down or self.fire_main
+
+
 class PlayerController(BaseController):
     """Player control logic for player-controlled units."""
+
     def update_based_on(self, unit: BaseUnit):
         keys = pygame.key.get_pressed()
         dy, dx = 0, 0
@@ -99,15 +131,5 @@ class PlayerController(BaseController):
         self.fire_main = unit.game_data.left_mouse_down or unit.game_data.autofire
         self.fire_sub = unit.game_data.right_mouse_down or unit.game_data.autofire
 
-class PlayerDroneController(AIController):
-    """non-player control for units that supports player"""
-    def update_based_on(self, unit: BaseUnit):
-        super().update_based_on(unit)
-        affected = unit.distance_with(unit.game_data.player) <= max(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
-        if not affected:
-            return
-        if unit.game_data.left_mouse_down:
-            self.aim_angle = unit.game_data.get_mouse_angle(unit)
-        self.move_angle = self.aim_angle
-        self.fire_main = unit.game_data.left_mouse_down or self.fire_main
-        self.fire_sub = unit.game_data.right_mouse_down or self.fire_main
+    def get_child(self):
+        return PlayerDroneController()

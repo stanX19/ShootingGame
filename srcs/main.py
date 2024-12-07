@@ -20,8 +20,9 @@ except ImportError:
 from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE, MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED
 # from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 # from srcs.classes.player import Player
+from srcs.classes.weapons import MainWeaponEnum
 from srcs.classes.base_unit import BaseUnit
-from srcs.classes.controller import PlayerController, PlayerDroneController, AIController
+from srcs.classes.controller import PlayerController, PlayerDroneController, AIController, BotController
 from srcs.classes.unit import Unit, EliteUnit, UnitMothership, ShieldedUnit, ShootingUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
@@ -31,6 +32,7 @@ from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
 dev_mode = 1
+test_mode = 0
 god_mode: bool = False
 start_score: int = 0
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -69,7 +71,7 @@ class Game:
         self.data.water_particle_handler = WaterParticleHandler()
         self.data.player = EliteUnit(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      targets=self.data.enemies, parent_list=self.data.bullets,
-                                     color=PLAYER_COLOR, )
+                                     color=PLAYER_COLOR, weapons=MainWeaponEnum.lazer)
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
         #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
@@ -87,11 +89,18 @@ class Game:
         # self.data.player.main_weapon.overdrive_cd = 0.0
         # self.data.player.main_weapon.set_weapon_by_index(0)
         self.data.collectible_spawn_score = 10000
-        self.background_update()
         self.spawn_starter_pack()
+        self.background_update()
 
     def spawn_starter_pack(self):
-        ...
+        if not test_mode:
+            return
+        self.data.bullets.append(Shield(self.data, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
+        self.data.enemies.append(ShootingUnit(self.data, self.data.player.x + 500, self.data.player.y,
+                                              self.data.bullets, self.data.enemies,
+                                              hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
+                                              controller=BotController(), variable_shape=True
+                                              ))
         # self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=50, dmg=1,
         #                                 rad=self.data.player.rad + 50, parent=self.data.player, regen_rate=10))
         # self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y - 40)
@@ -166,9 +175,9 @@ class Game:
     #     self.data.player.move()
 
     def _spawn_new_unit(self, hp, score, speed, variable_shape, _constructor=Unit,
-                        radius=constants.UNIT_RADIUS, color: tuple=constants.ENEMY_COLOR,
-                        parent_list: Optional[list[GameParticle]]=None,
-                        target_list: Optional[list[GameParticle]]=None,
+                        radius=constants.UNIT_RADIUS, color: tuple = constants.ENEMY_COLOR,
+                        parent_list: Optional[list[GameParticle]] = None,
+                        target_list: Optional[list[GameParticle]] = None,
                         side='top', **kwargs):
         if parent_list is None:
             parent_list = self.data.enemies
@@ -190,15 +199,17 @@ class Game:
         else:
             ex, ey = -spawn_rad, -spawn_rad
         parent_list.append(_constructor(self.data, ex, ey, target_list, parent_list=parent_list, hp=hp,
-                                              score=score, speed=speed, variable_shape=variable_shape, radius=radius,
-                                              color=color,
-                                              **kwargs))
+                                        score=score, speed=speed, variable_shape=variable_shape, radius=radius,
+                                        color=color,
+                                        **kwargs))
 
     def _spawn_units(self, color=constants.ENEMY_COLOR,
-                     parent_list: Optional[list[GameParticle]]=None,
-                     target_list: Optional[list[GameParticle]]=None,
+                     parent_list: Optional[list[GameParticle]] = None,
+                     target_list: Optional[list[GameParticle]] = None,
                      side='top',
                      controller_class=AIController):
+        if test_mode:
+            return
         if parent_list is None:
             parent_list = self.data.enemies
         if target_list is None:
@@ -214,7 +225,7 @@ class Game:
         if len(parent_list) < BASE_CAP and random.random() < (self.data.score) / 100000:
             self._spawn_new_unit(hp, score, speed, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 _constructor=ShootingUnit, shoot_cd=20, controller=controller_class())
+                                 _constructor=ShootingUnit, controller=controller_class())
         if len(parent_list) < BASE_CAP + 10 and random.random() < min(0.02, (self.data.score - 20000) / 10000000):
             hp = 10
             score = 300
@@ -223,33 +234,35 @@ class Game:
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
                                  controller=controller_class())
 
-        if len(parent_list) < BASE_CAP + 20 and random.random() < min(0.01, (self.data.score - 40000) / 50000000):
-            score = min(40000, 20000 + self.data.score // 1000)
-            hp = 100  # + 150 * min(1.0, score / 100000)
-            speed = constants.UNIT_SPEED * 1.5
-            self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
-                                 radius=60 + constants.UNIT_RADIUS,
-                                 child_kwargs={"hp": 1, "dmg": 10},
-                                 color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 controller=controller_class())
+        # if len(parent_list) < BASE_CAP + 20 and random.random() < min(0.01, (self.data.score - 40000) / 50000000):
+        #     score = min(40000, 20000 + self.data.score // 1000)
+        #     hp = 100  # + 150 * min(1.0, score / 100000)
+        #     speed = constants.UNIT_SPEED * 1.5
+        #     self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
+        #                          radius=60 + constants.UNIT_RADIUS,
+        #                          child_kwargs={"hp": 1, "dmg": 10},
+        #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
+        #                          controller=controller_class())
 
         if len(parent_list) < BASE_CAP + 25 and random.random() < min(0.02, (self.data.score - 60000) / 10000000):
             hp = 20
             score = 600
             speed = constants.UNIT_SPEED * 2.5
             self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingUnit, dmg=10,
-                                 bullet_speed=BULLET_SPEED * 2, shoot_cd=20, shoot_range=UNIT_SHOOT_RANGE * 1.5,
+                                 shoot_range=UNIT_SHOOT_RANGE * 1.5,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
-                                 controller=controller_class())
+                                 controller=controller_class(), weapons=MainWeaponEnum.lazer_mini)
 
         if len(parent_list) < BASE_CAP + 30 and random.random() < min(0.01, (self.data.score - 100000) / 100000000):
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 300  # + 150 * min(1.0, score / 100000)
             speed = constants.UNIT_SPEED * 1.5
-            self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=1,
-                                 radius=100, shield_rad=200, shoot_cd=1, bullet_speed=BULLET_SPEED * 1.5,
-                                 child_class=ShootingUnit,
-                                 child_kwargs={"hp": 0.01, "dmg": 10, "shoot_cd":20},
+            self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
+                                 radius=100, shield_rad=200, bullet_speed=BULLET_SPEED * 1.5,
+                                 child_class=ShootingUnit, weapons=MainWeaponEnum.lazer,
+                                 child_kwargs={
+                                     "hp": 1, "dmg": 10#, "weapons": MainWeaponEnum.lazer_mini
+                                 },
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
                                  controller=controller_class())
 
@@ -260,11 +273,11 @@ class Game:
     def spawn_allies(self):
         self._spawn_units(color=constants.PLAYER_COLOR, parent_list=self.data.bullets,
                           target_list=self.data.enemies, side='left',
-                          controller_class=PlayerDroneController)
-
+                          controller_class=AIController)
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
         return self.data.screen_x, self.data.screen_y, self.data.screen_x + constants.SCREEN_WIDTH, self.data.screen_y + constants.SCREEN_HEIGHT
+
     #
     # def spawn_collectible_at(self, x: Optional[float] = None, y: Optional[float] = None):
     #     # MIN_ON_MAP = 10
@@ -303,23 +316,22 @@ class Game:
     #         )
     #     self.data.collectibles.append(_class(x, y, self.data))
 
-
     def collide_everything(self):
         collide_enemy_and_bullets(self.data.bullets, self.data.enemies)
-        collide_enemy_and_bullets([self.data.player], self.data.collectibles)
+        # collide_enemy_and_bullets([self.data.player], self.data.collectibles)
         self.data.water_particle_handler.collide_with_enemies(self.data.enemies)
         self.data.water_particle_handler.collide_with_enemies(self.data.bullets)
 
-        for enemy in self.data.enemies:
-            if not enemy.is_dead():
-                continue
-            # self.data.collectible_spawn_score += enemy.score
-            # #                                                   60 seconds per drop
-            # if random.random() < self.data.collectible_spawn_score / 60000 - len(self.data.collectibles) / 50:
-            #     self.spawn_collectible_at(enemy.x, enemy.y)
-            #     self.data.collectible_spawn_score = 0
-            self.data.score += enemy.score
-            self.data.kills += 1
+        # for enemy in self.data.enemies:
+        #     if not enemy.is_dead():
+        #         continue
+        #     self.data.collectible_spawn_score += enemy.score
+        #     #                                                   60 seconds per drop
+        #     if random.random() < self.data.collectible_spawn_score / 60000 - len(self.data.collectibles) / 50:
+        #         self.spawn_collectible_at(enemy.x, enemy.y)
+        #         self.data.collectible_spawn_score = 0
+        #     self.data.score += enemy.score
+        #     self.data.kills += 1
 
     def remove_dead_particles(self):
         self.data.enemies[:] = [p for p in self.data.enemies if not (p.is_dead() and not p.on_death())]
@@ -332,14 +344,12 @@ class Game:
         self.data.collectibles[:] = [c for c in self.data.collectibles if not c.is_dead()]
 
     def move_everything(self):
-        for enemy in self.data.enemies:
-            enemy.move()
-
-        for bullet in self.data.bullets:
-            bullet.move()
-
         for effect in self.data.effects:
             effect.move()
+        for bullet in self.data.bullets:
+            bullet.move()
+        for enemy in self.data.enemies:
+            enemy.move()
 
         self.data.water_particle_handler.update()
         self.data.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
@@ -352,11 +362,17 @@ class Game:
         if not self.data.player.is_dead():
             return
         # if god_mode:
-        # self.data.player.hp = max(0.01, self.data.player.hp)
+        #     self.data.player.hp = max(0.01, self.data.player.hp)
+        #     if self.data.player not in self.data.bullets:
+        #         self.data.bullets.append(self.data.player)
         if self.data.player not in self.data.bullets:
             candidates: list[BaseUnit] = [i for i in self.data.bullets if isinstance(i, BaseUnit)]
-            candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player)/7.5)
-            self.data.player = candidates[-1]
+            candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player) / 7.5)
+            try:
+                self.data.player = candidates[-1]
+            except IndexError:
+                self.data.player.hp = self.data.player.max_hp
+                self.data.bullets.append(self.data.player)
             self.data.player.controller = PlayerController()
             self.data.player.speed = PLAYER_SPEED
         return
@@ -395,14 +411,14 @@ class Game:
             return
         self.data.current_time = pygame.time.get_ticks()
         self.increment_constants()
-        self.collide_everything()
-        self.remove_dead_particles()
-        self.move_everything()
-        self.check_player_death()
         # self.shoot_bullets()
         self.spawn_enemies()
         self.spawn_allies()
         self.center_focus()
+        self.move_everything()
+        self.collide_everything()
+        self.remove_dead_particles()
+        self.check_player_death()
         # self.throttled_refresh()
 
     def add_text_to_screen(self):
