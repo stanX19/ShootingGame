@@ -73,12 +73,14 @@ class WeaponType:
 
 
 class MainWeaponEnum:
-    machine_gun = WeaponType("machine gun", reload=1000, velocity=25, max_count=1, radius=3, growth_factor=1,
-                             offset_factor=0.1, dmg=15, recoil=3)
+    machine_gun = WeaponType("machine gun", reload=100, velocity=50, max_count=1, radius=5, growth_factor=1,
+                             offset_factor=0.1, dmg=1, recoil=3)
+    piercing_machine_gun = WeaponType("piercing machine gun", reload=800, velocity=25, max_count=1, radius=5, growth_factor=1,
+                             offset_factor=0.1, dmg=5, hp=5, recoil=3)
     lazer_mini = WeaponType("lazer mini", reload=400, velocity=100, min_count=1, max_count=1, radius=2,
-                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=40, dmg=1, hp=50)
-    lazer = WeaponType("lazer", reload=1000, velocity=100, min_count=1, max_count=1, radius=5,
-                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=20, dmg=1, hp=200)
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=60, dmg=1, hp=50)
+    lazer = WeaponType("lazer", reload=1000, velocity=200, min_count=1, max_count=1, radius=5,
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=60, dmg=1, hp=200)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,

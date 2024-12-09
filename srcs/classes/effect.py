@@ -41,7 +41,7 @@ class Effect(GameParticle):
         self.apply_fade_off()
 
     def draw(self, surface: pygame.Surface):
-        if self.is_dead() or not self.game_data.in_screen(self):
+        if self.is_dead():
             return
         temp_surface = pygame.Surface((self.rad * 2, self.rad * 2), pygame.SRCALPHA)
         pygame.draw.circle(temp_surface, self.color, (self.rad, self.rad), self.rad)

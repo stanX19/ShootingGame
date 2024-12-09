@@ -20,6 +20,7 @@ class BaseUnit(GameParticle):
                  hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
                  shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED):
         super().__init__(x, y, angle, speed, radius, color, hp, dmg, score)
+        self.max_speed: float = speed
         self.game_data: GameData = game_data
         self.parent_list: list[GameParticle] = parent_list
         self.target_list: list[GameParticle] = targets
@@ -45,14 +46,14 @@ class BaseUnit(GameParticle):
         closest_target = None
         min_distance = float('inf')
 
-        K = self.shoot_range
+        K = MAP_WIDTH
         for target in targets:
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
             distance = dis\
                        + isinstance(target, Bullet) * 2 * K\
-                       - target.dmg * 10\
+                       + target.hp * 2\
                        - (dis < self.shoot_range) * K \
                        - (isinstance(target, BaseUnit) and target.target is self) * 2 * K
             if distance < min_distance:

@@ -42,6 +42,8 @@ def line_circle_first_intersect(line_start_x, line_start_y, line_end_x, line_end
         return None
 
     # Find the two possible solutions (t-values for line equation)
+    if a == 0:
+        return None
     discriminant_sqrt = math.sqrt(discriminant)
     t1 = (-b - discriminant_sqrt) / (2 * a)
     t2 = (-b + discriminant_sqrt) / (2 * a)

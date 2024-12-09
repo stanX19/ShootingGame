@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional
-import math
-import random
+import os
 import subprocess
 import sys
-import os
+from asyncio import shield
+from typing import Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -17,16 +16,16 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
     import pygame
     import numpy
-from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE, MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED
+from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE, MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
+    BULLET_COLOR, ENEMY_COLOR
 # from srcs.classes.weapons import WeaponType, MainWeaponEnum, SubWeaponEnum, ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST
 # from srcs.classes.player import Player
 from srcs.classes.weapons import MainWeaponEnum
 from srcs.classes.base_unit import BaseUnit
-from srcs.classes.controller import PlayerController, PlayerDroneController, AIController, BotController
-from srcs.classes.unit import Unit, EliteUnit, UnitMothership, ShieldedUnit, ShootingUnit
+from srcs.classes.controller import PlayerController, PlayerDroneController, AIController, BotController, BaseController
+from srcs.classes.unit import Unit, EliteUnit, UnitMothership, ShootingUnit, ShieldedUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
-from srcs.classes.algo import generate_random_point
 from srcs.classes.game_data import GameData
 from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
@@ -34,7 +33,7 @@ from srcs.classes.water_particle_handler import WaterParticleHandler
 dev_mode = 1
 test_mode = 0
 god_mode: bool = False
-start_score: int = 0
+start_score: int = 100000
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
     god_mode = True
@@ -53,6 +52,7 @@ pygame.display.set_caption("Space Shooting Game")
 
 # Font for score
 font = pygame.font.Font(None, 36)
+big_font = pygame.font.Font(None, 180)
 consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 
 
@@ -61,6 +61,8 @@ class Game:
     def __init__(self):
         self.data: GameData = GameData()
         self.throttled_refresh_timer = 0
+        self.prev_max_speed = PLAYER_SPEED
+        self.prev_controller = PlayerController()
         self.init_game()
 
     def init_game(self):
@@ -69,9 +71,33 @@ class Game:
         self.data.enemies = []
         self.data.collectibles = []
         self.data.water_particle_handler = WaterParticleHandler()
-        self.data.player = EliteUnit(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-                                     targets=self.data.enemies, parent_list=self.data.bullets,
-                                     color=PLAYER_COLOR, weapons=MainWeaponEnum.lazer)
+        self.data.bullet_mothership = ShieldedUnit(
+            self.data, 0, MAP_HEIGHT / 2,
+            self.data.enemies, self.data.bullets,
+            color=PLAYER_COLOR, hp=100000, dmg=10, variable_shape=True, variable_color=True,
+            radius=500,
+            shield_hp=10000, shield_rad=1000,
+            controller=BotController()
+        )
+        self.data.enemy_mothership = ShieldedUnit(
+            self.data, MAP_WIDTH, MAP_HEIGHT / 2,
+            self.data.bullets, self.data.enemies,
+            color=ENEMY_COLOR, hp=100000, dmg=10, variable_shape=True, variable_color=True,
+            radius=500,
+            shield_hp=10000, shield_rad=1000,
+            controller=BotController()
+        )
+        self.data.bullets.append(self.data.bullet_mothership)
+        self.data.enemies.append(self.data.enemy_mothership)
+        if test_mode:
+            self.data.player = EliteUnit(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+                                         targets=self.data.enemies, parent_list=self.data.bullets,
+                                         color=PLAYER_COLOR, weapons=MainWeaponEnum.lazer)
+        else:
+            self.data.player = EliteUnit(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+                                         targets=self.data.enemies, parent_list=self.data.bullets,
+                                         color=PLAYER_COLOR, weapons=MainWeaponEnum.machine_gun)
+
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
         #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
@@ -95,7 +121,8 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
-        self.data.bullets.append(Shield(self.data, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
+        self.data.bullets.append(
+            Shield(self.data, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
         self.data.enemies.append(ShootingUnit(self.data, self.data.player.x + 500, self.data.player.y,
                                               self.data.bullets, self.data.enemies,
                                               hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
@@ -122,18 +149,23 @@ class Game:
                     self.data.quit = True
                 # if event.key == pygame.K_q:
                 #     self.data.player.main_weapon.overdrive_start()
-                # # if event.key == pygame.K_TAB:
-                # #     self.data.player.sub_weapon.change_weapon()
+                if event.key == pygame.K_TAB:
+                    self.change_player_unit()
                 if event.key == pygame.K_e:
                     self.data.autofire = not self.data.autofire
                 self.data.pressed_keys[event.key] = True
             elif event.type == pygame.KEYUP:
                 self.data.pressed_keys[event.key] = False
-            # if event.type == pygame.MOUSEWHEEL:
-            #     if self.data.pressed_keys[pygame.K_TAB]:
-            #         self.data.player.sub_weapon.cycle_weapon(- event.y)
-            #     else:
-            #         self.data.player.main_weapon.cycle_weapon(- event.y)
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y > 0:
+                    self.data.zoom *= 1.1
+                elif event.y < 0 and self.data.zoom >= 0.1:
+                    self.data.zoom /= 1.1
+                self.center_focus(1.0)
+                # if self.data.pressed_keys[pygame.K_TAB]:
+                #     self.data.player.sub_weapon.cycle_weapon(- event.y)
+                # else:
+                #     self.data.player.main_weapon.cycle_weapon(- event.y)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if not self.data.running:
                     self.init_game()
@@ -149,31 +181,6 @@ class Game:
                 elif event.button == 3:  # Right mouse button
                     self.data.right_mouse_down = False
 
-    # def shoot_bullets(self):
-    #     for k in range(49, 58):
-    #         if self.data.pressed_keys[k]:
-    #             self.data.player.main_weapon.change_weapon(k - 49)
-    #             break
-    #
-    #     if self.data.autofire or self.data.right_mouse_down:
-    #         self.data.player.sub_weapon.fire()
-    #
-    #     if self.data.autofire or self.data.left_mouse_down:
-    #         self.data.player.main_weapon.fire()
-
-    # def move_player(self):
-    #     dx, dy = 0, 0
-    #     if self.data.pressed_keys[pygame.K_w]:
-    #         dy -= constants.PLAYER_SPEED
-    #     if self.data.pressed_keys[pygame.K_s]:
-    #         dy += constants.PLAYER_SPEED
-    #     if self.data.pressed_keys[pygame.K_a]:
-    #         dx -= constants.PLAYER_SPEED
-    #     if self.data.pressed_keys[pygame.K_d]:
-    #         dx += constants.PLAYER_SPEED
-    #     self.data.player.set_velocity(dx, dy)
-    #     self.data.player.move()
-
     def _spawn_new_unit(self, hp, score, speed, variable_shape, _constructor=Unit,
                         radius=constants.UNIT_RADIUS, color: tuple = constants.ENEMY_COLOR,
                         parent_list: Optional[list[GameParticle]] = None,
@@ -188,16 +195,19 @@ class Game:
             spawn_rad = Unit.get_rad(hp, hp, radius)
 
         # side = random.choice(['left', 'right', 'top', 'bottom'])
-        if side == 'left':
-            ex, ey = -spawn_rad, random.randint(spawn_rad, constants.MAP_HEIGHT - spawn_rad)
-        elif side == 'right':
-            ex, ey = constants.MAP_WIDTH + spawn_rad, random.randint(spawn_rad, constants.MAP_HEIGHT - spawn_rad)
-        elif side == 'top':
-            ex, ey = random.randint(spawn_rad, constants.MAP_WIDTH - spawn_rad), -spawn_rad
-        elif side == 'bottom':
-            ex, ey = random.randint(spawn_rad, constants.MAP_WIDTH - spawn_rad), constants.MAP_HEIGHT + spawn_rad
+        if 'left' in side:
+            ex = -spawn_rad
+        elif 'right' in side:
+            ex = constants.MAP_WIDTH + spawn_rad
         else:
-            ex, ey = -spawn_rad, -spawn_rad
+            ex = random.randint(spawn_rad, constants.MAP_WIDTH - spawn_rad)
+        if 'top' in side:
+            ey = -spawn_rad
+        elif 'bot' in side:
+            ey = constants.MAP_HEIGHT + spawn_rad
+        else:
+            ey = random.randint(spawn_rad, constants.MAP_HEIGHT - spawn_rad)
+
         parent_list.append(_constructor(self.data, ex, ey, target_list, parent_list=parent_list, hp=hp,
                                         score=score, speed=speed, variable_shape=variable_shape, radius=radius,
                                         color=color,
@@ -206,8 +216,8 @@ class Game:
     def _spawn_units(self, color=constants.ENEMY_COLOR,
                      parent_list: Optional[list[GameParticle]] = None,
                      target_list: Optional[list[GameParticle]] = None,
-                     side='top',
-                     controller_class=AIController):
+                     side='',
+                     controller_class: type[BaseController] = AIController):
         if test_mode:
             return
         if parent_list is None:
@@ -222,11 +232,11 @@ class Game:
         #     self._spawn_new_unit(hp, score, speed * 2, True,
         #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
         #                          _constructor=Unit, controller=controller_class())
-        if len(parent_list) < BASE_CAP and random.random() < (self.data.score) / 100000:
+        while len(parent_list) < BASE_CAP:# and random.random() < (self.data.score) / 100000:
             self._spawn_new_unit(hp, score, speed, True,
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
                                  _constructor=ShootingUnit, controller=controller_class())
-        if len(parent_list) < BASE_CAP + 10 and random.random() < min(0.02, (self.data.score - 20000) / 10000000):
+        while len(parent_list) < BASE_CAP + 10:# and random.random() < min(0.02, (self.data.score - 20000) / 10000000):
             hp = 10
             score = 300
             speed = constants.UNIT_SPEED * 2.5
@@ -238,13 +248,12 @@ class Game:
         #     score = min(40000, 20000 + self.data.score // 1000)
         #     hp = 100  # + 150 * min(1.0, score / 100000)
         #     speed = constants.UNIT_SPEED * 1.5
-        #     self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
-        #                          radius=60 + constants.UNIT_RADIUS,
-        #                          child_kwargs={"hp": 1, "dmg": 10},
+        #     self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingUnit, dmg=10,
+        #                          radius=60 + constants.UNIT_RADIUS, weapons=MainWeaponEnum.missile,
         #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
         #                          controller=controller_class())
 
-        if len(parent_list) < BASE_CAP + 25 and random.random() < min(0.02, (self.data.score - 60000) / 10000000):
+        while len(parent_list) < BASE_CAP + 25:# and random.random() < min(0.02, (self.data.score - 60000) / 10000000):
             hp = 20
             score = 600
             speed = constants.UNIT_SPEED * 2.5
@@ -253,15 +262,16 @@ class Game:
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
                                  controller=controller_class(), weapons=MainWeaponEnum.lazer_mini)
 
-        if len(parent_list) < BASE_CAP + 30 and random.random() < min(0.01, (self.data.score - 100000) / 100000000):
+        while len(parent_list) < BASE_CAP + 30:# and random.random() < min(0.01, (self.data.score - 100000) / 100000000):
             score = min(40000, 20000 + self.data.score // 1000)
             hp = 300  # + 150 * min(1.0, score / 100000)
             speed = constants.UNIT_SPEED * 1.5
             self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
                                  radius=100, shield_rad=200, bullet_speed=BULLET_SPEED * 1.5,
+                                 shoot_range=UNIT_SHOOT_RANGE * 1.5,
                                  child_class=ShootingUnit, weapons=MainWeaponEnum.lazer,
                                  child_kwargs={
-                                     "hp": 1, "dmg": 10#, "weapons": MainWeaponEnum.lazer_mini
+                                     "hp": 1, "dmg": 10, "weapons": MainWeaponEnum.lazer_mini
                                  },
                                  color=color, parent_list=parent_list, target_list=target_list, side=side,
                                  controller=controller_class())
@@ -357,6 +367,22 @@ class Game:
         self.data.water_particle_handler.remove_zero_hp()
         # self.move_player()
 
+    def change_player_unit(self):
+        original_unit = self.data.player
+        candidates: list[BaseUnit] = [i for i in self.data.bullets if isinstance(i, BaseUnit) and i is not original_unit and i is not self.data.bullet_mothership]
+        candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player) / 7.5)
+        try:
+            self.data.player = candidates[-1]
+        except IndexError:
+            self.data.player.hp = self.data.player.max_hp
+            self.data.bullets.append(self.data.player)
+        original_unit.controller = self.prev_controller
+        original_unit.max_speed = self.prev_max_speed
+        self.prev_controller = self.data.player.controller
+        self.prev_max_speed = self.data.player.max_speed
+        self.data.player.controller = PlayerController()
+        self.data.player.max_speed = PLAYER_SPEED
+
     def check_player_death(self):
         self.data.player.hp = max(0.0, min(self.data.player.max_hp, self.data.player.hp))
         if not self.data.player.is_dead():
@@ -365,25 +391,26 @@ class Game:
         #     self.data.player.hp = max(0.01, self.data.player.hp)
         #     if self.data.player not in self.data.bullets:
         #         self.data.bullets.append(self.data.player)
-        if self.data.player not in self.data.bullets:
-            candidates: list[BaseUnit] = [i for i in self.data.bullets if isinstance(i, BaseUnit)]
-            candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player) / 7.5)
-            try:
-                self.data.player = candidates[-1]
-            except IndexError:
-                self.data.player.hp = self.data.player.max_hp
-                self.data.bullets.append(self.data.player)
-            self.data.player.controller = PlayerController()
-            self.data.player.speed = PLAYER_SPEED
-        return
-        game_over_text = font.render("Game Over", True, (255, 255, 255))
-        MAP_SURFACE.blit(game_over_text, (constants.MAP_WIDTH // 2 - 50, constants.MAP_HEIGHT // 2 - 20))
+        if self.data.player.is_dead():
+            self.change_player_unit()
+
+    def check_game_over(self):
+        if not (self.data.bullet_mothership.is_dead() or self.data.enemy_mothership.is_dead()):
+            return
+        text = "Victory" if self.data.enemy_mothership.is_dead() else "Defeat"
+        game_over_text = big_font.render(text, True, (255, 255, 255))
+        SCREEN.blit(game_over_text, (
+            (constants.SCREEN_WIDTH - game_over_text.get_width()) // 2,
+            (constants.SCREEN_HEIGHT - game_over_text.get_height()) // 2
+        ))
         pygame.display.flip()
         self.data.running = False
 
     def center_focus(self, lerp_const=0.1):
-        self.data.screen_x += (self.data.player.x - constants.SCREEN_WIDTH / 2 - self.data.screen_x) * lerp_const
-        self.data.screen_y += (self.data.player.y - constants.SCREEN_HEIGHT / 2 - self.data.screen_y) * lerp_const
+        self.data.screen_x += (
+                                          self.data.player.x - constants.SCREEN_WIDTH / 2 / self.data.zoom - self.data.screen_x) * lerp_const
+        self.data.screen_y += (
+                                          self.data.player.y - constants.SCREEN_HEIGHT / 2 / self.data.zoom - self.data.screen_y) * lerp_const
 
     def increment_constants(self):
         TIME_PASSED = self.data.current_time - self.data.start_ticks
@@ -418,8 +445,9 @@ class Game:
         self.move_everything()
         self.collide_everything()
         self.remove_dead_particles()
+        self.throttled_refresh()
         self.check_player_death()
-        # self.throttled_refresh()
+        self.check_game_over()
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.data.score}
@@ -427,6 +455,7 @@ class Game:
   """.strip()
         debug_str = f"""\
   fps             : {self.data.clock.get_fps():.0f}
+  zoom            : {self.data.zoom:.2f}
   particle count  : {len(self.data.water_particle_handler.particles)}
   bullet count    : {len(self.data.bullets)}
   buff count      : {len(self.data.collectibles)}
@@ -444,10 +473,12 @@ class Game:
             y += text.get_height()
 
     def draw_everything(self):
+        if not self.data.running:
+            return
         MAP_SURFACE.fill(constants.BACKGROUND_COLOR)
         self.data.player.draw(MAP_SURFACE)
 
-        # particles
+        # Particles
         def draw_particles(particles: [GameParticle]):
             for particle in sorted(particles, key=lambda p: p.rad):
                 if not self.data.in_screen(particle):
@@ -461,10 +492,39 @@ class Game:
 
         self.data.water_particle_handler.draw_everything(MAP_SURFACE, (self.data.screen_x, self.data.screen_y))
 
-        SCREEN.fill((100, 100, 100))
-        SCREEN.blit(MAP_SURFACE, (-self.data.screen_x, -self.data.screen_y))
-        self.add_text_to_screen()
+        if self.data.zoom < 0.5:
+            scaled_map = pygame.transform.scale(
+                MAP_SURFACE,
+                (int(MAP_WIDTH * self.data.zoom), int(MAP_HEIGHT * self.data.zoom))
+            )
+            SCREEN.fill((100, 100, 100))
+            SCREEN.blit(scaled_map, (-self.data.screen_x * self.data.zoom, -self.data.screen_y * self.data.zoom))
+        else:
+            visible_rect = pygame.Rect(
+                self.data.screen_x,
+                self.data.screen_y,
+                SCREEN.get_width() / self.data.zoom,
+                SCREEN.get_height() / self.data.zoom,
+            )
 
+            # Create a new surface for the visible area
+            cropped_map = pygame.Surface((visible_rect.width, visible_rect.height))
+            cropped_map.fill((100, 100, 100))  # Fill with the background color
+
+            # Determine the area of MAP_SURFACE to blit onto the new surface
+            map_rect = MAP_SURFACE.get_rect()
+            intersect_rect = visible_rect.clip(map_rect)
+            if intersect_rect.width > 0 and intersect_rect.height > 0:
+                cropped_map.blit(
+                    MAP_SURFACE,
+                    (intersect_rect.x - visible_rect.x, intersect_rect.y - visible_rect.y),
+                    intersect_rect
+                )
+            scaled_cropped_map = pygame.transform.scale(cropped_map, (SCREEN.get_width(), SCREEN.get_height()))
+            SCREEN.fill((100, 100, 100))
+            SCREEN.blit(scaled_cropped_map, (0, 0))
+
+        self.add_text_to_screen()
         pygame.display.flip()
 
     def run(self):

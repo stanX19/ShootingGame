@@ -30,9 +30,12 @@ class Unit(BaseUnit):
 
     def move(self):
         self.controller.update_based_on(self)
-        if self.controller.is_moving:
-            self.turn_to(self.controller.move_angle)
-            super().move()
+        if not self.controller.is_moving:
+            self.speed = 0
+        else:
+            self.speed = self.max_speed
+        self.turn_to(self.controller.move_angle)
+        super().move()
 
 
 class ShootingUnit(Unit):
@@ -45,6 +48,10 @@ class ShootingUnit(Unit):
 
     def move(self):
         super().move()
+        try:
+            self.bullet_speed = self.weapon_handler.weapon.speed
+        except AttributeError:
+            pass
         if self.hp and self.controller.fire_main:
             self.weapon_handler.fire(self.controller.aim_angle)
 

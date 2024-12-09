@@ -15,6 +15,8 @@ class BaseController:
     It does not modify unit.
     """
 
+    # TODO:
+    #  use coordinate instead of direction when aiming
     def __init__(self):
         self._turn_direction = random.choice((-math.pi / 2, math.pi / 2))
         self._prev_hp: int = 0
@@ -59,6 +61,7 @@ class AIController(BaseController):
             if self._retreat > 0:
                 self._retreat -= 1
                 self.move_angle += math.pi
+                self.fire_sub = self.fire_main = True
             elif unit.distance_with(unit.target) <= unit.shoot_range:
                 self.move_angle += self._turn_direction
             self._prev_hp = unit.hp
