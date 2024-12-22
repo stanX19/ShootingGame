@@ -4,6 +4,9 @@ import math
 from typing import Optional
 
 import pygame
+import random
+
+from numpy.lib.function_base import angle
 
 from srcs import utils
 from srcs.classes import algo
@@ -31,7 +34,7 @@ class BaseUnit(GameParticle):
         self.original_color: tuple = color
         self.shoot_range: float = shoot_range
         self.bullet_speed: float = bullet_speed
-        self.max_rad: float = None if radius == UNIT_RADIUS else radius
+        self.max_rad: float = radius
 
         self.update_appearance_based_on_hp()
 
@@ -51,19 +54,20 @@ class BaseUnit(GameParticle):
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
-            distance = dis\
-                       + isinstance(target, Bullet) * 2 * K\
-                       + target.hp * 2\
-                       - (dis < self.shoot_range) * K \
-                       - (isinstance(target, BaseUnit) and target.target is self) * 2 * K
+            distance = (
+               dis
+               - isinstance(target, BaseUnit) * 2 * K
+               - target.score / 100
+               + target.hp * 2
+               # - (dis < self.shoot_range) * K \
+               # - (isinstance(target, BaseUnit) and target.target is self) * 2 * K
+            )
             if distance < min_distance:
                 min_distance = distance
                 closest_target = target
 
         self.target = closest_target
         self.warned_target = False
-
-    import math
 
     def turn_to(self, new_angle, lerp=0.1):
         turn_angle = new_angle - self.angle
@@ -121,7 +125,31 @@ class BaseUnit(GameParticle):
         self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle,
                                              speed=self.speed, rad=self.rad, lifespan=3,
                                              color=self.color, fade_off=True))
+        self.explode()
         return super().on_death()
+
+    def explode(self):
+        # n = particle count
+        n = random.randint(max(3, math.ceil(self.max_hp / 2)), max(3, math.ceil(self.max_hp))) # math.ceil(self.max_hp / 2 + 1)
+        particle_angle = self.angle
+
+        for i in range(n):
+            particle_angle += (2 * math.pi / n) * i
+
+            radius = random.uniform(0.1, min(UNIT_RADIUS, self.max_rad / 3))
+            hp = radius / 10
+            speed = random.uniform(UNIT_SPEED * 2, UNIT_SPEED * n) / radius
+
+            offset_x = math.cos(particle_angle) * radius
+            offset_y = math.sin(particle_angle) * radius
+            particle_x = self.x + offset_x
+            particle_y = self.y + offset_y
+            particle = Effect(self.game_data, particle_x, particle_y, particle_angle, speed, radius,
+                              self.color, hp, self.dmg,
+                              lifespan=480, target_rad=0.1, fade_off=False)
+            particle.xv += self.xv
+            particle.yv += self.yv
+            self.parent_list.append(particle)
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)

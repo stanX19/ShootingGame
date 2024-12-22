@@ -37,7 +37,7 @@ class WeaponType:
         self.offset_factor: float = offset_factor
         self.bullet_class: str = bullet_class
         self.color: tuple[int] = color
-        self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else 60 * 4
+        self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else float('inf')
         self.spawn_radius: float = spawn_radius
         self.level: int = 1
 
@@ -73,14 +73,17 @@ class WeaponType:
 
 
 class MainWeaponEnum:
-    machine_gun = WeaponType("machine gun", reload=100, velocity=50, max_count=1, radius=5, growth_factor=1,
-                             offset_factor=0.1, dmg=1, recoil=3)
+    machine_gun = WeaponType("machine gun", reload=300, velocity=15, max_count=1, radius=3, growth_factor=1,
+                             offset_factor=0.1, dmg=1, hp=1, recoil=3)
     piercing_machine_gun = WeaponType("piercing machine gun", reload=800, velocity=25, max_count=1, radius=5, growth_factor=1,
-                             offset_factor=0.1, dmg=5, hp=5, recoil=3)
-    lazer_mini = WeaponType("lazer mini", reload=400, velocity=100, min_count=1, max_count=1, radius=2,
-                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=60, dmg=1, hp=50)
-    lazer = WeaponType("lazer", reload=1000, velocity=200, min_count=1, max_count=1, radius=5,
-                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=60, dmg=1, hp=200)
+                             offset_factor=0.1, dmg=8, hp=1, recoil=3)
+    lazer_mini = WeaponType("lazer mini", reload=800, velocity=50, min_count=1, max_count=1, radius=2,
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.2, hp=50)
+    lazer = WeaponType("lazer", reload=200, velocity=100, min_count=1, max_count=1, radius=2,
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.1, hp=100)
+    giant_canon = WeaponType("giant canon", reload=200, velocity=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
+    lazer_super = WeaponType("lazer super", reload=3000, velocity=200, min_count=1, max_count=1, radius=5,
+                             growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.25, hp=200)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
@@ -126,5 +129,6 @@ ALL_MAIN_WEAPON_LIST: list[WeaponType] = [w for w in vars(MainWeaponEnum).values
 ALL_SUB_WEAPON_LIST: list[WeaponType] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, WeaponType)]
 
 if __name__ == '__main__':
+    print(f"{' ':20}{'min dmg':>20}{'max dmg':>20}{'max lvl':>20}")
     for w in ALL_MAIN_WEAPON_LIST:
-        print(f"{w.name:20}{w.get_min_dmg_constant():20.0f}{w.get_max_dmg_constant():20.0f}{w.max_lvl:20}")
+        print(f"{w.name:20}{w.get_min_dmg_constant():20.2f}{w.get_max_dmg_constant():20.2f}{w.max_lvl:20}")

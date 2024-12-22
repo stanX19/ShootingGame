@@ -18,6 +18,7 @@ from srcs.classes.game_data import GameData
 from srcs.classes.draw_utils import draw_arrow
 from srcs.classes import algo
 from srcs.classes.controller import BaseController, AIController
+from srcs.utils import color_mix
 
 
 class Unit(BaseUnit):
@@ -36,6 +37,10 @@ class Unit(BaseUnit):
             self.speed = self.max_speed
         self.turn_to(self.controller.move_angle)
         super().move()
+
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
 
 
 class ShootingUnit(Unit):
@@ -116,10 +121,5 @@ class SpawningUnit(Unit):
         self.spawn_childs(self.child_count)
         return super().on_death()
 
-class EliteUnit(ShootingUnit, ShieldedUnit):
-    pass
-
-class UnitMothership(ShootingUnit, ShieldedUnit, SpawningUnit):
-    pass
 
 

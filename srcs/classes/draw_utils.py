@@ -11,7 +11,7 @@ import math
 def draw_arrow(surface: pygame.Surface, start: tuple, end: tuple, color=(255, 255, 255), width=1):
     pygame.draw.line(surface, color, start, end, width)
 
-    SIDE_LENGTH = 10
+    SIDE_LENGTH = 50
     ARROW_ANGLE = math.radians(30)
     theta = math.atan2(end[1] - start[1], end[0] - start[0])
     s1 = (end[0] - SIDE_LENGTH * math.cos(theta + ARROW_ANGLE),

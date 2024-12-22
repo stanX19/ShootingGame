@@ -38,7 +38,7 @@ class Particle:
 
     def distance_with(self, other) -> float:
         if other is None:
-            return 0
+            return float('inf')
         return math.hypot(self.x - other.x, self.y - other.y)
 
     def draw(self, surface: pygame.Surface):

@@ -11,11 +11,11 @@ class GameData:
     def __init__(self):
         self.effects: list[GameParticle] = []
         self.player: GameParticle = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
-        self.bullets: list[GameParticle] = []
+        self.allies: list[GameParticle] = []
         self.enemies: list[GameParticle] = []
         self.collectibles: list[GameParticle] = []
         self.water_particle_handler: 'WaterParticleHandler' = None
-        self.bullet_mothership: GameParticle | None = None
+        self.ally_mothership: GameParticle | None = None
         self.enemy_mothership: GameParticle | None = None
         self.score: int = 0
         self.collectible_spawn_score: int = 0
@@ -32,6 +32,8 @@ class GameData:
         self.screen_x = 0  # screen left position in original map
         self.screen_y = 0
         self.zoom = 1.0
+        self.spawn_ally_timer = 0
+        self.spawn_enemy_timer = 0
 
     def get_mouse_angle(self, unit: GameParticle):
         mx, my = self.get_mouse_pos()

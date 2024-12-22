@@ -15,14 +15,14 @@ class Explosive(Bullet):
         self.explosion_color = explosion_color
 
     def on_death(self):
-        self.game_data.bullets.append(Effect(self.game_data, self.x, self.y, self.angle, 0,
-                                             rad=self.rad,
-                                             hp=10000000,
-                                             dmg=self.dmg / 5,
-                                             lifespan=10,
-                                             color=self.explosion_color,
-                                             fade_off=True,
-                                             target_rad = self.rad * 10))
+        self.game_data.allies.append(Effect(self.game_data, self.x, self.y, self.angle, 0,
+                                            rad=self.rad,
+                                            hp=10000000,
+                                            dmg=self.dmg / 5,
+                                            lifespan=10,
+                                            color=self.explosion_color,
+                                            fade_off=True,
+                                            target_rad = self.rad * 10))
         # self.game_data.bullets.append(Bullet(self.game_data, self.x, self.y, self.angle, 0, self.rad * 10, (0, 0, 0),
         #                                      100000000, self.dmg / 10, lifespan=10))
         return super().on_death()

@@ -44,11 +44,9 @@ class BotController(BaseController):
         self.fire_main = True
         self.fire_sub = True
 
-
 class AIController(BaseController):
-    """AI decision-making logic for automated units."""
-
     def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
         if unit.target is None or unit.target.is_dead():
             unit.find_new_target()
         if unit.target:
@@ -56,15 +54,7 @@ class AIController(BaseController):
             self.aim_angle = AIController.calculate_shoot_angle(unit)
             self.fire_main = unit.distance_with(unit.target) <= unit.shoot_range
             self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
-            if self._prev_hp > unit.hp:
-                self._retreat = 4 * FPS
-            if self._retreat > 0:
-                self._retreat -= 1
-                self.move_angle += math.pi
-                self.fire_sub = self.fire_main = True
-            elif unit.distance_with(unit.target) <= unit.shoot_range:
-                self.move_angle += self._turn_direction
-            self._prev_hp = unit.hp
+
 
     @staticmethod
     def calculate_shoot_angle(unit: BaseUnit):
@@ -96,6 +86,21 @@ class AIController(BaseController):
             lead_angle = unit.angle_with(unit.target)
 
         return lead_angle
+
+class SmartAIController(AIController):
+    """AI decision-making logic for automated units."""
+
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        if self._prev_hp > unit.hp:
+            self._retreat = 4 * FPS
+        if self._retreat > 0:
+            self._retreat -= 1
+            self.move_angle += math.pi
+            self.fire_sub = self.fire_main = True
+        elif unit.distance_with(unit.target) <= unit.shoot_range:
+            self.move_angle += self._turn_direction
+        self._prev_hp = unit.hp
 
 
 class PlayerDroneController(AIController):

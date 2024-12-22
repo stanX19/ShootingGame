@@ -29,7 +29,9 @@ class Lazer(Bullet):
         pygame.draw.line(surface, self.color,
                          (int(self.x), int(self.y)),
                          (int(self.end_x), int(self.end_y)),
-                         int(self.actual_rad))
+                         int(self.actual_rad) * 2 - 1)
+        pygame.draw.circle(surface, self.color, (self.x, self.y), radius=self.actual_rad - 1)
+        pygame.draw.circle(surface, self.color, (self.end_x, self.end_y), radius=self.actual_rad - 1)
 
     def move(self):
         super().move()
