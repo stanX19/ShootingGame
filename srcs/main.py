@@ -29,7 +29,7 @@ from srcs.classes.game_data import GameData
 from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
-dev_mode = 1
+dev_mode = 0
 test_mode = 0
 god_mode: bool = False
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
