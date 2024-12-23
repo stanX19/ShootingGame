@@ -34,7 +34,9 @@ class SniperUnit(ShootingUnit, ShieldedUnit):
                  parent_list: list[GameParticle], **kwargs):
         super().__init__(game_data, x, y, targets, parent_list,
                          hp=100, dmg=5, radius=100, score=10000, speed=UNIT_SPEED / 2,
-                         weapons=MainWeaponEnum.lazer_super, shoot_range=UNIT_SHOOT_RANGE * 2,
+                         weapons=MainWeaponEnum.lazer_super,
+                         sub_weapons=MainWeaponEnum.missile,
+                         shoot_range=UNIT_SHOOT_RANGE * 2,
                          **kwargs)
 
 

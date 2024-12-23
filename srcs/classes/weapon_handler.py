@@ -29,6 +29,8 @@ class WeaponHandler:
         self._overdrive_start_time = -constants.OVERDRIVE_CD
         self.overdrive_weapon: Optional[WeaponType] = None
         self.angle: float = 0.0
+        self.target_x: float = 0.0
+        self.target_y: float = 0.0
 
     def reinit_weapons(self, weapons: Optional[list[WeaponType]] = None):
         if isinstance(weapons, list):
@@ -145,14 +147,20 @@ class WeaponHandler:
         else:
             return self.weapon.bullet_count
 
-    def fire(self, angle: float):
+    def _apply_recoil(self, shoot_angle, magnitude):
+        self.unit.xv -= math.cos(shoot_angle) * magnitude
+        self.unit.yv -= math.sin(shoot_angle) * magnitude
+
+    def fire(self, target_x: float, target_y: float):
         if not self.weapon:
             return
         if self.unit.game_data.current_time - self.last_shot_time.get(self.weapon, -10000000000) < self.weapon.shot_delay:
             return
 
         self.last_shot_time[self.weapon] = self.unit.game_data.current_time
-        self.angle = angle  # Store the angle for future reference
+        self.angle = self.unit.angle_with_cord(target_x, target_y)
+        self.target_x = target_x
+        self.target_y = target_y
         self.bullet_count = self._get_bullet_count()
 
         # Fire bullets based on the weapon type
@@ -164,6 +172,7 @@ class WeaponHandler:
         }
         fire_func = fire_dict.get(self.weapon.bullet_class, self._fire_default)
         fire_func()
+        self._apply_recoil(self.angle, self.weapon.recoil)
 
     def _fire_lazer(self):
         # lazer_dy = math.sin(self.angle) * self.weapon.rad
@@ -176,28 +185,25 @@ class WeaponHandler:
         #         self.angle,
         #         weapon=self.weapon
         #     ))
-        self.unit.parent_list.append(Lazer(self.game_data, self.unit.x, self.unit.y, self.angle, weapon=self.weapon))
+        self.unit.parent_list.append(Lazer(self.game_data, self.unit.parent_list, self.unit.x, self.unit.y, self.angle, weapon=self.weapon))
 
     def _fire_missile(self):
         direction_count = self.bullet_count
         angle_offset = math.pi * 2 / direction_count
-        dy = math.sin(self.angle) * constants.UNIT_SHOOT_RANGE / 2
-        dx = math.cos(self.angle) * constants.UNIT_SHOOT_RANGE / 2
-        target = Missile.find_target_at(dx, dy, self.unit.target_list)
+        target = Missile.find_target_at(self.target_x, self.target_y, self.unit.target_list)
         for i in range(self.bullet_count):
             offset = (i % direction_count - (direction_count - 1) / 2) * angle_offset
             shoot_angle = self.angle + offset
-            self.unit.parent_list.append(Missile(self.game_data, self.unit.x, self.unit.y,
+            self.unit.parent_list.append(Missile(self.game_data, self.unit.parent_list,
+                                                 self.unit.x, self.unit.y,
                                                  shoot_angle, self.unit.target_list, target,
-                                                 dmg=self.weapon.dmg))
+                                                 speed=self.weapon.speed,
+                                                 dmg=self.weapon.dmg,
+                                                 hp=self.weapon.hp,
+                                                 lifespan=self.weapon.lifespan
+                                                 ))
 
     def _fire_default(self):
-        if self.weapon.bullet_class is MISSILE_CLASS:
-            return self._fire_missile()
-        elif self.weapon.bullet_class is LAZER_CLASS:
-            return self._fire_lazer()
-        elif self.weapon.bullet_class is NOVA_CLASS:
-            return self._fire_nova()
         if self.bullet_count == 0:
             return
         bullet_class = Bullet
@@ -212,6 +218,7 @@ class WeaponHandler:
             dy, dx = dy - math.sin(self.angle) * self.weapon.spawn_radius, dx - math.cos(self.angle) * self.weapon.spawn_radius
             self.unit.parent_list.append(bullet_class(
                 self.game_data,
+                self.unit.parent_list,
                 self.unit.x + dx,
                 self.unit.y + dy,
                 bullet_angle,

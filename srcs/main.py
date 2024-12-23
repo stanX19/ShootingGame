@@ -29,7 +29,7 @@ from srcs.classes.game_data import GameData
 from srcs.classes.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
-dev_mode = 0
+dev_mode = 1
 test_mode = 0
 god_mode: bool = False
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -83,7 +83,7 @@ class Game:
                                      targets=self.data.enemies, parent_list=self.data.allies,
                                      color=PLAYER_COLOR)
         if test_mode:
-            self.data.player.weapon_handler.reinit_weapons(MainWeaponEnum.lazer)
+            self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
 
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
@@ -258,7 +258,8 @@ class Game:
             return
         self.data.spawn_enemy_timer = constants.SPAWN_CD
         self._spawn_units(color=constants.ENEMY_COLOR, parent_list=self.data.enemies,
-                          target_list=self.data.allies, side='top')
+                          target_list=self.data.allies, side='top',
+                          controller_class=SmartAIController)
 
     def spawn_allies(self):
         if self.data.ally_mothership.is_dead():
@@ -345,8 +346,12 @@ class Game:
 
     def change_player_unit(self):
         original_unit = self.data.player
-        candidates: list[BaseUnit] = [i for i in self.data.allies if isinstance(i,
-                                                                                BaseUnit) and i is not original_unit and i is not self.data.ally_mothership]
+        candidates: list[BaseUnit] = [i for i in self.data.allies if
+                                      (isinstance(i, BaseUnit)
+                                       and i is not original_unit
+                                       and i is not self.data.ally_mothership
+                                       and self.data.in_map(i))
+                                      ]
         candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player) / 7.5)
         try:
             self.data.player = candidates[-1]

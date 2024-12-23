@@ -83,7 +83,7 @@ class MainWeaponEnum:
                        growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.1, hp=100)
     giant_canon = WeaponType("giant canon", reload=200, velocity=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
     lazer_super = WeaponType("lazer super", reload=3000, velocity=200, min_count=1, max_count=1, radius=5,
-                             growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.25, hp=200)
+                             growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=11, hp=200)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
@@ -91,7 +91,7 @@ class MainWeaponEnum:
                          lifespan=(5, 20))
     bomb = WeaponType("destroyer", reload=400, velocity=10, max_count=1, radius=5, recoil=5, hp=1, dmg=1,
                       bullet_class=EXPLOSIVE_CLASS, lifespan=120)
-    missile = WeaponType("missile", 1000, max_count=8, growth_factor=1, dmg=10, hp=0.000001,
+    missile = WeaponType("missile", 1000, max_count=8, growth_factor=1, dmg=10, hp=1,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
     spawner = WeaponType("Spawner", reload=2000, velocity=1, max_count=1, hp=3, radius=10,
                               dmg=1, bullet_class=UNIT_CLASS, color=PLAYER_COLOR)

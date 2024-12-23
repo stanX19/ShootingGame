@@ -72,8 +72,11 @@ class GameParticle(Particle):
 
     def angle_with(self, other: Particle) -> float:
         try:
-            y_dis = other.y - self.y
-            x_dis = other.x - self.x
-            return math.atan2(y_dis, x_dis)
+            return self.angle_with_cord(other.x, other.y)
         except AttributeError:
             return 0.0
+
+    def angle_with_cord(self, x, y):
+        y_dis = y - self.y
+        x_dis = x - self.x
+        return math.atan2(y_dis, x_dis)

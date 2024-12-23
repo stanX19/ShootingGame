@@ -5,11 +5,12 @@ import pygame
 
 from srcs.classes.bullet import Bullet
 from srcs.classes.game_data import GameData
+from srcs.classes.game_particle import GameParticle
 
 
 class Lazer(Bullet):
-    def __init__(self, game_data: GameData, x, y, angle, speed=None, rad=None, color=None, hp=1.0, dmg=1.0, lifespan=None, weapon=None):
-        super().__init__(game_data, x, y, angle, speed, rad, color, hp, dmg, lifespan, weapon)
+    def __init__(self, game_data: GameData, parent_list: list[GameParticle], x, y, angle, speed=None, rad=None, color=None, hp=1.0, dmg=1.0, lifespan=None, weapon=None):
+        super().__init__(game_data, parent_list, x, y, angle, speed, rad, color, hp, dmg, lifespan, weapon)
         self.length = 0
         self.end_x = self.x
         self.end_y = self.y

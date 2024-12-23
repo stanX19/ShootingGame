@@ -9,16 +9,10 @@ from srcs.classes.shield import Shield
 from srcs.classes.base_unit import BaseUnit
 from srcs.classes.weapon_handler import WeaponHandler
 from srcs.classes.weapons import WeaponType, MainWeaponEnum
-from srcs.classes.weapons import ALL_MAIN_WEAPON_LIST
 from srcs.constants import *
 from srcs.classes.game_particle import GameParticle
-from srcs.classes.bullet import Bullet
-from srcs.classes.effect import Effect
 from srcs.classes.game_data import GameData
-from srcs.classes.draw_utils import draw_arrow
-from srcs.classes import algo
 from srcs.classes.controller import BaseController, AIController
-from srcs.utils import color_mix
 
 
 class Unit(BaseUnit):
@@ -30,13 +24,13 @@ class Unit(BaseUnit):
         self.update_appearance_based_on_hp()
 
     def move(self):
+        super().move()
         self.controller.update_based_on(self)
         if not self.controller.is_moving:
             self.speed = 0
         else:
             self.speed = self.max_speed
         self.turn_to(self.controller.move_angle)
-        super().move()
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
@@ -47,18 +41,22 @@ class ShootingUnit(Unit):
     def __init__(self, game_data: GameData, x: float, y: float,
                  targets: list[GameParticle], parent_list: list[GameParticle],
                  radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-                 weapons: list[WeaponType] | None = MainWeaponEnum.machine_gun, **kwargs):
+                 weapons: list[WeaponType] | None = MainWeaponEnum.machine_gun,
+                 sub_weapons: list[WeaponType] | None = None, **kwargs):
         super().__init__(game_data, x, y, targets, parent_list, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.weapon_handler: WeaponHandler = WeaponHandler(self.game_data, self, weapons)
+        self.main_weapon: WeaponHandler = WeaponHandler(self.game_data, self, weapons)
+        self.sub_weapon: WeaponHandler = WeaponHandler(self.game_data, self, sub_weapons)
 
     def move(self):
         super().move()
         try:
-            self.bullet_speed = self.weapon_handler.weapon.speed
+            self.bullet_speed = self.main_weapon.weapon.speed
         except AttributeError:
             pass
         if self.hp and self.controller.fire_main:
-            self.weapon_handler.fire(self.controller.aim_angle)
+            self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+        if self.hp and self.controller.fire_sub:
+            self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
 
 class ShieldedUnit(Unit):
     def __init__(self, game_data: GameData, x, y, targets: list[GameParticle], parent_list: list[GameParticle],

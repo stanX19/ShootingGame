@@ -8,7 +8,7 @@ from srcs.classes.game_particle import GameParticle
 from srcs.classes.game_data import GameData
 
 
-DEATH_OPACITY = 0.25
+DEATH_OPACITY = 0.025
 
 
 class Effect(GameParticle):

@@ -6,8 +6,6 @@ from typing import Optional
 import pygame
 import random
 
-from numpy.lib.function_base import angle
-
 from srcs import utils
 from srcs.classes import algo
 from srcs.classes.bullet import Bullet
@@ -15,6 +13,7 @@ from srcs.classes.effect import Effect
 from srcs.classes.game_data import GameData
 from srcs.classes.game_particle import GameParticle
 from srcs.constants import *
+from srcs.utils import color_mix
 
 
 class BaseUnit(GameParticle):
@@ -79,9 +78,9 @@ class BaseUnit(GameParticle):
         self.update_appearance_based_on_hp()
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
-            self.xv = 0
+            self.xv = -self.xv
         if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
-            self.yv = 0
+            self.yv = -self.yv
         self.speed = spd
         super().move()
         self.warn_target()
@@ -130,22 +129,23 @@ class BaseUnit(GameParticle):
 
     def explode(self):
         # n = particle count
+        k = 0.75
         n = random.randint(max(3, math.ceil(self.max_hp / 2)), max(3, math.ceil(self.max_hp))) # math.ceil(self.max_hp / 2 + 1)
         particle_angle = self.angle
-
+        color = color_mix(self.color, (255, 255, 255), weight2=2)
         for i in range(n):
             particle_angle += (2 * math.pi / n) * i
 
-            radius = random.uniform(0.1, min(UNIT_RADIUS, self.max_rad / 3))
+            radius = random.uniform(0.1, min(UNIT_RADIUS * k, self.max_rad / 3))
             hp = radius / 10
-            speed = random.uniform(UNIT_SPEED * 2, UNIT_SPEED * n) / radius
+            speed = random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (2 + math.sqrt(n))) / radius * k
 
             offset_x = math.cos(particle_angle) * radius
             offset_y = math.sin(particle_angle) * radius
             particle_x = self.x + offset_x
             particle_y = self.y + offset_y
             particle = Effect(self.game_data, particle_x, particle_y, particle_angle, speed, radius,
-                              self.color, hp, self.dmg,
+                              color, hp, self.dmg,
                               lifespan=480, target_rad=0.1, fade_off=False)
             particle.xv += self.xv
             particle.yv += self.yv

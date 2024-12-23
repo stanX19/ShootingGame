@@ -15,15 +15,14 @@ class BaseController:
     It does not modify unit.
     """
 
-    # TODO:
-    #  use coordinate instead of direction when aiming
     def __init__(self):
         self._turn_direction = random.choice((-math.pi / 2, math.pi / 2))
         self._prev_hp: int = 0
         self._retreat: int = 0  # frames to retreat
         self.is_moving: bool = True
         self.move_angle: float = 0.0
-        self.aim_angle: float = 0.0
+        self.aim_x: float = 0.0
+        self.aim_y: float = 0.0
         self.fire_main: bool = False
         self.fire_sub: bool = False
 
@@ -51,41 +50,37 @@ class AIController(BaseController):
             unit.find_new_target()
         if unit.target:
             self.move_angle = unit.angle_with(unit.target)
-            self.aim_angle = AIController.calculate_shoot_angle(unit)
+            self.aim_x, self.aim_y = AIController.calculate_shoot_coordinate(unit)
             self.fire_main = unit.distance_with(unit.target) <= unit.shoot_range
             self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
 
-
     @staticmethod
-    def calculate_shoot_angle(unit: BaseUnit):
-        # Get the current position and velocity of the target
+    def calculate_shoot_coordinate(unit) -> tuple[float, float]:
         target_x, target_y = unit.target.x, unit.target.y
         target_xv, target_yv = unit.target.xv, unit.target.yv
 
-        # Bullet speed (constant)
         bullet_speed = unit.bullet_speed
 
-        # Solve for the lead time: time = distance / relative speed
-        # We use an iterative method to find the future point where the bullet can hit
-        # it accounts for the fact that the target is moving and the bullet is too.
-
         lead_time = 0.0
-        lead_x = 0
-        lead_y = 0
+        lead_x = target_x
+        lead_y = target_y
 
         try:
-            # find distance -> find time needed to hit -> predict target location -> repeat
             for _ in range(10):
                 lead_x = target_x + target_xv * lead_time
                 lead_y = target_y + target_yv * lead_time
                 future_distance = math.hypot(lead_x - unit.x, lead_y - unit.y)
                 lead_time = future_distance / bullet_speed
 
-            lead_angle = math.atan2(lead_y - unit.y, lead_x - unit.x)
+            return lead_x, lead_y
         except ZeroDivisionError:
-            lead_angle = unit.angle_with(unit.target)
+            return target_x, target_y
 
-        return lead_angle
+    @staticmethod
+    def calculate_shoot_angle(unit: BaseUnit):
+        aim_x, aim_y = AIController.calculate_shoot_coordinate(unit)
+        return unit.angle_with_cord(aim_x, aim_y)
+
 
 class SmartAIController(AIController):
     """AI decision-making logic for automated units."""
@@ -112,8 +107,8 @@ class PlayerDroneController(AIController):
         if not affected:
             return
         if unit.game_data.left_mouse_down:
-            self.aim_angle = unit.game_data.get_mouse_angle(unit)
-        self.move_angle = self.aim_angle
+            self.aim_x, self.aim_y = unit.game_data.get_mouse_pos()
+        self.move_angle = unit.angle_with_cord(self.aim_x, self.aim_y)
         self.fire_main = unit.game_data.left_mouse_down or self.fire_main
         self.fire_sub = unit.game_data.right_mouse_down or self.fire_main
 
@@ -135,7 +130,7 @@ class PlayerController(BaseController):
         self.is_moving = bool(dy or dx)
 
         self.move_angle = math.atan2(dy, dx)
-        self.aim_angle = unit.game_data.get_mouse_angle(unit)
+        self.aim_x, self.aim_y = unit.game_data.get_mouse_pos()
         self.fire_main = unit.game_data.left_mouse_down or unit.game_data.autofire
         self.fire_sub = unit.game_data.right_mouse_down or unit.game_data.autofire
 

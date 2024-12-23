@@ -16,8 +16,9 @@ def _safe_value(value, default, reject=None):
 
 # Bullet class
 class Bullet(GameParticle):
-    def __init__(self, game_data: GameData, x, y, angle, speed=None, rad=None,
+    def __init__(self, game_data: GameData, parent_list: list[GameParticle], x, y, angle, speed=None, rad=None,
                  color=None, hp=1.0, dmg=1.0, lifespan=None, weapon=None):
+        self.parent_list = parent_list
         self.game_data: GameData = game_data
 
         if isinstance(weapon, WeaponType):

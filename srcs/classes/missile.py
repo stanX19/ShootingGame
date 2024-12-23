@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 from srcs import utils
+from srcs.classes.base_unit import BaseUnit
 from srcs.classes.explosive import Explosive, Bullet
 from srcs.classes.game_particle import GameParticle
 from srcs.classes.algo import calculate_intercept_angle
@@ -9,12 +10,12 @@ from srcs.classes.game_data import GameData
 
 
 class Missile(Explosive):
-    def __init__(self, game_data: GameData, x: float, y: float, angle: float, enemies_list: list[GameParticle],
+    def __init__(self, game_data: GameData, parent_list: list[GameParticle], x: float, y: float, angle: float, enemies_list: list[GameParticle],
                  target: [GameParticle, None] = None,
                  radius=MISSILE_RADIUS,
                  speed=MISSILE_SPEED,
                  hp=1, dmg=10, lifespan=60 * 2):
-        super().__init__(game_data, x, y, angle, radius, speed, hp, dmg, lifespan, MISSILE_COLOR, MISSILE_COLOR)
+        super().__init__(game_data, parent_list, x, y, angle, radius, speed, hp, dmg, lifespan, MISSILE_COLOR, MISSILE_COLOR)
         self.game_data: GameData = game_data
         self.target: [GameParticle, None] = target
         self.enemies_list: list[GameParticle] = enemies_list
@@ -34,7 +35,7 @@ class Missile(Explosive):
         for enemy in target_list:
             y_dis = enemy.y - y
             x_dis = enemy.x - x
-            distance = math.hypot(x_dis, y_dis) + 1000 * isinstance(enemy, Bullet)
+            distance = math.hypot(x_dis, y_dis) - 2000 * isinstance(enemy, BaseUnit)
             if distance < lowest_distance + enemy.rad:
                 lowest_distance = distance
                 target = enemy
