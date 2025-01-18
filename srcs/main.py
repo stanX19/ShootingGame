@@ -5,6 +5,8 @@ import subprocess
 import sys
 from typing import Optional
 
+from srcs.classes.faction_data import FactionData
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
@@ -15,18 +17,19 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
     import pygame
     import numpy
-from srcs.constants import BULLET_SPEED, UNIT_SHOOT_RANGE, MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
-    BULLET_COLOR, ENEMY_COLOR
+from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
+    ENEMY_COLOR
 from srcs.classes.weapons import MainWeaponEnum
-from srcs.classes.base_unit import BaseUnit
-from srcs.classes.controller import PlayerController, PlayerDroneController, AIController, BotController, \
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
-from srcs.classes.unit import Unit, ShootingUnit, ShieldedUnit
-from srcs.classes.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, UnitMiniMothership, SniperUnit, UnitMothership
+from srcs.classes.entity.unit import Unit, ShootingUnit
+from srcs.classes.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
+    UnitMothership, SuicideUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
-from srcs.classes.shield import Shield
+from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 
 dev_mode = 0
@@ -59,6 +62,10 @@ class Game:
         self.throttled_refresh_timer = 0
         self.prev_max_speed = PLAYER_SPEED
         self.prev_controller = SmartAIController()
+        self.ally_faction = FactionData(self.data, self.data.allies, self.data.enemies)
+        self.enemy_faction = FactionData(self.data, self.data.enemies, self.data.allies)
+        self.ally_unit_dict = {}
+        self.enemy_unit_dict = {}
         self.init_game()
 
     def init_game(self):
@@ -66,21 +73,34 @@ class Game:
         self.data.allies = []
         self.data.enemies = []
         self.data.collectibles = []
+        self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
+        self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
+        self.ally_unit_dict = {
+            SniperUnit: 0,
+            SuperShootingUnit: 0,
+            EliteUnit: 0,
+            SuicideUnit: 0,
+            BasicShootingUnit: 10,
+        }
+        self.enemy_unit_dict = {
+            SniperUnit: 0,
+            SuperShootingUnit: 0,
+            EliteUnit: 0,
+            SuicideUnit: 0,
+            BasicShootingUnit: 10,
+        }
         self.data.ally_mothership = UnitMothership(
-            self.data, MAP_WIDTH / 2, MAP_HEIGHT - 100,
-            self.data.enemies, self.data.allies,
+            self.ally_faction, MAP_WIDTH / 2, MAP_HEIGHT - 100,
             color=PLAYER_COLOR
         )
         self.data.enemy_mothership = UnitMothership(
-            self.data, MAP_WIDTH / 2, 100,
-            self.data.allies, self.data.enemies,
+            self.enemy_faction, MAP_WIDTH / 2, 100,
             color=ENEMY_COLOR
         )
         self.data.allies.append(self.data.ally_mothership)
         self.data.enemies.append(self.data.enemy_mothership)
-        self.data.player = EliteUnit(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-                                     targets=self.data.enemies, parent_list=self.data.allies,
+        self.data.player = EliteUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      color=PLAYER_COLOR)
         if test_mode:
             self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
@@ -107,9 +127,8 @@ class Game:
         if not test_mode:
             return
         self.data.allies.append(
-            Shield(self.data, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
-        self.data.enemies.append(ShootingUnit(self.data, self.data.player.x + 500, self.data.player.y,
-                                              self.data.allies, self.data.enemies,
+            Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
+        self.data.enemies.append(ShootingUnit(self.ally_faction, self.data.player.x + 500, self.data.player.y,
                                               hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
                                               controller=BotController(), variable_shape=True
                                               ))
@@ -166,15 +185,12 @@ class Game:
                 elif event.button == 3:  # Right mouse button
                     self.data.right_mouse_down = False
 
-    def _spawn_new_unit(self, _constructor: type[Unit],
-                        target_list: Optional[list[GameParticle]],
-                        parent_list: Optional[list[GameParticle]],
-                        side='top', **kwargs):
-        if parent_list is None:
-            parent_list = self.data.enemies
-        if target_list is None:
-            target_list = self.data.allies
-        unit = _constructor(self.data, 0, 0, target_list, parent_list, **kwargs)
+    def _spawn_new_unit(self, faction: FactionData,
+                        _constructor: type[Unit],
+                        side='top',
+                        parent: BaseUnit | None = None,
+                        **kwargs):
+        unit = _constructor(faction, 0, 0, **kwargs)
         spawn_rad = unit.rad + 300
 
         # side = random.choice(['left', 'right', 'top', 'bottom'])
@@ -191,64 +207,28 @@ class Game:
         else:
             unit.y = random.randint(spawn_rad, constants.MAP_HEIGHT - spawn_rad)
 
-        parent_list.append(unit)
+        faction.parent_list.append(unit)
 
-    def _spawn_units(self, color,
-                     target_list: Optional[list[GameParticle]],
-                     parent_list: Optional[list[GameParticle]],
+    def _spawn_units(self, faction: FactionData, color,
                      side='',
-                     controller_class: type[BaseController] = AIController):
+                     controller_class: type[BaseController] = AIController,
+                     units_dict: dict[type[BaseUnit], int] | None = None,
+                     parent: BaseUnit | None = None):
         if test_mode:
             return
-        BASE_CAP = constants.SPAWN_CAP
-        units_dict = {
-            SniperUnit: 1,
-            SuperShootingUnit: 3,
-            EliteUnit: 5,
-            BasicShootingUnit: BASE_CAP,
-        }
+        if units_dict is None:
+            units_dict = {
+                BasicShootingUnit: constants.SPAWN_CAP
+            }
         for unit_type, cap in units_dict.items():
-            count = len([i for i in parent_list if isinstance(i, unit_type)])
+            count = len([i for i in faction.parent_list if isinstance(i, unit_type)])
             if count >= cap:
                 continue
-            self._spawn_new_unit(unit_type, target_list, parent_list, side,
+            self._spawn_new_unit(faction, unit_type, side,
                                  controller=controller_class(),
-                                 color=color)
+                                 color=color,
+                                 parent=parent)
             break
-        # # if len(parent_list) < BASE_CAP + 20 and random.random() < min(0.01, (self.data.score - 40000) / 50000000):
-        # #     score = min(40000, 20000 + self.data.score // 1000)
-        # #     hp = 100  # + 150 * min(1.0, score / 100000)
-        # #     speed = constants.UNIT_SPEED * 1.5
-        # #     self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingUnit, dmg=10,
-        # #                          radius=60 + constants.UNIT_RADIUS, weapons=MainWeaponEnum.missile,
-        # #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
-        # #                          controller=controller_class())
-        #
-        # elif len(
-        #         parent_list) < BASE_CAP + 2:  # and random.random() < min(0.02, (self.data.score - 60000) / 10000000):
-        #     hp = 20
-        #     score = 600
-        #     speed = constants.UNIT_SPEED * 2.5
-        #     self._spawn_new_unit(hp, score, speed, True, _constructor=ShootingUnit, dmg=10,
-        #                          shoot_range=UNIT_SHOOT_RANGE * 1.5,
-        #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
-        #                          controller=controller_class(), weapons=MainWeaponEnum.lazer_mini)
-        #
-        # elif len(
-        #         parent_list) < BASE_CAP + 3:  # and random.random() < min(0.01, (self.data.score - 100000) / 100000000):
-        #     score = min(40000, 20000 + self.data.score // 1000)
-        #     hp = 300  # + 150 * min(1.0, score / 100000)
-        #     speed = constants.UNIT_SPEED * 1.5
-        #     self._spawn_new_unit(hp, score, speed, True, _constructor=UnitMothership, dmg=10,
-        #                          radius=100, shield_rad=200, bullet_speed=BULLET_SPEED * 1.5,
-        #                          shoot_range=UNIT_SHOOT_RANGE * 1.5,
-        #                          child_class=ShootingUnit, weapons=MainWeaponEnum.lazer,
-        #                          child_speed=(speed * 5, speed * 10),
-        #                          child_kwargs={
-        #                              "hp": 1, "dmg": 10, "weapons": MainWeaponEnum.piercing_machine_gun
-        #                          },
-        #                          color=color, parent_list=parent_list, target_list=target_list, side=side,
-        #                          controller=controller_class())
 
     def spawn_enemies(self):
         if self.data.enemy_mothership.is_dead():
@@ -257,9 +237,9 @@ class Game:
         if self.data.spawn_enemy_timer > 0:
             return
         self.data.spawn_enemy_timer = constants.SPAWN_CD
-        self._spawn_units(color=constants.ENEMY_COLOR, parent_list=self.data.enemies,
-                          target_list=self.data.allies, side='top',
-                          controller_class=SmartAIController)
+        self._spawn_units(faction=self.enemy_faction, color=constants.ENEMY_COLOR, side='top',
+                          controller_class=SmartAIController, units_dict=self.enemy_unit_dict,
+                          parent=self.data.enemy_mothership)
 
     def spawn_allies(self):
         if self.data.ally_mothership.is_dead():
@@ -268,9 +248,10 @@ class Game:
         if self.data.spawn_ally_timer > 0:
             return
         self.data.spawn_ally_timer = constants.SPAWN_CD
-        self._spawn_units(color=constants.PLAYER_COLOR, parent_list=self.data.allies,
-                          target_list=self.data.enemies, side='bot',
-                          controller_class=SmartAIController)
+
+        self._spawn_units(faction=self.ally_faction, color=constants.PLAYER_COLOR, side='bot',
+                          controller_class=SmartAIController, units_dict=self.ally_unit_dict,
+                          parent=self.data.ally_mothership)
 
     def get_view_rect(self) -> tuple[int, int, int, int]:
         return self.data.screen_x, self.data.screen_y, self.data.screen_x + constants.SCREEN_WIDTH, self.data.screen_y + constants.SCREEN_HEIGHT
@@ -321,9 +302,21 @@ class Game:
 
 
     def remove_dead_particles(self):
-        self.data.enemies[:] = [p for p in self.data.enemies if not (p.is_dead() and not p.on_death())]
-        self.data.allies[:] = [p for p in self.data.allies if not (p.is_dead() and not p.on_death())]
-        self.data.effects[:] = [p for p in self.data.effects if not (p.is_dead() and not p.on_death())]
+        dead_enemies = [p for p in self.data.enemies if (p.is_dead() and (p.on_death() or True))]
+        dead_allies = [p for p in self.data.allies if (p.is_dead() and (p.on_death() or True))]
+        dead_effects = [p for p in self.data.effects if (p.is_dead() and (p.on_death() or True))]
+        self.data.enemies[:] = [p for p in self.data.enemies if not p.is_dead()]
+        self.data.allies[:] = [p for p in self.data.allies if not p.is_dead()]
+        self.data.effects[:] = [p for p in self.data.effects if not p.is_dead()]
+
+        if sum(i for i in self.ally_unit_dict.values()) < constants.SPAWN_CAP:
+            for p in [p for p in dead_enemies if isinstance(p, BaseUnit)]:
+                self.ally_unit_dict[type(p)] = 1 + self.ally_unit_dict.get(type(p), 0)
+                self.enemy_unit_dict[type(p)] = -1 + self.enemy_unit_dict.get(type(p), 0)
+        if sum(i for i in self.enemy_unit_dict.values()) < constants.SPAWN_CAP:
+            for p in [p for p in dead_allies if isinstance(p, BaseUnit)]:
+                self.enemy_unit_dict[type(p)] = 1 + self.enemy_unit_dict.get(type(p), 0)
+                self.ally_unit_dict[type(p)] = -1 + self.ally_unit_dict.get(type(p), 0)
 
         for collectible in self.data.collectibles:
             if collectible.is_dead() and isinstance(collectible, Collectible):
@@ -376,10 +369,11 @@ class Game:
             self.change_player_unit()
 
     def is_victory(self):
-        return not self.data.enemies
+        return not any(isinstance(i, BaseUnit) for i in self.data.enemies)
 
     def check_game_over(self):
-        if self.data.allies and self.data.enemies:
+        if (any(isinstance(i, BaseUnit) for i in self.data.allies)
+                and any(isinstance(i, BaseUnit) for i in self.data.enemies)):
             return
         self.data.running = False
 

@@ -5,7 +5,7 @@ import random
 
 import pygame
 
-from srcs.classes.base_unit import BaseUnit
+from srcs.classes.entity.base_unit import BaseUnit
 from srcs.constants import *
 
 
@@ -92,31 +92,39 @@ class SmartAIController(AIController):
         if self._retreat > 0:
             self._retreat -= 1
             self.move_angle += math.pi
-            self.fire_sub = self.fire_main = True
+            unit.find_new_target()
+            if unit.is_targeting_self(unit.target):
+                self.fire_sub = self.fire_main = True
         elif unit.distance_with(unit.target) <= unit.shoot_range:
             self.move_angle += self._turn_direction
         self._prev_hp = unit.hp
 
 
-class PlayerDroneController(AIController):
+class PlayerDroneController(SmartAIController):
     """non-player control for units that supports player"""
 
     def update_based_on(self, unit: BaseUnit):
         super().update_based_on(unit)
-        affected = unit.distance_with(unit.game_data.player) <= max(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
+        affected = unit.faction.game_data.in_screen(unit)
         if not affected:
             return
-        if unit.game_data.left_mouse_down:
-            self.aim_x, self.aim_y = unit.game_data.get_mouse_pos()
+        if unit.faction.game_data.left_mouse_down:
+            self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos()
         self.move_angle = unit.angle_with_cord(self.aim_x, self.aim_y)
-        self.fire_main = unit.game_data.left_mouse_down or self.fire_main
-        self.fire_sub = unit.game_data.right_mouse_down or self.fire_main
+        self.fire_main = unit.faction.game_data.left_mouse_down or self.fire_main
+        self.fire_sub = unit.faction.game_data.right_mouse_down or self.fire_main
 
 
-class PlayerController(BaseController):
+class PlayerController(AIController):
     """Player control logic for player-controlled units."""
 
     def update_based_on(self, unit: BaseUnit):
+        self._update_using_ai(unit)
+        self._update_movement(unit)
+        self.fire_main = unit.faction.game_data.left_mouse_down or unit.faction.game_data.autofire
+        self.fire_sub = unit.faction.game_data.right_mouse_down or unit.faction.game_data.autofire
+
+    def _update_movement(self, unit:BaseUnit):
         keys = pygame.key.get_pressed()
         dy, dx = 0, 0
         if keys[pygame.K_w]:
@@ -127,12 +135,26 @@ class PlayerController(BaseController):
             dx -= 1
         if keys[pygame.K_d]:
             dx += 1
-        self.is_moving = bool(dy or dx)
 
+        self.is_moving = bool(dy or dx)
         self.move_angle = math.atan2(dy, dx)
-        self.aim_x, self.aim_y = unit.game_data.get_mouse_pos()
-        self.fire_main = unit.game_data.left_mouse_down or unit.game_data.autofire
-        self.fire_sub = unit.game_data.right_mouse_down or unit.game_data.autofire
+
+    def _update_using_ai(self, unit: BaseUnit):
+        self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos()
+        closest_unit = None
+        closest_distance = float('inf')
+        is_unit = False
+        for target in unit.faction.target_list:
+            distance = target.distance_with_cord(self.aim_x, self.aim_y) - target.rad
+            if is_unit and not isinstance(target, BaseUnit):
+                continue
+            if distance < closest_distance:
+                closest_unit = target
+                closest_distance = distance
+                is_unit = isinstance(target, BaseUnit)
+        if closest_distance < 25 / unit.faction.game_data.zoom:
+            unit.target = closest_unit
+            super().update_based_on(unit)
 
     def get_child(self):
         return PlayerDroneController()

@@ -77,20 +77,20 @@ class MainWeaponEnum:
                              offset_factor=0.1, dmg=1, hp=1, recoil=3)
     piercing_machine_gun = WeaponType("piercing machine gun", reload=800, velocity=25, max_count=1, radius=5, growth_factor=1,
                              offset_factor=0.1, dmg=8, hp=1, recoil=3)
-    lazer_mini = WeaponType("lazer mini", reload=800, velocity=50, min_count=1, max_count=1, radius=2,
-                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.2, hp=50)
+    lazer_mini = WeaponType("lazer mini", reload=200, velocity=50, min_count=1, max_count=1, radius=2,
+                       growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=1, hp=25)
     lazer = WeaponType("lazer", reload=200, velocity=100, min_count=1, max_count=1, radius=2,
                        growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.1, hp=100)
     giant_canon = WeaponType("giant canon", reload=200, velocity=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
-    lazer_super = WeaponType("lazer super", reload=3000, velocity=200, min_count=1, max_count=1, radius=5,
-                             growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.25, hp=200)
+    lazer_super = WeaponType("lazer super", reload=2000, velocity=200, min_count=1, max_count=1, radius=5,
+                             growth_factor=5, bullet_class=LAZER_CLASS, lifespan=120, dmg=0.5, hp=200)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = WeaponType("shotgun", reload=600, velocity=(25, 50), max_count=300, radius=1,
                          recoil=PLAYER_SPEED, dmg=1, min_count=25, growth_factor=25, spread=math.pi * 0.4,
                          lifespan=(5, 20))
-    bomb = WeaponType("destroyer", reload=400, velocity=10, max_count=1, radius=5, recoil=5, hp=1, dmg=1,
-                      bullet_class=EXPLOSIVE_CLASS, lifespan=120)
+    bomb = WeaponType("destroyer", reload=2000, velocity=10, max_count=1, radius=50, recoil=5, hp=1, dmg=10,
+                      bullet_class=EXPLOSIVE_CLASS)
     missile = WeaponType("missile", 1000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
                          radius=MISSILE_RADIUS, velocity=MISSILE_SPEED, bullet_class=MISSILE_CLASS)
     spawner = WeaponType("Spawner", reload=2000, velocity=1, max_count=1, hp=3, radius=10,
@@ -104,7 +104,7 @@ class MainWeaponEnum:
     #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
     dancer = WeaponType("dancer", reload=0, velocity=(-5, 0), radius=2, dmg=0.1, hp=10,
                         min_count=1, max_count=20, growth_factor=1, spread=math.pi,
-                        recoil=-20, lifespan=(1, 30), bullet_class=LAZER_CLASS)
+                        recoil=-20, lifespan=(1, 5))
 
 
 

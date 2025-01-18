@@ -1,27 +1,23 @@
 from __future__ import annotations
-import random
 from typing import Optional
 
 import pygame
-from matplotlib.style.core import available
 
-from srcs.constants import *
-from srcs.classes.weapons import WeaponType
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.faction_data import FactionData
 from srcs.classes.game_data import GameData
 from srcs import utils
 
 
-class Shield(GameParticle):
+class Shield(FactionParticle):
     default_color = (0, 255, 255)
 
-    def __init__(self, game_data: GameData, x, y, rad=100,
+    def __init__(self, faction: FactionData, x, y, rad=100,
                  color=default_color, hp=100, dmg=1.0,
                  parent: Optional[GameParticle] = None,
-                 regen_rate: float=0.25):
-        super().__init__(x, y, 0, 0, rad, color, hp, dmg)
-        self.game_data: GameData = game_data
-        self.parent: Optional[GameParticle] = parent
+                 regen_rate: float=0.25, **kwargs):
+        super().__init__(faction, x, y, 0, 0, rad, color, hp, dmg, parent=parent, **kwargs)
         self.prev_hp = self.hp
         self.is_hit = False
         self.show_timer = 0
@@ -53,8 +49,8 @@ class Shield(GameParticle):
         self.prev_hp = self.hp
 
         if self.parent is not None:
-            self.x = self.parent.x
-            self.y = self.parent.y
+            self.x = self.parent.x + self.parent.xv
+            self.y = self.parent.y + self.parent.yv
             # missing_hp = self.parent.max_hp - self.parent.hp
             # transferred_hp = min(self.hp, missing_hp)
             # self.hp -= transferred_hp

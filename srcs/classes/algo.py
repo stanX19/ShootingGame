@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 import random
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.game_particle import GameParticle
 
 
 def line_circle_first_intersect(line_start_x, line_start_y, line_end_x, line_end_y,

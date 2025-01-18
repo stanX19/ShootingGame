@@ -8,24 +8,25 @@ import random
 
 from srcs import utils
 from srcs.classes import algo
-from srcs.classes.bullet import Bullet
+from srcs.classes.entity.breakable import Breakable
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.effect import Effect
+from srcs.classes.faction_data import FactionData
 from srcs.classes.game_data import GameData
-from srcs.classes.game_particle import GameParticle
 from srcs.constants import *
 from srcs.utils import color_mix
 
 
-class BaseUnit(GameParticle):
-    def __init__(self, game_data: GameData, x: float, y: float, targets: list[GameParticle], parent_list: list[GameParticle],
+class BaseUnit(Breakable):
+    def __init__(self, faction: FactionData,
+                 x: float, y: float,
                  speed=UNIT_SPEED, angle=0.0, radius=UNIT_RADIUS, color=ENEMY_COLOR,
                  hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
-                 shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED):
-        super().__init__(x, y, angle, speed, radius, color, hp, dmg, score)
+                 shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED, **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
         self.max_speed: float = speed
-        self.game_data: GameData = game_data
-        self.parent_list: list[GameParticle] = parent_list
-        self.target_list: list[GameParticle] = targets
         self.target: Optional[GameParticle] = None
         self.warned_target: bool = False
         self.variable_shape: bool = variable_shape
@@ -39,12 +40,12 @@ class BaseUnit(GameParticle):
 
     def find_new_target(self):
         """Find the closest target from the list of target_list."""
-        if not self.target_list:
+        if not self.faction.target_list:
             self.target = None
             return
 
         # Find the closest target
-        targets = [i for i in self.target_list if self.game_data.in_map(i)]
+        targets = [i for i in self.faction.target_list if self.faction.game_data.in_map(i)]
         closest_target = None
         min_distance = float('inf')
 
@@ -59,7 +60,7 @@ class BaseUnit(GameParticle):
                - target.score / 100
                + target.hp * 2
                # - (dis < self.shoot_range) * K \
-               # - (isinstance(target, BaseUnit) and target.target is self) * 2 * K
+               - self.is_targeting_self(self.target) * 2 * K
             )
             if distance < min_distance:
                 min_distance = distance
@@ -67,6 +68,9 @@ class BaseUnit(GameParticle):
 
         self.target = closest_target
         self.warned_target = False
+
+    def is_targeting_self(self, other: GameParticle):
+        return isinstance(other, BaseUnit) and other.target is self
 
     def turn_to(self, new_angle, lerp=0.1):
         turn_angle = new_angle - self.angle
@@ -121,35 +125,10 @@ class BaseUnit(GameParticle):
         return utils.color_norm((r, g, b))
 
     def on_death(self):
-        self.game_data.effects.append(Effect(self.game_data, self.x, self.y, self.angle,
+        self.faction.game_data.effects.append(Effect(self.faction.game_data, self.x, self.y, self.angle,
                                              speed=self.speed, rad=self.rad, lifespan=3,
                                              color=self.color, fade_off=True))
-        self.explode()
         return super().on_death()
-
-    def explode(self):
-        # n = particle count
-        k = 0.75
-        n = random.randint(max(3, math.ceil(self.max_hp / 2)), max(3, math.ceil(self.max_hp))) # math.ceil(self.max_hp / 2 + 1)
-        particle_angle = self.angle
-        color = color_mix(self.color, (255, 255, 255), weight2=2)
-        for i in range(n):
-            particle_angle += (2 * math.pi / n) * i
-
-            radius = random.uniform(0.1, min(UNIT_RADIUS * k, self.max_rad / 3))
-            hp = radius / 10
-            speed = random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (2 + math.sqrt(n))) / radius * k
-
-            offset_x = math.cos(particle_angle) * radius
-            offset_y = math.sin(particle_angle) * radius
-            particle_x = self.x + offset_x
-            particle_y = self.y + offset_y
-            particle = Effect(self.game_data, particle_x, particle_y, particle_angle, speed, radius,
-                              color, hp, self.dmg,
-                              lifespan=480, target_rad=0.1, fade_off=False)
-            particle.xv += self.xv
-            particle.yv += self.yv
-            self.parent_list.append(particle)
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)

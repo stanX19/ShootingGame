@@ -1,6 +1,5 @@
 import math
-from typing import Optional
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.game_particle import GameParticle
 # from srcs.classes.player import Player
 # from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs import constants

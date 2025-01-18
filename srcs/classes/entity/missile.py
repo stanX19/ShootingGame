@@ -1,24 +1,22 @@
 from __future__ import annotations
 import math
 from srcs import utils
-from srcs.classes.base_unit import BaseUnit
-from srcs.classes.explosive import Explosive, Bullet
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.explosive import Explosive
+from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.algo import calculate_intercept_angle
+from srcs.classes.faction_data import FactionData
 from srcs.constants import *
-from srcs.classes.game_data import GameData
 
 
 class Missile(Explosive):
-    def __init__(self, game_data: GameData, parent_list: list[GameParticle], x: float, y: float, angle: float, enemies_list: list[GameParticle],
+    def __init__(self, faction: FactionData, x: float, y: float, angle: float,
                  target: [GameParticle, None] = None,
                  radius=MISSILE_RADIUS,
                  speed=MISSILE_SPEED,
-                 hp=1, dmg=10, lifespan=60 * 2):
-        super().__init__(game_data, parent_list, x, y, angle, radius, speed, hp, dmg, lifespan, MISSILE_COLOR, MISSILE_COLOR)
-        self.game_data: GameData = game_data
+                 hp=1, dmg=10, lifespan=60 * 2, **kwargs):
+        super().__init__(faction, x, y, angle, radius, speed, hp, dmg, lifespan, MISSILE_COLOR, MISSILE_COLOR, **kwargs)
         self.target: [GameParticle, None] = target
-        self.enemies_list: list[GameParticle] = enemies_list
         self.reached_target: bool = False
 
     def find_target(self):
@@ -26,7 +24,7 @@ class Missile(Explosive):
         hypot = math.hypot(self.xv, self.yv)
         dy = self.yv * search_radius / hypot
         dx = self.xv * search_radius / hypot
-        self.target = Missile.find_target_at(self.x + dx, self.y + dy, self.enemies_list, search_radius)
+        self.target = Missile.find_target_at(self.x + dx, self.y + dy, self.faction.target_list, search_radius)
 
     @staticmethod
     def find_target_at(x: float, y: float, target_list: list[GameParticle], search_radius=100.0):
@@ -42,7 +40,7 @@ class Missile(Explosive):
         return target
 
     def update(self):
-        if self.target not in self.enemies_list:
+        if self.target not in self.faction.target_list:
             self.find_target()
         if isinstance(self.target, GameParticle):
             target_angle = calculate_intercept_angle(self, self.target)

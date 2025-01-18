@@ -41,6 +41,9 @@ class Particle:
             return float('inf')
         return math.hypot(self.x - other.x, self.y - other.y)
 
+    def distance_with_cord(self, x, y) -> float:
+        return math.hypot(self.x - x, self.y - y)
+
     def draw(self, surface: pygame.Surface):
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.rad)
 
@@ -53,13 +56,19 @@ class Particle:
 
 class GameParticle(Particle):
     def __init__(self, x: float, y: float, angle=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
-                 score=0):
+                 score=0, parent: GameParticle | None = None):
         super().__init__(x, y, angle, speed, radius, color)
         self.hp: float = hp
         self.max_hp: float = hp
         self.max_rad: float = radius
         self.dmg: float = dmg
         self.score: int = score
+        self.parent: GameParticle | None = parent
+
+    def add_score(self, amount):
+        self.score += amount
+        if isinstance(self.parent, GameParticle):
+            self.parent.add_score(amount)
 
     def regen_hp(self, regen_amount: float):
         self.hp = min(self.hp + regen_amount, self.max_hp)

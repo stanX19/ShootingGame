@@ -1,9 +1,7 @@
 from __future__ import annotations
 import math
-import pygame
 from srcs.constants import *
-from srcs.classes.weapons import WeaponType
-from srcs.classes.bullet import Bullet
+from srcs.classes.entity.bullet import Bullet
 
 
 class WaterParticle(Bullet):

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from typing import Callable
 
 from srcs.classes import algo
-from srcs.classes.game_particle import GameParticle
-from srcs.classes.lazer import Lazer
-from srcs.constants import *
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.lazer import Lazer
+from collections import defaultdict
+from typing import Sequence
 
 
 def lazer_unit_collision(l: Lazer, p: GameParticle):
@@ -19,23 +20,30 @@ def lazer_unit_collision(l: Lazer, p: GameParticle):
         distance = math.hypot(intersect[0] - l.x, intersect[1] - l.y)
     # dmg factor enough to kill either (or both survives)
     dmg_factor = abs(l.hp - (distance / l.actual_rad))
-    dmg_factor = min(dmg_factor, p.hp / l.dmg)
+    dmg_factor = min(dmg_factor, p.hp / max(0.1 ,l.dmg))
 
     l.hp -= min(1.0, p.dmg) * dmg_factor
     p.hp -= l.dmg * dmg_factor
     l.update_length()
     # print(f"after: ({intersect[0]:.2f}, {intersect[1]:.2f}) {distance=:.2f} {dmg_factor=:.2f}, {l.hp:.2f} {p.hp:.2f}")
 
+CollisionHandlerType = Callable[[GameParticle, GameParticle], None]
 
 def handle_collision(bullet: GameParticle, enemy: GameParticle):
     if bullet.is_dead() or bullet.hp <= 0 or enemy.is_dead() or enemy.hp <= 0:
         return
-    if isinstance(bullet, Lazer) and not isinstance(enemy, Lazer):
-        return lazer_unit_collision(bullet, enemy)
-    if isinstance(enemy, Lazer) and not isinstance(bullet, Lazer):
-        return lazer_unit_collision(enemy, bullet)
-    enemy.hp -= bullet.dmg
-    bullet.hp -= enemy.dmg
+    elif isinstance(bullet, Lazer) and not isinstance(enemy, Lazer):
+        lazer_unit_collision(bullet, enemy)
+    elif isinstance(enemy, Lazer) and not isinstance(bullet, Lazer):
+        lazer_unit_collision(enemy, bullet)
+    else:
+        enemy.hp -= bullet.dmg
+        bullet.hp -= enemy.dmg
+
+    if enemy.is_dead():
+        bullet.add_score(enemy.score)
+    if bullet.is_dead():
+        enemy.add_score(bullet.score)
 
 
 def is_colliding(a: GameParticle, b: GameParticle):
@@ -49,11 +57,6 @@ def is_colliding(a: GameParticle, b: GameParticle):
         return algo.line_point_distance(b.prev_x, b.prev_y, b.end_x, b.end_y, a.x, a.y) < a.rad + b.actual_rad
     else:
         return a.distance_with(b) < a.rad + b.rad
-
-
-from collections import defaultdict
-from typing import Sequence
-
 
 def assign_to_cells(particles: Sequence[GameParticle], cell_size: float) -> dict:
     """
@@ -99,7 +102,8 @@ def check_collision_within_cells(bullets: Sequence[GameParticle], enemies: Seque
                 if is_colliding(bullet, enemy):
                     handle_collision(bullet, enemy)
 
-def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int):
+def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int,
+                              collision_handler:CollisionHandlerType = handle_collision):
     for enemy in enemies[start_idx:]:
         if enemy.x + enemy.rad < bullet.x - bullet.rad:
             start_idx += 1
@@ -109,19 +113,21 @@ def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticl
         if enemy.x - enemy.rad > bullet.x + bullet.rad:
             break
         if is_colliding(bullet, enemy):
-            handle_collision(bullet, enemy)
+            collision_handler(bullet, enemy)
     return start_idx
 
 
-def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GameParticle]):
+def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GameParticle],
+                              collision_handler:CollisionHandlerType = handle_collision):
     enemy_start_idx = 0
     for bullet in bullets:
-        enemy_start_idx = check_collision_with_enemies(bullet, enemies, enemy_start_idx)
+        enemy_start_idx = check_collision_with_enemies(bullet, enemies, enemy_start_idx, collision_handler)
         if enemy_start_idx >= len(enemies):
             break
 
 
-def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle]):
+def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle],
+                              collision_handler: CollisionHandlerType = handle_collision):
     bullets = sorted(bullets, key=lambda b: b.x - b.rad)
     enemies = sorted(enemies, key=lambda b: b.x - b.rad)
     # sep
@@ -131,4 +137,4 @@ def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence
     bullet_groups = [[p for p in bullets if left <= p.rad <= right] for left, right in GROUP]
     for enemy_group in enemy_groups:
         for bullet_group in bullet_groups:
-            _collide_sorted_enemy_and_bullets(bullet_group, enemy_group)
+            _collide_sorted_enemy_and_bullets(bullet_group, enemy_group, collision_handler)

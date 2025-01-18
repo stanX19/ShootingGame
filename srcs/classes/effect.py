@@ -1,10 +1,9 @@
 from __future__ import annotations
-import math
 import random
 
 import pygame
 from srcs.constants import *
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.game_data import GameData
 
 
@@ -15,7 +14,7 @@ class Effect(GameParticle):
     def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=1,
                  color=(255, 255, 255), hp=1.0, dmg=1.0, lifespan=None,
                  fade_off=False, target_rad=None, **kwargs):
-        super().__init__(x, y, angle, speed, rad, color, hp, dmg)
+        super().__init__(x, y, angle, speed, rad, color, hp, dmg, **kwargs)
         if isinstance(lifespan, tuple) and len(lifespan) > 1:
             self.lifespan = random.randint(lifespan[0], lifespan[1])
         elif isinstance(lifespan, int):
