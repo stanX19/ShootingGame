@@ -3,9 +3,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from typing import Optional
-
-from srcs.classes.faction_data import FactionData
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -19,6 +16,7 @@ except ImportError:
     import numpy
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
     ENEMY_COLOR
+from srcs.classes.faction_data import FactionData
 from srcs.classes.weapons import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \

@@ -6,6 +6,72 @@ from typing import Union
 from srcs.constants import *
 
 
+MISSILE_CLASS = "missile"
+LAZER_CLASS = "lazer"
+NOVA_CLASS = "nova"
+BULLET_CLASS = "bullet"
+EXPLOSIVE_CLASS = "explosive"
+UNIT_CLASS = "enemy"
+
+
+class WeaponType:
+    def __init__(self, name: str, reload: float, velocity: Union[float, tuple[float, float]] = BULLET_SPEED,
+                 max_count=None, radius=BULLET_RADIUS,
+                 recoil=0, hp=1.0, dmg=1.0, spread=math.pi * 0.8, bullet_class: str = BULLET_CLASS,
+                 min_count=1, growth_factor=0.0, offset_factor=1.0, color=BULLET_COLOR,
+                 lifespan: Union[None, int, tuple[int, int]] = None,
+                 spawn_radius: float = PLAYER_RADIUS * 5):
+        self.name: str = name
+        self.shot_delay: float = reload
+        self._speed: Union[float, tuple[float, float]] = velocity
+        if max_count is None:
+            max_count = 1
+        self.bullet_count: int = max_count
+        self.rad: float = radius
+        self.recoil: float = recoil
+        self.hp: float = hp
+        self.dmg: float = dmg
+        self.spread: float = spread
+        self.min_bullet_count: int = min_count
+        self.growth_factor: float = growth_factor
+        self.offset_factor: float = offset_factor
+        self.bullet_class: str = bullet_class
+        self.color: tuple[int] = color
+        self.lifespan: Union[int, tuple[int, int]] = lifespan if lifespan is not None else float('inf')
+        self.spawn_radius: float = spawn_radius
+        self.level: int = 1
+
+    @property
+    def speed(self) -> float:
+        if isinstance(self._speed, tuple):
+            return random.uniform(self._speed[0], self._speed[1])
+        else:
+            return self._speed
+
+    @property
+    def max_lvl(self) -> int:
+        if not self.growth_factor:
+            return 1
+        return int((self.bullet_count - self.min_bullet_count) / self.growth_factor) + 1
+
+    def is_max_lvl(self) -> bool:
+        return self.level >= self.max_lvl
+
+    def get_max_dmg_constant(self) -> float:
+        return self.dmg / max(1.0, self.shot_delay) * self.hp * self.bullet_count * 100
+
+    def get_min_dmg_constant(self) -> float:
+        return self.dmg / max(1.0, self.shot_delay) * self.hp * self.min_bullet_count * 100
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    pass
+
+
 class MainWeaponEnum:
     machine_gun = WeaponType("machine gun", reload=300, velocity=15, max_count=1, radius=3, growth_factor=1,
                              offset_factor=0.1, dmg=1, hp=1, recoil=3)
@@ -61,8 +127,8 @@ class SubWeaponEnum:
 
 ALL_MAIN_WEAPON_LIST: list[WeaponType] = [w for w in vars(MainWeaponEnum).values() if isinstance(w, WeaponType)]
 ALL_SUB_WEAPON_LIST: list[WeaponType] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, WeaponType)]
-#
-# if __name__ == '__main__':
-#     print(f"{' ':20}{'min dmg':>20}{'max dmg':>20}{'max lvl':>20}")
-#     for w in ALL_MAIN_WEAPON_LIST:
-#         print(f"{w.name:20}{w.get_min_dmg_constant():20.2f}{w.get_max_dmg_constant():20.2f}{w.max_lvl:20}")
+
+if __name__ == '__main__':
+    print(f"{' ':20}{'min dmg':>20}{'max dmg':>20}{'max lvl':>20}")
+    for w in ALL_MAIN_WEAPON_LIST:
+        print(f"{w.name:20}{w.get_min_dmg_constant():20.2f}{w.get_max_dmg_constant():20.2f}{w.max_lvl:20}")
