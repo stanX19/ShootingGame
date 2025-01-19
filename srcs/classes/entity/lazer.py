@@ -7,14 +7,15 @@ from srcs.classes.entity.bullet import Bullet
 from srcs.classes.faction_data import FactionData
 from srcs.classes.game_data import GameData
 from srcs.classes.entity.game_particle import GameParticle
+from srcs.constants import BULLET_SPEED, BULLET_RADIUS, BULLET_COLOR
 
 
 class Lazer(Bullet):
-    def __init__(self, faction: FactionData, x, y,
-                 angle, speed=None, rad=None, color=None, hp=1.0, dmg=1.0,
-                 lifespan=None, weapon=None, **kwargs):
-        super().__init__(faction, x, y, angle, speed, rad,
-                         color, hp, dmg, lifespan, weapon, **kwargs)
+    def __init__(self, faction: FactionData, x, y, angle, speed=BULLET_SPEED, radius=BULLET_RADIUS,
+                 color=BULLET_COLOR, hp=10.0, dmg=1.0, lifespan=float('inf'),
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius,
+                         color, hp, dmg, lifespan, **kwargs)
         self.length = 0
         self.end_x = self.x
         self.end_y = self.y

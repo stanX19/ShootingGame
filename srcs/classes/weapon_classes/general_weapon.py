@@ -22,17 +22,20 @@ class GeneralWeapon(BaseWeapon):
             spawn_radius: float = PLAYER_RADIUS * 5,
             bullet_class: type[Bullet] = Bullet,
             max_level: int = 1,
+            min_count: int = 1,
             max_count: int = 1,
             growth_factor: int = 1,
             **bullet_kwargs,
     ):
-        super().__init__(name, max_level)
+        super().__init__(name, max_level, min_count, max_count, growth_factor)
         self.shoot_timer = ReloadCounter(reload)
         self.bullet_kwargs = BulletKwargsHandler(bullet_kwargs)
         self.spawner = BulletSpawner(self.bullet_kwargs, bullet_class=bullet_class, spread=spread,
                                      offset_factor=offset_factor, spawn_radius=spawn_radius)
-        self.level = LevelHandler(max_level, max_count, growth_factor)
         self.recoil = recoil
+        self.sample = self.spawner.get_sample()
+        self.bullet_speed = self.sample.speed
+        self.bullet_color = self.sample.color
 
     def fire(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
         if not self.shoot_timer.record_if_can_fire(unit.faction.game_data.current_time):

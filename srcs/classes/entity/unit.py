@@ -8,10 +8,10 @@ from srcs import utils
 from srcs.classes.entity.shield import Shield
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.faction_data import FactionData
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
 from srcs.classes.weapon_handler import WeaponHandler
-from srcs.classes.weapons import WeaponType, MainWeaponEnum
+from srcs.classes.weapons import MainWeaponEnum
 from srcs.constants import *
-from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.controller import BaseController, AIController
 
 
@@ -39,18 +39,16 @@ class Unit(BaseUnit):
 class ShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float, y: float,
                  radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-                 weapons: list[WeaponType] | None = MainWeaponEnum.machine_gun,
-                 sub_weapons: list[WeaponType] | None = None, **kwargs):
+                 weapons: list[GeneralWeapon] | None = MainWeaponEnum.machine_gun,
+                 sub_weapons: list[GeneralWeapon] | None = None, **kwargs):
         super().__init__(faction, x, y, radius=radius, speed=speed, hp=hp, **kwargs)
         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
 
     def move(self):
         super().move()
-        try:
-            self.bullet_speed = max(self.speed - self.main_weapon.weapon.recoil, self.main_weapon.weapon.speed)
-        except AttributeError:
-            pass
+        if self.main_weapon.weapon is not None:
+            self.bullet_speed = max(self.speed - self.main_weapon.weapon.recoil, self.main_weapon.weapon.bullet_speed)
         if self.hp and self.controller.fire_main:
             self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
         if self.hp and self.controller.fire_sub:

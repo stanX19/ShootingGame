@@ -9,12 +9,11 @@ from srcs.classes.effect import Effect
 
 class Explosive(Bullet):
     def __init__(self, faction: FactionData, x: float, y: float, angle: float,
-                 radius=None,
-                 speed=None,
-                 hp=1, dmg=10, lifespan=None, weapon=None,
-                 color=None, explosion_color=EXPLOSION_COLOR, projectile_dmg=1,
+                 speed=BULLET_SPEED, radius=BULLET_RADIUS,
+                 color=BULLET_COLOR, hp=1.0, dmg=1.0, lifespan=float('inf'),
+                 explosion_color=EXPLOSION_COLOR, projectile_dmg=1,
                  **kwargs):
-        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, weapon, **kwargs)
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
         self.explosion_color = explosion_color
         self.explosion_dmg = dmg
         self.dmg = projectile_dmg

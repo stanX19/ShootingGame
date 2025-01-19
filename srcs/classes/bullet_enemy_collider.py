@@ -56,7 +56,7 @@ def is_colliding(a: GameParticle, b: GameParticle):
     elif isinstance(b, Lazer):
         return algo.line_point_distance(b.prev_x, b.prev_y, b.end_x, b.end_y, a.x, a.y) < a.rad + b.actual_rad
     else:
-        return a.distance_with(b) < a.rad + b.rad
+        return a.distance_with(b) < 0
 
 def assign_to_cells(particles: Sequence[GameParticle], cell_size: float) -> dict:
     """

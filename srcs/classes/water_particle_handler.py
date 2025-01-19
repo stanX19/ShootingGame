@@ -76,7 +76,7 @@ class WaterParticleHandler:
 
     def _spawn_at(self, x, y):
         random_angle = random.uniform(-math.pi, math.pi)
-        self.particles.append(WaterParticle(x, y, random_angle, rad=15, lifespan=random.randint(10, 60)))
+        self.particles.append(WaterParticle(x, y, random_angle, radius=15, lifespan=random.randint(10, 60)))
 
     def spawn_at(self, x, y):
         if len(self.particles) > constants.MAX_PARTICLE_COUNT:
@@ -187,10 +187,10 @@ class WaterParticleHandler:
 
 def main():
     particles = [
-        WaterParticle(0, 0, 0, rad=30),  # --->
-        WaterParticle(50, 0, math.pi, rad=30),  # <---
-        WaterParticle(1000, 0, -math.pi / 2, rad=30),  # down
-        WaterParticle(1000, 50, math.pi / 2, rad=30)  # up
+        WaterParticle(0, 0, 0, radius=30),  # --->
+        WaterParticle(50, 0, math.pi, radius=30),  # <---
+        WaterParticle(1000, 0, -math.pi / 2, radius=30),  # down
+        WaterParticle(1000, 50, math.pi / 2, radius=30)  # up
     ]
     handler = WaterParticleHandler(particles)
     handler._collide_everything()

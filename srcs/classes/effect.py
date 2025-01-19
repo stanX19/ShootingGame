@@ -15,16 +15,11 @@ class Effect(GameParticle):
                  color=(255, 255, 255), hp=1.0, dmg=1.0, lifespan=None,
                  fade_off=False, target_rad=None, **kwargs):
         super().__init__(x, y, angle, speed, rad, color, hp, dmg, **kwargs)
-        if isinstance(lifespan, tuple) and len(lifespan) > 1:
-            self.lifespan = random.randint(lifespan[0], lifespan[1])
-        elif isinstance(lifespan, int):
-            self.lifespan = lifespan
-        else:
-            self.lifespan = 60 * 2
+        self.lifespan = lifespan or 60 * 2
         self.game_data: GameData = game_data
         self.fade_off = fade_off
         self.opacity = 1.0
-        self.target_rad = target_rad if target_rad else rad * 2
+        self.target_rad = target_rad or rad * 2
 
         # Calculate the expansion rate and fade-off rate
         self.rad_increase_rate = (self.target_rad - self.rad) / self.lifespan

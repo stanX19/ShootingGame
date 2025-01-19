@@ -79,29 +79,30 @@ class Game:
             SuperShootingUnit: 0,
             EliteUnit: 0,
             SuicideUnit: 0,
-            BasicShootingUnit: 10,
+            BasicShootingUnit: 30,
         }
         self.enemy_unit_dict = {
             SniperUnit: 0,
             SuperShootingUnit: 0,
             EliteUnit: 0,
             SuicideUnit: 0,
-            BasicShootingUnit: 10,
+            BasicShootingUnit: 30,
         }
+        DISTANCE_FROM_BOUND = 1000
         self.data.ally_mothership = UnitMothership(
-            self.ally_faction, MAP_WIDTH / 2, MAP_HEIGHT - 100,
+            self.ally_faction, MAP_WIDTH / 2, MAP_HEIGHT - DISTANCE_FROM_BOUND,
             color=PLAYER_COLOR
         )
         self.data.enemy_mothership = UnitMothership(
-            self.enemy_faction, MAP_WIDTH / 2, 100,
+            self.enemy_faction, MAP_WIDTH / 2, DISTANCE_FROM_BOUND,
             color=ENEMY_COLOR
         )
         self.data.allies.append(self.data.ally_mothership)
         self.data.enemies.append(self.data.enemy_mothership)
         self.data.player = EliteUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      color=PLAYER_COLOR)
-        if test_mode:
-            self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
+        # if test_mode:
+        #     self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
 
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
@@ -126,7 +127,7 @@ class Game:
             return
         self.data.allies.append(
             Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
-        self.data.enemies.append(ShootingUnit(self.ally_faction, self.data.player.x + 500, self.data.player.y,
+        self.data.enemies.append(ShootingUnit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
                                               hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
                                               controller=BotController(), variable_shape=True
                                               ))
@@ -149,8 +150,8 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.data.quit = True
-                # if event.key == pygame.K_q:
-                #     self.data.player.main_weapon.overdrive_start()
+                if event.key == pygame.K_q and isinstance(self.data.player, ShootingUnit):
+                    self.data.player.main_weapon.overdrive_start()
                 if event.key == pygame.K_TAB:
                     self.change_player_unit()
                 if event.key == pygame.K_e:
@@ -353,7 +354,7 @@ class Game:
         self.prev_controller = self.data.player.controller
         self.prev_max_speed = self.data.player.max_speed
         self.data.player.controller = PlayerController()
-        self.data.player.max_speed = PLAYER_SPEED
+        self.data.player.max_speed *= 2
 
     def check_player_death(self):
         self.data.player.hp = max(0.0, min(self.data.player.max_hp, self.data.player.hp))

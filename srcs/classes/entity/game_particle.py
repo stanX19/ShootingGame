@@ -39,10 +39,10 @@ class Particle:
     def distance_with(self, other) -> float:
         if other is None:
             return float('inf')
-        return math.hypot(self.x - other.x, self.y - other.y)
+        return math.hypot(self.x - other.x, self.y - other.y) - self.rad - other.rad
 
     def distance_with_cord(self, x, y) -> float:
-        return math.hypot(self.x - x, self.y - y)
+        return math.hypot(self.x - x, self.y - y) - self.rad
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.rad)

@@ -60,4 +60,5 @@ class UnitMothership(ShieldedUnit, ShootingUnit):
                          controller=SmartAIController(),
                          weapons=MainWeaponEnum.bomb,
                          shoot_range=1500,
+                         importance=10000,
                          **kwargs)

@@ -15,6 +15,7 @@ class BulletKwargsHandler:
         self._original_kwargs: dict[str, Any] = bullet_kwargs
         self._static_kwargs: dict[str, Any] = {}
         self._random_kwargs: dict[str, Any] = {}
+        self._set_static_and_random_kwargs()
 
     def _set_static_and_random_kwargs(self):
         self._static_kwargs = {k: v for k, v in self._original_kwargs.items() if not is_tuple_of_two_numbers(v)}
@@ -29,9 +30,12 @@ class BulletKwargsHandler:
     def get_raw_kwargs(self):
         return self._original_kwargs.copy()
 
-    def update_kwargs(self, new_items: dict[str, Any]):
+    def update_kwargs(self, **new_items: dict[str, Any]):
         self._original_kwargs.update(new_items)
         self._set_static_and_random_kwargs()
+
+    def getattr(self, name: str, default: Any = None) -> Any:
+        return self._original_kwargs.get(name, default)
 
 
 
@@ -47,6 +51,10 @@ class BulletSpawner:
         self.spread: float = spread
         self.spawn_radius: float = spawn_radius
         self.offset_factor: float = offset_factor
+
+    def get_sample(self):
+        return self.bullet_class(None, 0, 0, 0,
+                                 **self.bullet_kwargs.get_processed_kwargs())
 
     def spawn_bullet(self, x, y, angle, parent: BaseUnit):
         bullet = self.bullet_class(

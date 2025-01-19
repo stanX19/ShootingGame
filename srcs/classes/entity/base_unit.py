@@ -24,7 +24,9 @@ class BaseUnit(Breakable):
                  x: float, y: float,
                  speed=UNIT_SPEED, angle=0.0, radius=UNIT_RADIUS, color=ENEMY_COLOR,
                  hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
-                 shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED, **kwargs):
+                 shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED,
+                 importance:int=0,
+                 **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
         self.max_speed: float = speed
         self.target: Optional[GameParticle] = None
@@ -35,6 +37,7 @@ class BaseUnit(Breakable):
         self.shoot_range: float = shoot_range
         self.bullet_speed: float = bullet_speed
         self.max_rad: float = radius
+        self.importance: int = importance
 
         self.update_appearance_based_on_hp()
 
@@ -54,9 +57,12 @@ class BaseUnit(Breakable):
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
+            unit_weight = 0
+            if isinstance(target, BaseUnit):
+                unit_weight = 2 * K + target.importance
             distance = (
                dis
-               - isinstance(target, BaseUnit) * 2 * K
+               - unit_weight
                - target.score / 100
                + target.hp * 2
                # - (dis < self.shoot_range) * K \

@@ -11,11 +11,13 @@ from srcs.constants import *
 
 class Missile(Explosive):
     def __init__(self, faction: FactionData, x: float, y: float, angle: float,
-                 target: [GameParticle, None] = None,
-                 radius=MISSILE_RADIUS,
                  speed=MISSILE_SPEED,
-                 hp=1, dmg=10, lifespan=60 * 2, **kwargs):
-        super().__init__(faction, x, y, angle, radius, speed, hp, dmg, lifespan, MISSILE_COLOR, MISSILE_COLOR, **kwargs)
+                 radius=MISSILE_RADIUS,
+                 color=MISSILE_COLOR,
+                 hp=1, dmg=10, lifespan=60 * 2,
+                 target: [GameParticle, None] = None,
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
         self.target: [GameParticle, None] = target
         self.reached_target: bool = False
 

@@ -145,7 +145,7 @@ class PlayerController(AIController):
         closest_distance = float('inf')
         is_unit = False
         for target in unit.faction.target_list:
-            distance = target.distance_with_cord(self.aim_x, self.aim_y) - target.rad
+            distance = target.distance_with_cord(self.aim_x, self.aim_y)
             if is_unit and not isinstance(target, BaseUnit):
                 continue
             if distance < closest_distance:
