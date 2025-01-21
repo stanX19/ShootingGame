@@ -1,40 +1,37 @@
 import copy
 from typing import Optional
-
 from srcs import constants, utils
 from srcs.classes.entity.base_unit import BaseUnit
-from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
-from srcs.constants import BULLET_COLOR
+from srcs.classes.weapon_classes.general_weapon import BaseWeapon
 
 
 class WeaponHandler:
-    def __init__(self, unit: BaseUnit, weapons: Optional[list[GeneralWeapon]] = None):
+    def __init__(self, unit: BaseUnit, weapons: Optional[list[BaseWeapon]] = None):
         self.unit: BaseUnit = unit
-        self.weapon: Optional[GeneralWeapon] = None
-        self.all_weapons: list[GeneralWeapon] = []
+        self.weapon: Optional[BaseWeapon] = None
+        self.all_weapons: list[BaseWeapon] = []
         self.reinit_weapons(weapons)
         self.change_cd = 2000  # ms
         self.is_first_shot = True
         self.weapon_change_energy = 10000
-        self._overdrive_end_time = -constants.OVERDRIVE_CD
-        self._overdrive_start_time = -constants.OVERDRIVE_CD
-        self.overdrive_weapon: Optional[GeneralWeapon] = None
         self.last_charge_time = 0
 
-    def reinit_weapons(self, weapons: Optional[list[GeneralWeapon]] = None):
+    def reinit_weapons(self, weapons: Optional[list[BaseWeapon]] = None):
         if isinstance(weapons, list):
-            weapons = [copy.deepcopy(weapon) for weapon in weapons if isinstance(weapon, GeneralWeapon)]
-        elif isinstance(weapons, GeneralWeapon):
+            weapons = [copy.deepcopy(weapon) for weapon in weapons if isinstance(weapon, BaseWeapon)]
+        elif isinstance(weapons, BaseWeapon):
             weapons = [copy.deepcopy(weapons)]
         else:
             weapons = []
 
         for w in weapons:
-            w.bullet_kwargs.update_kwargs(
-                color=utils.color_mix(self.unit.color, w.bullet_color)
-            )
-        self.weapon: Optional[GeneralWeapon] = weapons[0] if weapons else None
+            w.mix_bullet_color_with(self.unit.color)
+        self.weapon: Optional[BaseWeapon] = weapons[0] if weapons else None
         self.all_weapons = weapons
+
+    @property
+    def current_time(self):
+        return self.unit.faction.game_data.current_time
 
     @property
     def level_str(self):
@@ -52,36 +49,23 @@ class WeaponHandler:
         return self.weapon.name if self.weapon else "None"
 
     @property
+    def overdrive_percentage(self):
+        return self.weapon.get_overdrive_reload_percentage(self.current_time)
+
+    @property
     def overdrive_cd(self):
-        return max(0.0, constants.OVERDRIVE_CD - (self.unit.faction.game_data.current_time - self._overdrive_end_time))
+        return self.weapon.get_overdrive_cd(self.current_time)
 
     @overdrive_cd.setter
     def overdrive_cd(self, val):
         if val < 0.0:
             val = 0.0
-        self._overdrive_end_time = self.unit.faction.game_data.current_time - constants.OVERDRIVE_CD + val
+        self.weapon.set_overdrive_cd(self.current_time, self.overdrive_cd + val)
 
     def overdrive_start(self):
-        if self.overdrive_weapon:
+        if not self.weapon:
             return
-        if self.overdrive_cd:
-            return
-        self._overdrive_start_time = self.unit.faction.game_data.current_time
-        self._overdrive_end_time = self.unit.faction.game_data.current_time
-        self.overdrive_weapon = self.weapon
-        self.overdrive_weapon.shoot_timer.reset()
-        self.overdrive_weapon.shoot_timer.shoot_cd /= 10
-
-    def overdrive_end(self):
-        if not self.overdrive_weapon:
-            return
-        self.overdrive_weapon.shoot_timer.shoot_cd *= 10
-        self.overdrive_weapon = None
-        self._overdrive_end_time = self.unit.faction.game_data.current_time
-
-    def check_overdrive_end(self):
-        if self.unit.faction.game_data.current_time > self._overdrive_start_time + 2000:
-            self.overdrive_end()
+        self.weapon.start_overdrive_if_available(self.current_time)
 
     def upgrade_weapon(self):
         if self.weapon.level.is_max():
@@ -92,7 +76,7 @@ class WeaponHandler:
     def change_weapon(self, weapon=None):
         if weapon is None:
             self.cycle_weapon()
-        elif isinstance(weapon, GeneralWeapon):
+        elif isinstance(weapon, BaseWeapon):
             self._set_weapon(weapon)
         elif isinstance(weapon, int):
             self.set_weapon_by_index(weapon)
@@ -107,7 +91,7 @@ class WeaponHandler:
         if 0 <= index < len(self.all_weapons):
             self._set_weapon(self.all_weapons[index])
 
-    def _set_weapon(self, weapon: GeneralWeapon):
+    def _set_weapon(self, weapon: BaseWeapon):
         if self.weapon.name == weapon.name:
             return
         if self._change_in_cooldown():
@@ -117,14 +101,13 @@ class WeaponHandler:
         else:
             weapon = copy.copy(weapon)
             self.all_weapons.append(weapon)
-        self.overdrive_end()
         self.weapon = weapon
         self.is_first_shot = True
 
     def _change_in_cooldown(self):
         max_consecutive_change = 1
-        self.weapon_change_energy += self.unit.faction.game_data.current_time - self.last_charge_time
-        self.last_charge_time = self.unit.faction.game_data.current_time
+        self.weapon_change_energy += self.current_time - self.last_charge_time
+        self.last_charge_time = self.current_time
         self.weapon_change_energy = utils.normalize(self.weapon_change_energy, 0,
                                                     max_consecutive_change * self.change_cd)
         return self.weapon_change_energy < self.change_cd
@@ -132,9 +115,8 @@ class WeaponHandler:
     def fire(self, target_x: float, target_y: float):
         if not self.weapon:
             return
-        self.check_overdrive_end()
         self.weapon.fire(self.unit, target_x, target_y)
-    #
+
     # def _fire_lazer(self):
     #     # lazer_dy = math.sin(self.angle) * self.weapon.rad
     #     # lazer_dx = math.cos(self.angle) * self.weapon.rad

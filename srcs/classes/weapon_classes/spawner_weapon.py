@@ -1,7 +1,6 @@
 import math
 from typing import override
 
-from srcs import utils
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.bullet import Bullet
 from srcs.classes.entity.game_particle import GameParticle
@@ -10,7 +9,7 @@ from srcs.classes.weapon_classes.bullet_spawner import BulletSpawner
 from srcs.constants import PLAYER_RADIUS, OVERDRIVE_DURATION, OVERDRIVE_CD
 
 
-class GeneralWeapon(BaseWeapon):
+class SpawnerWeapon(BaseWeapon):
     def __init__(
             self,
             name: str,
@@ -32,20 +31,10 @@ class GeneralWeapon(BaseWeapon):
                          reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
         self.spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
                                      offset_factor=offset_factor, spawn_radius=spawn_radius)
-        sample = self.spawner.get_sample()
-        self._bullet_color = sample.color
-        self._bullet_speed = sample.speed
-        self._recoil = recoil
 
     @override
     def get_speed(self, unit: BaseUnit) -> float:
-        return max(unit.speed - self._recoil, self._bullet_speed)
-
-    @override
-    def mix_bullet_color_with(self, color):
-        self.update_bullet(
-            color=utils.color_mix(color, self._bullet_color, 1.0, 0.5)
-        )
+        return 0
 
     @override
     def update_bullet(self, **kwargs):

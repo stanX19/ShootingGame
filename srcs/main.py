@@ -21,7 +21,7 @@ from srcs.classes.weapons import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
-from srcs.classes.entity.unit import Unit, ShootingUnit
+from srcs.classes.entity.unit import Unit, ShootingUnit, ShieldedUnit
 from srcs.classes.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
     UnitMothership, SuicideUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
@@ -75,17 +75,17 @@ class Game:
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
         self.ally_unit_dict = {
-            SniperUnit: 0,
-            SuperShootingUnit: 0,
-            EliteUnit: 0,
-            SuicideUnit: 0,
+            SniperUnit: 1,
+            SuperShootingUnit: 1,
+            EliteUnit: 2,
+            SuicideUnit: 5,
             BasicShootingUnit: 30,
         }
         self.enemy_unit_dict = {
-            SniperUnit: 0,
-            SuperShootingUnit: 0,
-            EliteUnit: 0,
-            SuicideUnit: 0,
+            SniperUnit: 1,
+            SuperShootingUnit: 1,
+            EliteUnit: 2,
+            SuicideUnit: 5,
             BasicShootingUnit: 30,
         }
         DISTANCE_FROM_BOUND = 1000
@@ -101,9 +101,6 @@ class Game:
         self.data.enemies.append(self.data.enemy_mothership)
         self.data.player = EliteUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      color=PLAYER_COLOR)
-        # if test_mode:
-        #     self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
-
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
         #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
@@ -125,10 +122,15 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.missile)
         self.data.allies.append(
             Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
-        self.data.enemies.append(ShootingUnit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
-                                              hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
+        # self.data.enemies.append(ShootingUnit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
+        #                                       hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
+        #                                       controller=BotController(), variable_shape=True
+        #                                       ))
+        self.data.enemies.append(ShieldedUnit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
+                                              hp=100, dmg=10,
                                               controller=BotController(), variable_shape=True
                                               ))
         # self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=50, dmg=1,
@@ -152,6 +154,7 @@ class Game:
                     self.data.quit = True
                 if event.key == pygame.K_q and isinstance(self.data.player, ShootingUnit):
                     self.data.player.main_weapon.overdrive_start()
+                    self.data.player.sub_weapon.overdrive_start()
                 if event.key == pygame.K_TAB:
                     self.change_player_unit()
                 if event.key == pygame.K_e:
@@ -341,10 +344,9 @@ class Game:
         candidates: list[BaseUnit] = [i for i in self.data.allies if
                                       (isinstance(i, BaseUnit)
                                        and i is not original_unit
-                                       and i is not self.data.ally_mothership
                                        and self.data.in_map(i))
                                       ]
-        candidates.sort(key=lambda x: x.hp - x.distance_with(self.data.player) / 7.5)
+        candidates.sort(key=lambda x: - x.distance_with(self.data.player) * 0.9)
         try:
             self.data.player = candidates[-1]
         except IndexError:
@@ -427,7 +429,8 @@ class Game:
   enemy count     : {len(self.data.enemies)}
   ally count      : {len(self.data.allies)}
   kills           : {self.data.kills}
-  auto fire       : {'on' if self.data.autofire else 'off':4}(E)""".title()
+  auto fire       : {'on' if self.data.autofire else 'off':4}(E)
+  overdrive       : {(self.data.player.main_weapon.overdrive_percentage if isinstance(self.data.player, ShootingUnit) else 0) * 100:.0f}% (Q)""".title()
         y = 10
         for line in info_str.split("\n"):
             text = font.render(line, True, (255, 255, 255))

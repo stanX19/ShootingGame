@@ -55,7 +55,7 @@ class AIController(BaseController):
             self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
 
     @staticmethod
-    def calculate_shoot_coordinate(unit) -> tuple[float, float]:
+    def calculate_shoot_coordinate(unit: BaseUnit) -> tuple[float, float]:
         target_x, target_y = unit.target.x, unit.target.y
         target_xv, target_yv = unit.target.xv, unit.target.yv
 

@@ -8,7 +8,7 @@ from srcs import utils
 from srcs.classes.entity.shield import Shield
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.faction_data import FactionData
-from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.classes.weapon_classes.general_weapon import BaseWeapon
 from srcs.classes.weapon_handler import WeaponHandler
 from srcs.classes.weapons import MainWeaponEnum
 from srcs.constants import *
@@ -39,8 +39,8 @@ class Unit(BaseUnit):
 class ShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float, y: float,
                  radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-                 weapons: list[GeneralWeapon] | None = MainWeaponEnum.machine_gun,
-                 sub_weapons: list[GeneralWeapon] | None = None, **kwargs):
+                 weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
+                 sub_weapons: list[BaseWeapon] | None = None, **kwargs):
         super().__init__(faction, x, y, radius=radius, speed=speed, hp=hp, **kwargs)
         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
@@ -48,7 +48,7 @@ class ShootingUnit(Unit):
     def move(self):
         super().move()
         if self.main_weapon.weapon is not None:
-            self.bullet_speed = max(self.speed - self.main_weapon.weapon.recoil, self.main_weapon.weapon.bullet_speed)
+            self.bullet_speed = self.main_weapon.weapon.get_speed(self)
         if self.hp and self.controller.fire_main:
             self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
         if self.hp and self.controller.fire_sub:

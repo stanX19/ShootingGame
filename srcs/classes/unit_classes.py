@@ -1,5 +1,6 @@
 from srcs.classes.controller import SmartAIController
 from srcs.classes.entity.unit import *
+from srcs.classes.weapons import SubWeaponEnum
 
 
 class BasicShootingUnit(ShootingUnit):
@@ -31,6 +32,7 @@ class SniperUnit(ShootingUnit, ShieldedUnit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         super().__init__(faction, x, y,
                          hp=250, dmg=10, radius=50, score=10000, speed=UNIT_SPEED / 2,
+                         shield_rad=100,
                          weapons=MainWeaponEnum.lazer_super,
                          # sub_weapons=MainWeaponEnum.lazer_mini,
                          shoot_range=UNIT_SHOOT_RANGE,
@@ -39,9 +41,10 @@ class SniperUnit(ShootingUnit, ShieldedUnit):
 class SuicideUnit(ShootingUnit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         super().__init__(faction, x, y,
-                         hp=250, dmg=15, radius=20, speed=UNIT_SPEED,
+                         hp=250, dmg=125, radius=20, speed=UNIT_SPEED,
                          variable_shape=True, variable_color=True,
                          weapons=MainWeaponEnum.dancer,
+                         sub_weapons=SubWeaponEnum.sub_inverted_dancer,
                          shoot_range=UNIT_SHOOT_RANGE,
                          **kwargs)
 
@@ -53,12 +56,12 @@ class UnitMiniMothership(ShootingUnit, ShieldedUnit, SpawningUnit):
 class UnitMothership(ShieldedUnit, ShootingUnit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         super().__init__(faction, x, y,
-                         hp=5000, dmg=1, speed=0,
+                         hp=5000, dmg=125, speed=0,
                          variable_shape=True, variable_color=True,
                          radius=500, score=50000,
-                         shield_hp=500, shield_rad=1000,
+                         shield_hp=500, shield_rad=700,
                          controller=SmartAIController(),
                          weapons=MainWeaponEnum.bomb,
                          shoot_range=1500,
-                         importance=10000,
+                         importance=1,
                          **kwargs)

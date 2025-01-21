@@ -52,14 +52,14 @@ class BaseUnit(Breakable):
         closest_target = None
         min_distance = float('inf')
 
-        K = MAP_WIDTH
+        K = self.shoot_range
         for target in targets:
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
             unit_weight = 0
             if isinstance(target, BaseUnit):
-                unit_weight = 2 * K + target.importance
+                unit_weight = 2 * K + target.importance * target.hp * 2
             distance = (
                dis
                - unit_weight

@@ -14,7 +14,7 @@ class Missile(Explosive):
                  speed=MISSILE_SPEED,
                  radius=MISSILE_RADIUS,
                  color=MISSILE_COLOR,
-                 hp=1, dmg=10, lifespan=60 * 2,
+                 hp=1, dmg=10, lifespan=360 * 2,
                  target: [GameParticle, None] = None,
                  **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)

@@ -4,7 +4,7 @@ from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.entity.missile import Missile
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
-from srcs.constants import PLAYER_RADIUS
+from srcs.constants import PLAYER_RADIUS, UNIT_RADIUS
 
 
 class MissileWeapon(GeneralWeapon):
@@ -13,9 +13,9 @@ class MissileWeapon(GeneralWeapon):
             name: str,
             reload: int = 200,
             recoil: float = 0,
-            offset_factor: float = 0.1,
-            spread: float = math.pi,
-            spawn_radius: float = PLAYER_RADIUS * 5,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = UNIT_RADIUS,
             max_level: int = 1,
             max_count: int = 1,
             growth_factor: int = 1,
@@ -38,10 +38,10 @@ class MissileWeapon(GeneralWeapon):
             **missile_kwargs,
         )
 
-    def fire(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
-        target = Missile.find_target_at(target_x, target_y, unit.faction.target_list)
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        target = unit.target or Missile.find_target_at(target_x, target_y, unit.faction.target_list)
 
-        spawned_missiles = super().fire(unit, target_x, target_y)
+        spawned_missiles: list[GameParticle] = super()._shoot(unit, target_x, target_y)
 
         for missile in spawned_missiles:
             missile.target = target
