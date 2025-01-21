@@ -54,8 +54,8 @@ class ChargedWeapon(GeneralWeapon):
 
     def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
         shoot_angle = unit.angle_with_cord(target_x, target_y)
-        self.spawner.spawn_radius = unit.rad
-        new_bullets = self.spawner.circular_spawn(
+        self._spawner.spawn_radius = unit.rad
+        new_bullets = self._spawner.circular_spawn(
             unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
         )
         chargers = []

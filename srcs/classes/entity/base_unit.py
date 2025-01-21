@@ -21,11 +21,11 @@ from srcs.utils import color_mix
 
 class BaseUnit(Breakable):
     def __init__(self, faction: FactionData,
-                 x: float, y: float,
-                 speed=UNIT_SPEED, angle=0.0, radius=UNIT_RADIUS, color=ENEMY_COLOR,
+                 x: float = 0.0, y: float = 0.0,
+                 angle=0.0, speed=UNIT_SPEED, radius=UNIT_RADIUS, color=ENEMY_COLOR,
                  hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
                  shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED,
-                 importance:int=0,
+                 # importance:int=0,
                  **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
         self.max_speed: float = speed
@@ -37,7 +37,7 @@ class BaseUnit(Breakable):
         self.shoot_range: float = shoot_range
         self.bullet_speed: float = bullet_speed
         self.max_rad: float = radius
-        self.importance: int = importance
+        # self.importance: int = importance
 
         self.update_appearance_based_on_hp()
 
@@ -59,11 +59,11 @@ class BaseUnit(Breakable):
             dis = self.distance_with(target)
             unit_weight = 0
             if isinstance(target, BaseUnit):
-                unit_weight = 2 * K + target.importance * target.hp * 2
+                unit_weight = 2 * K - target.hp * 2
             distance = (
                dis
                - unit_weight
-               - target.score / 100
+               - target.score / 10
                + target.hp * 2
                # - (dis < self.shoot_range) * K \
                - self.is_targeting_self(self.target) * 2 * K
@@ -132,10 +132,13 @@ class BaseUnit(Breakable):
 
     def on_death(self):
         self.faction.game_data.effects.append(Effect(self.faction.game_data, self.x, self.y, self.angle,
-                                             speed=self.speed, rad=self.rad, lifespan=3,
-                                             color=self.color, fade_off=True))
+                                              speed=self.speed, rad=self.rad, lifespan=3,
+                                              color=self.color, fade_off=True))
         return super().on_death()
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
         # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y))
+
+    def regen_hp(self, regen_amount: float):
+        super().regen_hp(regen_amount)

@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.weapon_classes.bullet_kwargs_handler import BulletKwargsHandler
 from srcs.constants import *
 
@@ -23,18 +24,18 @@ class BulletSpawner:
         return self.bullet_class(None, 0, 0, 0,
                                  **self.bullet_kwargs.get_processed_kwargs())
 
-    def spawn_bullet(self, x, y, angle, parent: BaseUnit):
+    def spawn_bullet(self, x, y, angle, parent: BaseUnit) -> GameParticle:
         bullet = self.bullet_class(
             parent.faction,
-            x,
-            y,
-            angle,
             **self.bullet_kwargs.get_processed_kwargs(),
             parent=parent
         )
+        bullet.x = x
+        bullet.y = y
+        bullet.angle = angle
         return bullet
 
-    def circular_spawn(self, x, y, angle: float, count: int, parent: BaseUnit) -> list[Bullet]:
+    def circular_spawn(self, x, y, angle: float, count: int, parent: BaseUnit) -> list:
         angle_offset = self.spread / count
         spawned_bullets = []
 

@@ -10,7 +10,7 @@ from srcs.constants import *
 
 
 class Missile(Explosive):
-    def __init__(self, faction: FactionData, x: float, y: float, angle: float,
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
                  speed=MISSILE_SPEED,
                  radius=MISSILE_RADIUS,
                  color=MISSILE_COLOR,

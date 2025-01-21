@@ -30,9 +30,9 @@ class GeneralWeapon(BaseWeapon):
     ):
         super().__init__(name, max_level, min_count, max_count, growth_factor,
                          reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
-        self.spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
-                                     offset_factor=offset_factor, spawn_radius=spawn_radius)
-        sample = self.spawner.get_sample()
+        self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
+                                      offset_factor=offset_factor, spawn_radius=spawn_radius)
+        sample = self._spawner.get_sample()
         self._bullet_color = sample.color
         self._bullet_speed = sample.speed
         self._recoil = recoil
@@ -52,6 +52,10 @@ class GeneralWeapon(BaseWeapon):
         self._bullet_kwargs.update_kwargs(**kwargs)
 
     @override
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        self._spawner.bullet_class = new_bullet_class
+
+    @override
     def _start_overdrive(self):
         self._shoot_cd.shoot_cd *= 0.1  # Drastically reduce shooting cooldown during overdrive
 
@@ -62,7 +66,7 @@ class GeneralWeapon(BaseWeapon):
     @override
     def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
         shoot_angle = unit.angle_with_cord(target_x, target_y)
-        new_bullets = self.spawner.circular_spawn(
+        new_bullets = self._spawner.circular_spawn(
             unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
         )
 

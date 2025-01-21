@@ -1,14 +1,13 @@
 from __future__ import annotations
+
+from srcs.classes.effect import Effect
 from srcs.classes.entity.bullet import Bullet
-from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.faction_data import FactionData
 from srcs.constants import *
-from srcs.classes.game_data import GameData
-from srcs.classes.effect import Effect
 
 
 class Explosive(Bullet):
-    def __init__(self, faction: FactionData, x: float, y: float, angle: float,
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  speed=BULLET_SPEED, radius=BULLET_RADIUS,
                  color=BULLET_COLOR, hp=1.0, dmg=1.0, lifespan=float('inf'),
                  explosion_color=EXPLOSION_COLOR, projectile_dmg=1,
@@ -20,13 +19,13 @@ class Explosive(Bullet):
 
     def on_death(self):
         self.faction.parent_list.append(Effect(self.faction.game_data, self.x, self.y, self.angle, 0,
-                                            rad=self.rad,
-                                            hp=10000000,
-                                            dmg=self.explosion_dmg,
-                                            lifespan=10,
-                                            color=self.explosion_color,
-                                            fade_off=True,
-                                            target_rad = self.rad * 10))
+                                               rad=self.rad,
+                                               hp=10000000,
+                                               dmg=self.explosion_dmg,
+                                               lifespan=10,
+                                               color=self.explosion_color,
+                                               fade_off=True,
+                                               target_rad=self.rad * 10))
         # self.game_data.bullets.append(Bullet(self.game_data, self.x, self.y, self.angle, 0, self.rad * 10, (0, 0, 0),
         #                                      100000000, self.dmg / 10, lifespan=10))
         return super().on_death()

@@ -14,7 +14,6 @@ class SpawnerWeapon(BaseWeapon):
             self,
             name: str,
             reload: int = 200,
-            recoil: float = 0,
             offset_factor: float = 1.0,
             spread: float = math.pi * 2,
             spawn_radius: float = 0,
@@ -29,37 +28,44 @@ class SpawnerWeapon(BaseWeapon):
     ):
         super().__init__(name, max_level, min_count, max_count, growth_factor,
                          reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
-        self.spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
-                                     offset_factor=offset_factor, spawn_radius=spawn_radius)
+        self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
+                                      offset_factor=offset_factor, spawn_radius=spawn_radius)
 
     @override
-    def get_speed(self, unit: BaseUnit) -> float:
-        return 0
+    def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
+        if not self._shoot_cd.is_ended(unit.faction.game_data.current_time, auto_restart=True):
+            return []
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        self._spawner.spawn_radius = unit.rad - 10
+        new_bullets: list[BaseUnit] = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
+        )
+        for b in new_bullets:
+            b.target = unit.target
+        unit.faction.parent_list.extend(new_bullets)
+        return new_bullets
 
     @override
     def update_bullet(self, **kwargs):
         self._bullet_kwargs.update_kwargs(**kwargs)
 
     @override
+    def get_speed(self, unit: BaseUnit) -> float:
+        return 0
+
+    @override
+    def mix_bullet_color_with(self, color):
+        self.update_bullet(color=color)
+
+    @override
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        self._spawner.bullet_class = new_bullet_class
+
+    @override
     def _start_overdrive(self):
-        self._shoot_cd.shoot_cd *= 0.1  # Drastically reduce shooting cooldown during overdrive
+        self._shoot_cd.shoot_cd *= 0.1
 
     @override
     def _end_overdrive(self):
         self._shoot_cd.shoot_cd /= 0.1
 
-    @override
-    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
-        shoot_angle = unit.angle_with_cord(target_x, target_y)
-        new_bullets = self.spawner.circular_spawn(
-            unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
-        )
-
-        unit.faction.parent_list.extend(new_bullets)
-        self._apply_recoil(unit, shoot_angle, self._recoil)
-        return new_bullets
-
-    def _apply_recoil(self, unit: BaseUnit, shoot_angle: float, magnitude: float) -> None:
-        """Applies recoil to the unit."""
-        unit.xv -= math.cos(shoot_angle) * magnitude
-        unit.yv -= math.sin(shoot_angle) * magnitude

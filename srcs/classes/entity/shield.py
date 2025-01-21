@@ -13,18 +13,18 @@ from srcs import utils
 class Shield(FactionParticle):
     default_color = (0, 255, 255)
 
-    def __init__(self, faction: FactionData, x, y, rad=100,
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, rad=100,
                  color=default_color, hp=100, dmg=1.0,
                  parent: Optional[GameParticle] = None,
                  regen_rate: float=0.25, **kwargs):
-        super().__init__(faction, x, y, 0, 0, rad, color, hp, dmg, parent=parent, **kwargs)
+        super().__init__(faction, x, y, angle, 0, rad, color, hp, dmg, parent=parent,
+                         regen_rate=regen_rate, **kwargs)
         self.prev_hp = self.hp
         self.is_hit = False
         self.show_timer = 0
         self.width = 3
         self.show_duration = 30
         self.tick = 0
-        self.regen_rate = regen_rate
         self.down_cd = 180
         self.down_timer = 0
 

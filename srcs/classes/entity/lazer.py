@@ -11,7 +11,7 @@ from srcs.constants import BULLET_SPEED, BULLET_RADIUS, BULLET_COLOR
 
 
 class Lazer(Bullet):
-    def __init__(self, faction: FactionData, x, y, angle, speed=BULLET_SPEED, radius=BULLET_RADIUS,
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, speed=BULLET_SPEED, radius=BULLET_RADIUS,
                  color=BULLET_COLOR, hp=10.0, dmg=1.0, lifespan=float('inf'),
                  **kwargs):
         super().__init__(faction, x, y, angle, speed, radius,

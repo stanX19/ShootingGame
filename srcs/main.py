@@ -22,8 +22,8 @@ from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit, ShootingUnit, ShieldedUnit
-from srcs.classes.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
-    UnitMothership, SuicideUnit
+from srcs.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
+    UnitMothership, SuicideUnit, UnitMiniMothership
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
@@ -75,11 +75,12 @@ class Game:
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
         self.ally_unit_dict = {
-            SniperUnit: 1,
-            SuperShootingUnit: 1,
-            EliteUnit: 2,
-            SuicideUnit: 5,
-            BasicShootingUnit: 30,
+            UnitMiniMothership: 1,
+            # SniperUnit: 1,
+            # SuperShootingUnit: 1,
+            # EliteUnit: 2,
+            # SuicideUnit: 5,
+            # BasicShootingUnit: 30,
         }
         self.enemy_unit_dict = {
             SniperUnit: 1,
@@ -192,7 +193,7 @@ class Game:
                         side='top',
                         parent: BaseUnit | None = None,
                         **kwargs):
-        unit = _constructor(faction, 0, 0, **kwargs)
+        unit = _constructor(faction, 0, 0, parent=parent, **kwargs)
         spawn_rad = unit.rad + 300
 
         # side = random.choice(['left', 'right', 'top', 'bottom'])
@@ -351,9 +352,11 @@ class Game:
             self.data.player = candidates[-1]
         except IndexError:
             return
-        original_unit.controller = self.prev_controller
+        if isinstance(original_unit, Unit):
+            original_unit.controller = self.prev_controller
         original_unit.max_speed = self.prev_max_speed
-        self.prev_controller = self.data.player.controller
+        if isinstance(self.data.player, Unit):
+            self.prev_controller = self.data.player.controller
         self.prev_max_speed = self.data.player.max_speed
         self.data.player.controller = PlayerController()
         self.data.player.max_speed *= 2
@@ -386,7 +389,7 @@ class Game:
         TIME_PASSED = self.data.current_time - self.data.start_ticks
         self.data.collectible_spawn_score += TIME_PASSED
         # recover to 100% in 30 secs
-        self.data.player.hp = min(self.data.player.max_hp, self.data.player.hp + TIME_PASSED / 30000 * self.data.player.max_hp)
+        self.data.player.regen_hp(TIME_PASSED / 30000 * self.data.player.max_hp)
         self.data.start_ticks = self.data.current_time
         self.throttled_refresh_timer += 1
 
@@ -418,7 +421,7 @@ class Game:
         self.spawn_allies()
 
     def add_text_to_screen(self):
-        info_str = f"""Score: {self.data.player.score}
+        info_str = f"""Score: {self.data.player.score:.0f}
   {int(self.data.player.hp)} / {int(self.data.player.max_hp)} hp
   """.strip()
         debug_str = f"""\

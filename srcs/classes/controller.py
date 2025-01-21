@@ -158,3 +158,9 @@ class PlayerController(AIController):
 
     def get_child(self):
         return PlayerDroneController()
+
+class AIDroneController(SmartAIController):
+    def update_based_on(self, unit: BaseUnit):
+        if isinstance(unit.parent, BaseUnit):
+            unit.target = unit.parent.target
+        super().update_based_on(unit)

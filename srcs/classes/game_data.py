@@ -61,3 +61,6 @@ class GameData:
         min_y = 0 - particle.rad
         max_y = constants.MAP_HEIGHT + particle.rad
         return min_x < particle.x < max_x and min_y < particle.y < max_y
+
+    def get_time_passed(self):
+        return self.current_time - self.start_ticks

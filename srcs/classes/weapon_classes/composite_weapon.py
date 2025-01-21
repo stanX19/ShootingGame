@@ -23,7 +23,7 @@ class CompositeWeapon(BaseWeapon):
         self._unlocked_index = 0
 
     @override
-    def fire(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+    def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
         current_time = unit.faction.game_data.current_time
 
         if self._unlocked_index == len(self._weapons):
@@ -33,7 +33,7 @@ class CompositeWeapon(BaseWeapon):
 
         if self._interval_cd.is_ended(current_time, auto_restart=True):
             self._unlocked_index += 1
-        ret = sum([w.fire(unit, target_x, target_y) for w in self._weapons[:self._unlocked_index]], [])
+        ret = sum([w.fire(unit, target_x, target_y, **kwargs) for w in self._weapons[:self._unlocked_index]], [])
         return ret
 
     @override
@@ -44,6 +44,10 @@ class CompositeWeapon(BaseWeapon):
     def mix_bullet_color_with(self, color):
         for w in self._weapons:
             w.mix_bullet_color_with(color)
+
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        for w in self._weapons:
+            w.change_bullet_class(new_bullet_class)
 
     @override
     def start_overdrive_if_available(self, current_time: float):

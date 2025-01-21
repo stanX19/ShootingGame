@@ -55,8 +55,8 @@ class Particle:
 
 
 class GameParticle(Particle):
-    def __init__(self, x: float, y: float, angle=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
-                 score=0, parent: GameParticle | None = None):
+    def __init__(self, x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
+                 score=0, parent: GameParticle | None = None, regen_rate: float=0):
         super().__init__(x, y, angle, speed, radius, color)
         self.hp: float = hp
         self.max_hp: float = hp
@@ -64,11 +64,12 @@ class GameParticle(Particle):
         self.dmg: float = dmg
         self.score: int = score
         self.parent: GameParticle | None = parent
+        self.regen_rate = regen_rate
 
     def add_score(self, amount):
         self.score += amount
         if isinstance(self.parent, GameParticle):
-            self.parent.add_score(amount)
+            self.parent.add_score(amount * 0.1)
 
     def regen_hp(self, regen_amount: float):
         self.hp = min(self.hp + regen_amount, self.max_hp)
@@ -89,3 +90,7 @@ class GameParticle(Particle):
         y_dis = y - self.y
         x_dis = x - self.x
         return math.atan2(y_dis, x_dis)
+
+    def move(self):
+        super().move()
+        self.hp = min(self.max_hp, self.hp + self.regen_rate)

@@ -18,9 +18,9 @@ class WeaponHandler:
 
     def reinit_weapons(self, weapons: Optional[list[BaseWeapon]] = None):
         if isinstance(weapons, list):
-            weapons = [copy.deepcopy(weapon) for weapon in weapons if isinstance(weapon, BaseWeapon)]
+            weapons = [weapon.copy() for weapon in weapons if isinstance(weapon, BaseWeapon)]
         elif isinstance(weapons, BaseWeapon):
-            weapons = [copy.deepcopy(weapons)]
+            weapons = [weapons.copy()]
         else:
             weapons = []
 
@@ -99,7 +99,7 @@ class WeaponHandler:
         if weapon.name in [w.name for w in self.all_weapons]:
             weapon = next(w for w in self.all_weapons if w.name == weapon.name)
         else:
-            weapon = copy.copy(weapon)
+            weapon = weapon.copy()
             self.all_weapons.append(weapon)
         self.weapon = weapon
         self.is_first_shot = True
@@ -112,10 +112,10 @@ class WeaponHandler:
                                                     max_consecutive_change * self.change_cd)
         return self.weapon_change_energy < self.change_cd
 
-    def fire(self, target_x: float, target_y: float):
+    def fire(self, target_x: float, target_y: float, **kwargs):
         if not self.weapon:
             return
-        self.weapon.fire(self.unit, target_x, target_y)
+        self.weapon.fire(self.unit, target_x, target_y, **kwargs)
 
     # def _fire_lazer(self):
     #     # lazer_dy = math.sin(self.angle) * self.weapon.rad

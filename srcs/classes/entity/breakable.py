@@ -13,7 +13,7 @@ from srcs.utils import color_mix
 
 
 class Breakable(FactionParticle):
-    def __init__(self, faction: FactionData, x: float, y: float, angle=0.0, speed=0.0, radius=1.0,
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0,
                  color=(255, 255, 255), hp=1, dmg=1,
                  score=0, **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
