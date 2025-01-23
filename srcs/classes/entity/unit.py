@@ -1,26 +1,43 @@
 from __future__ import annotations
+
+from typing import Optional
+
 import pygame
-import math
-import random
-from typing import Optional, Any
 
 from srcs import utils
-from srcs.classes.entity.shield import Shield
+from srcs.classes.controller import BaseController, AIController
 from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.shield import Shield
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.general_weapon import BaseWeapon
-from srcs.classes.weapon_handler import WeaponHandler
-from srcs.classes.weapons import MainWeaponEnum
+from srcs.classes.weapon_classes.weapon_handler import WeaponHandler
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.constants import *
-from srcs.classes.controller import BaseController, AIController
 
 
 class Unit(BaseUnit):
-    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-                 controller: Optional[BaseController] = None, **kwargs):
-        super().__init__(faction, x, y, angle, **kwargs)
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: Optional[BaseController] = None, radius=10, speed=UNIT_SPEED * 2.5, hp=10,
+                 weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
+                 sub_weapons: list[BaseWeapon] | None = None,
+                 shield_hp: float = 0, shield_rad: float = 0, **kwargs):
+        super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
         self.controller: BaseController = AIController() if controller is None else controller.copy()
         self.update_appearance_based_on_hp()
+        self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
+        self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
+
+        # Shield
+        if shield_hp != 0:
+            if shield_rad == 0:
+                shield_rad = self.rad + shield_hp
+                print("Warning: Undefined shield_rad when shield_hp is non-zero")
+            self._spawn_shield(shield_hp, shield_rad)
+
+    def _spawn_shield(self, shield_hp, shield_rad):
+        self.faction.parent_list.append(
+            Shield(self.faction, self.x, self.y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
+                   hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
 
     def move(self):
         super().move()
@@ -31,22 +48,6 @@ class Unit(BaseUnit):
             self.speed = self.max_speed
         self.turn_to(self.controller.move_angle)
 
-    def draw(self, surface: pygame.Surface):
-        super().draw(surface)
-        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
-
-
-class ShootingUnit(Unit):
-    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-                 radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-                 weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
-                 sub_weapons: list[BaseWeapon] | None = None, **kwargs):
-        super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
-        self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
-
-    def move(self):
-        super().move()
         if self.main_weapon.weapon is not None:
             self.bullet_speed = self.main_weapon.weapon.get_speed(self)
         if self.hp and self.controller.fire_main:
@@ -54,66 +55,56 @@ class ShootingUnit(Unit):
         if self.hp and self.controller.fire_sub:
             self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
 
-class ShieldedUnit(Unit):
-    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-                 shield_hp=None, shield_rad=None, **kwargs):
-        super().__init__(faction, x, y, angle, **kwargs)
-        self.shoot_timer = 0
-        shield_rad = shield_rad if shield_rad is not None else max(50, self.rad + 2 * self.hp)
-        shield_hp = shield_hp if shield_hp is not None else 2 * self.hp
-        self.faction.parent_list.append(Shield(faction, x, y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
-                                        hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
 
-# class SpawningUnit(Unit):
+#
+#
+# class Unit(BaseUnit):
 #     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-#                  child_class: type=Unit, child_kwargs: Optional[dict]=None,
-#                  child_speed: tuple[float, float] = (UNIT_SPEED * 2.5, UNIT_SPEED * 5),
-#                  child_spawn_cd=1000, **kwargs):
+#                  controller: Optional[BaseController] = None, **kwargs):
 #         super().__init__(faction, x, y, angle, **kwargs)
-#         self.child_class = child_class
-#         self.child_kwargs = {} if child_kwargs is None else child_kwargs
-#         self.child_speed = child_speed
-#         self.child_count = 0
-#         self.child_spawn_cd = child_spawn_cd
+#         self.controller: BaseController = AIController() if controller is None else controller.copy()
+#         self.update_appearance_based_on_hp()
 #
 #     def move(self):
 #         super().move()
-#         self.spawn_with_cd()
+#         self.controller.update_based_on(self)
+#         if not self.controller.is_moving:
+#             self.speed = 0
+#         else:
+#             self.speed = self.max_speed
+#         self.turn_to(self.controller.move_angle)
 #
-#     def spawn_with_cd(self):
-#         max_cap = (self.hp / self.max_hp) * (self.score / 1000)
-#         spawn_cd = (self.child_spawn_cd * self.max_hp / self.hp)
+#     def draw(self, surface: pygame.Surface):
+#         super().draw(surface)
+#         # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
 #
-#         if self.child_count < max_cap:
-#             self.child_count += max_cap / spawn_cd
-#         # max_cap - 1: only spawn when is hit (hp decrease)
-#         # max_cap: can spawn naturally
-#         # if self.child_count < max_cap - 1:
-#         #     return
-#         if not self.controller.fire_sub:
-#             return
-#         self.spawn_childs(int(self.child_count))
-#         self.child_count -= int(self.child_count)
 #
-#     def spawn_childs(self, total: int, **kwargs):
-#         total = min(MAX_ENEMY_COUNT - len(self.faction.parent_list), total)
-#         for i in range(int(total)):
-#             angle = i / total * math.pi * 2
-#             x = self.x + math.cos(angle) * (UNIT_RADIUS * 3 * (i % 3) + self.rad)
-#             y = self.y + math.sin(angle) * (UNIT_RADIUS * 3 * (i % 3) + self.rad)
-#             child: Unit = self.child_class(self.faction.game_data, x, y, self.faction.target_list, self.faction.parent_list,
-#                                      speed=random.uniform(self.child_speed[0], self.child_speed[1]),
-#                                      angle=angle,
-#                                      color=self.color,
-#                                      controller=self.controller.get_child(),
-#                                      **kwargs, **self.child_kwargs)
-#             child.angle = angle
-#             child.move()
-#             self.faction.parent_list.append(child)
+# class ShootingUnit(Unit):
+#     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
+#                  radius=10, speed=UNIT_SPEED * 2.5, hp=10,
+#                  weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
+#                  sub_weapons: list[BaseWeapon] | None = None, **kwargs):
+#         super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
+#         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
+#         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
 #
-#     def on_death(self):
-#         self.spawn_childs(self.child_count)
-#         return super().on_death()
-
-
-
+#     def move(self):
+#         super().move()
+#         if self.main_weapon.weapon is not None:
+#             self.bullet_speed = self.main_weapon.weapon.get_speed(self)
+#         if self.hp and self.controller.fire_main:
+#             self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+#         if self.hp and self.controller.fire_sub:
+#             self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+#
+# class ShieldedUnit(Unit):
+#     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
+#                  shield_hp=None, shield_rad=None, **kwargs):
+#         super().__init__(faction, x, y, angle, **kwargs)
+#         shield_rad = shield_rad if shield_rad is not None else max(50, self.rad + 2 * self.hp)
+#         shield_hp = shield_hp if shield_hp is not None else 2 * self.hp
+#         self.faction.parent_list.append(Shield(faction, x, y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
+#                                         hp=shield_hp, parent=self, regen_rate=shield_hp / 50))

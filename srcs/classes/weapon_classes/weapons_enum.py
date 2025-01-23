@@ -33,7 +33,7 @@ class MainWeaponEnum:
                             lifespan=(5, 20))
     bomb = GeneralWeapon("destroyer", reload=2000, speed=10, max_count=1, radius=50, recoil=5, hp=1, dmg=10,
                          bullet_class=Explosive)
-    simple_missile = MissileWeapon("missile", 1000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
+    simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
                                    radius=MISSILE_RADIUS, speed=MISSILE_SPEED, spread=math.pi * 2)
     missile = CompositeWeapon("Swarm Missile", [
         MissileWeapon("missile", 3000, max_count=8, min_count=2, growth_factor=1,
@@ -45,8 +45,9 @@ class MainWeaponEnum:
     ], 100)
 
     spawner = CompositeWeapon("Spawner", [
-        SpawnerWeapon("Spawner 1", reload=10000, min_count=4, spawn_radius=UNIT_RADIUS * 5),
-    ] * 5, shoot_interval=200)
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2),
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2, angle_offset=math.pi * 0.25),
+    ] * 2, shoot_interval=300)
     # shield = GeneralWeapon("shield", reload=2500, speed=1, max_count=100, hp=25, radius=1,
     #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
     #                     min_count=30, growth_factor=5)

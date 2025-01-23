@@ -19,6 +19,7 @@ class Shield(FactionParticle):
                  regen_rate: float=0.25, **kwargs):
         super().__init__(faction, x, y, angle, 0, rad, color, hp, dmg, parent=parent,
                          regen_rate=regen_rate, **kwargs)
+        assert self.hp != 0
         self.prev_hp = self.hp
         self.is_hit = False
         self.show_timer = 0

@@ -28,8 +28,8 @@ class GameData:
         self.quit: bool = False
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.current_time = pygame.time.get_ticks()
-        self.screen_x = 0  # screen left position in original map
-        self.screen_y = 0
+        self.screen_x = 0  # screen's left position in original map
+        self.screen_y = 0  # screen's top position in original map
         self.zoom = 1.0
         self.spawn_ally_timer = 0
         self.spawn_enemy_timer = 0

@@ -13,6 +13,7 @@ from srcs.classes.entity.bullet import Bullet
 from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.effect import Effect
+from srcs.classes.entity.shield import Shield
 from srcs.classes.faction_data import FactionData
 from srcs.classes.game_data import GameData
 from srcs.constants import *
@@ -52,21 +53,22 @@ class BaseUnit(Breakable):
         closest_target = None
         min_distance = float('inf')
 
-        K = self.shoot_range
+        K = MAP_WIDTH + MAP_HEIGHT
         for target in targets:
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
             unit_weight = 0
-            if isinstance(target, BaseUnit):
-                unit_weight = 2 * K - target.hp * 2
+            if isinstance(target, BaseUnit) or isinstance(target, Shield):
+                unit_weight = K - target.hp * 2
             distance = (
                dis
-               - unit_weight
                - target.score / 10
                + target.hp * 2
-               # - (dis < self.shoot_range) * K \
-               - self.is_targeting_self(self.target) * 2 * K
+               - unit_weight  # = K - target.hp * 2
+               - self.is_targeting_self(target) * 2 * K
+               - (isinstance(self.parent, BaseUnit) and self.parent.is_targeting_self(target)) * 3 * K
+               - (dis < self.shoot_range) * 4 * K
             )
             if distance < min_distance:
                 min_distance = distance

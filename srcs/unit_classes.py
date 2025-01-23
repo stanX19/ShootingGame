@@ -1,10 +1,9 @@
-from typing import override
 from srcs.classes.controller import SmartAIController, AIDroneController
 from srcs.classes.entity.unit import *
-from srcs.classes.weapons import SubWeaponEnum
+from srcs.classes.weapon_classes.weapons_enum import SubWeaponEnum
 
 
-class BasicShootingUnit(ShootingUnit):
+class BasicShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=10, dmg=1, score=100, speed=UNIT_SPEED * 5,
@@ -12,16 +11,17 @@ class BasicShootingUnit(ShootingUnit):
                          **kwargs)
 
 
-class EliteUnit(ShootingUnit, ShieldedUnit):
+class EliteUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=20, dmg=1, score=500, speed=UNIT_SPEED * 1.5,
+                         shield_hp=40, shield_rad=60,
                          weapons=MainWeaponEnum.lazer_mini,
                          sub_weapons=MainWeaponEnum.missile,
                          **kwargs)
 
 
-class SuperShootingUnit(ShootingUnit):
+class SuperShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=100, dmg=5, radius=15, score=2000, speed=UNIT_SPEED,
@@ -29,17 +29,17 @@ class SuperShootingUnit(ShootingUnit):
                          **kwargs)
 
 
-class SniperUnit(ShootingUnit, ShieldedUnit):
+class SniperUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=10, radius=50, score=10000, speed=UNIT_SPEED / 2,
-                         shield_rad=100,
+                         shield_rad=100, shield_hp=500,
                          weapons=MainWeaponEnum.lazer_super,
                          # sub_weapons=MainWeaponEnum.lazer_mini,
                          shoot_range=UNIT_SHOOT_RANGE,
                          **kwargs)
 
-class SuicideUnit(ShootingUnit):
+class SuicideUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=125, radius=20, speed=UNIT_SPEED,
@@ -50,7 +50,7 @@ class SuicideUnit(ShootingUnit):
                          **kwargs)
 
 
-class UnitMiniMothership(ShootingUnit, ShieldedUnit):
+class UnitMiniMothership(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         spawner = MainWeaponEnum.spawner.copy()
         spawner.change_bullet_class(BasicShootingUnit)
@@ -58,7 +58,7 @@ class UnitMiniMothership(ShootingUnit, ShieldedUnit):
 
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=10, radius=100, score=10000, speed=UNIT_SPEED / 2,
-                         shield_rad=200,
+                         shield_rad=200, shield_hp=500,
                          weapons=MainWeaponEnum.lazer_super,
                          sub_weapons=spawner,
                          shoot_range=UNIT_SHOOT_RANGE,
@@ -66,7 +66,7 @@ class UnitMiniMothership(ShootingUnit, ShieldedUnit):
 
 
 
-class UnitMothership(ShieldedUnit, ShootingUnit):
+class UnitMothership(Unit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         super().__init__(faction, x, y,
                          hp=1000, dmg=125, speed=0,

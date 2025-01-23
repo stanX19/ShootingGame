@@ -13,12 +13,14 @@ class BulletSpawner:
                  bullet_class: type[Bullet] = Bullet,
                  spread: float = math.pi * 0.8,
                  spawn_radius: float = 0,
-                 offset_factor: float = 1.0):
+                 offset_factor: float = 1.0,
+                 angle_offset: float = 0.0):
         self.bullet_kwargs: BulletKwargsHandler = bullet_kwargs
         self.bullet_class: type[Bullet] = bullet_class
         self.spread: float = spread
         self.spawn_radius: float = spawn_radius
         self.offset_factor: float = offset_factor
+        self.angle_offset: float = angle_offset
 
     def get_sample(self):
         return self.bullet_class(None, 0, 0, 0,
@@ -41,7 +43,7 @@ class BulletSpawner:
 
         for i in range(count):
             offset = (i - (count - 1) / 2) * angle_offset
-            shoot_angle = angle + offset
+            shoot_angle = angle + offset + self.angle_offset
             bullet_angle = angle + offset * self.offset_factor
             dy, dx = math.sin(shoot_angle) * self.spawn_radius, math.cos(shoot_angle) * self.spawn_radius
 

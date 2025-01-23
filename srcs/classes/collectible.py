@@ -3,8 +3,8 @@ from __future__ import annotations
 import random
 import pygame
 from srcs.classes.entity.game_particle import GameParticle
-from srcs.classes.weapons import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
-from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.weapon_classes.weapons_enum import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
+from srcs.classes.weapon_classes.weapon_handler import WeaponHandler
 from srcs import constants
 from srcs.classes import draw_utils
 from srcs.classes.game_data import GameData

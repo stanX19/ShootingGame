@@ -24,12 +24,14 @@ class SpawnerWeapon(BaseWeapon):
             growth_factor: int = 1,
             overdrive_duration: float = OVERDRIVE_DURATION,
             overdrive_cooldown: float = OVERDRIVE_CD,
+            angle_offset: float = 0.0,
             **bullet_kwargs,
     ):
         super().__init__(name, max_level, min_count, max_count, growth_factor,
                          reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
         self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
-                                      offset_factor=offset_factor, spawn_radius=spawn_radius)
+                                      offset_factor=offset_factor, spawn_radius=spawn_radius,
+                                      angle_offset=angle_offset)
 
     @override
     def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
