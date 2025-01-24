@@ -35,11 +35,11 @@ class GameData:
         self.spawn_enemy_timer = 0
 
     def get_mouse_angle(self, unit: GameParticle):
-        mx, my = self.get_mouse_pos()
+        mx, my = self.get_mouse_pos_in_map()
         px, py = unit.x, unit.y
         return math.atan2(my - py, mx - px)
 
-    def get_mouse_pos(self):
+    def get_mouse_pos_in_map(self):
         mx, my = pygame.mouse.get_pos()
         mx /= self.zoom
         my /= self.zoom

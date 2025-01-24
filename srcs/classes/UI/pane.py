@@ -1,42 +1,47 @@
 import pygame
 
 from srcs.classes.UI.ui_element import UIElement
-from srcs.classes.game_data import GameData
 
 
 class Pane(UIElement):
-    def __init__(self, x1: int, y1: int, x2: int, y2: int, game_data: GameData, margin: int = 10, spacing: int = 5):
-        super().__init__(game_data)
-        self.x1: int = x1
-        self.y1: int = y1
-        self.x2: int = x2
-        self.y2: int = y2
-        self.margin: int = margin
-        self.spacing: int = spacing
-        self.buttons = []
+    def __init__(self, x1: int, y1: int, x2: int, y2: int, margin: int = 10, spacing: int = 5):
+        super().__init__(x1, y1, x2, y2, margin, spacing)
+        self.child_list: list[UIElement] = []
 
-    def set_buttons(self, *buttons):
-        self.buttons = buttons
-        self._arrange_buttons()
+    def get_all_child(self, class_type: type[object] = object):
+        ret = []
+        for child in self.child_list:
+            if isinstance(child, class_type):
+                ret.append(child)
+            if isinstance(child, Pane):
+                ret += child.get_all_child(class_type)
+        return ret
 
-    def add_buttons(self, *buttons):
-        self.buttons.extend(buttons)
-        self._arrange_buttons()
+    def set_child(self, *children):
+        self.child_list = children
+        self._arrange_child()
 
-    def _arrange_buttons(self):
-        current_y = self.y1 + self.margin
-        for button in self.buttons:
-            button.x1 = self.x1 + self.margin
-            button.y1 = current_y
-            button.x2 = self.x2 - self.margin
-            button.y2 = button.y1 + 40  # Assuming a fixed height of 40 for simplicity
-            current_y = button.y2 + self.spacing
+    def add_child(self, *children):
+        self.child_list.extend(children)
+        self._arrange_child()
+
+    def _arrange_child(self):
+        n = len(self.child_list)
+        width = (self.width - 2 * self.margin - (n - 1) * self.spacing) / n
+        height = self.height - 2 * self.margin
+        current_x = self.x + self.margin
+        for child in self.child_list:
+            child.x = current_x
+            child.y = self.top + self.margin
+            child.width = width
+            child.height = height
+            current_x += self.margin + width
 
     def _draw(self, surface):
-        pygame.draw.rect(surface, (0, 255, 0), (self.x1, self.y1, self.x2 - self.x1, self.y2 - self.y1))
-        for button in self.buttons:
-            button.draw(surface)
+        pygame.draw.rect(surface, (79,69,87), self)
+        for child in self.child_list:
+            child.draw(surface)
 
-    def update(self):
-        for button in self.buttons:
-            button.update()
+    def _handle_click_on_self(self):
+        for child in self.child_list:
+            child.handle_click()

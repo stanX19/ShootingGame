@@ -37,6 +37,7 @@ class SpawnerWeapon(BaseWeapon):
     def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
         if not self._shoot_cd.is_ended(unit.faction.game_data.current_time, auto_restart=True):
             return []
+        self.check_overdrive_end(unit.faction.game_data.current_time)
         shoot_angle = unit.angle_with_cord(target_x, target_y)
         self._spawner.spawn_radius = unit.rad - 10
         new_bullets: list[BaseUnit] = self._spawner.circular_spawn(

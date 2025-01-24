@@ -66,6 +66,13 @@ class GameParticle(Particle):
         self.parent: GameParticle | None = parent
         self.regen_rate = regen_rate
 
+    def set_hp(self, hp):
+        self.hp = min(self.max_hp, hp)
+
+    def increase_max_hp(self, amount):
+        self.hp += amount
+        self.max_hp += amount
+
     def add_score(self, amount):
         self.score += amount
         if isinstance(self.parent, GameParticle):

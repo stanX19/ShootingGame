@@ -109,7 +109,7 @@ class PlayerDroneController(SmartAIController):
         if not affected:
             return
         if unit.faction.game_data.left_mouse_down:
-            self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos()
+            self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos_in_map()
         self.move_angle = unit.angle_with_cord(self.aim_x, self.aim_y)
         self.fire_main = unit.faction.game_data.left_mouse_down or self.fire_main
         self.fire_sub = unit.faction.game_data.right_mouse_down or self.fire_main
@@ -140,7 +140,7 @@ class PlayerController(AIController):
         self.move_angle = math.atan2(dy, dx)
 
     def _update_using_ai(self, unit: BaseUnit):
-        self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos()
+        self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos_in_map()
         closest_unit = None
         closest_distance = float('inf')
         is_unit = False

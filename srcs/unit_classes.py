@@ -6,7 +6,7 @@ from srcs.classes.weapon_classes.weapons_enum import SubWeaponEnum
 class BasicShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=10, dmg=1, score=100, speed=UNIT_SPEED * 5,
+                         hp=10, dmg=1, score=100, speed=UNIT_SPEED * 3,
                          weapons=MainWeaponEnum.lazer_mini,
                          **kwargs)
 

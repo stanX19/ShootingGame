@@ -25,7 +25,7 @@ class MainWeaponEnum:
                           growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=1, hp=100)
     giant_canon = GeneralWeapon("giant canon", reload=200, speed=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
     lazer_super = ChargedWeapon("lazer super", reload=2000, speed=200, min_count=1, max_count=1, radius=10,
-                                growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=5, hp=200, charge_lifespan=10)
+                                growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 50), max_count=300, radius=1,

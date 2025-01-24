@@ -4,6 +4,10 @@ import os
 import subprocess
 import sys
 
+from srcs.classes.UI.ui_element import UIElement
+from srcs.classes.UI.pane import Pane
+from srcs.classes.UI.button import Button
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
@@ -15,7 +19,7 @@ except ImportError:
     import pygame
     import numpy
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
-    ENEMY_COLOR
+    ENEMY_COLOR, SCREEN_HEIGHT, SCREEN_WIDTH
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
@@ -52,8 +56,13 @@ font = pygame.font.Font(None, 36)
 big_font = pygame.font.Font(None, 180)
 consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 
-
-# Game class
+# TODO:
+#  add buttons (testing)
+#  remove mothership
+#  implement buttons to upgrade player
+#  player can choose three paths: [spawner, turret spawner, attacker]
+#  since there are two weapon slots, player can choose more than one path
+#  spawner and turret's child will have options to use [weapon, hp, dmg, speed] series upgrade
 class Game:
     def __init__(self):
         self.data: GameData = GameData()
@@ -64,7 +73,20 @@ class Game:
         self.enemy_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.ally_unit_dict = {}
         self.enemy_unit_dict = {}
+        self.upgrade_pane = Pane(
+            500, SCREEN_HEIGHT - 200, SCREEN_WIDTH - 500, SCREEN_HEIGHT - 100
+        )
+        self.upgrade_pane.add_child(
+            Button("HP +1000", lambda: self.data.player.increase_max_hp(1000)),
+            Button("SPEED x2", self.double_speed),
+            Button("Self Destruct", lambda: self.data.player.set_hp(-100000000)),
+        )
         self.init_game()
+
+    def double_speed(self):
+        self.data.player.speed *= 2
+        if isinstance(self.data.player, Unit):
+            self.data.player.max_speed *= 2
 
     def init_game(self):
         self.data.running = True
@@ -179,7 +201,9 @@ class Game:
                     self.init_game()
                     self.data.running = True
                 if event.button == 1:  # Left mouse button
-                    self.data.left_mouse_down = True
+                    if not self.upgrade_pane.handle_click():
+                        self.data.left_mouse_down = True
+
                 elif event.button == 3:  # Right mouse button
                     self.data.right_mouse_down = True
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -505,7 +529,11 @@ class Game:
             SCREEN.blit(scaled_cropped_map, (0, 0))
 
         self.add_text_to_screen()
+        self.draw_ui()
         pygame.display.flip()
+
+    def draw_ui(self):
+        self.upgrade_pane.draw(SCREEN)
 
     def run(self):
         while not self.data.quit:
