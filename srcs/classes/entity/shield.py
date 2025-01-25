@@ -19,7 +19,7 @@ class Shield(FactionParticle):
                  regen_rate: float=0.25, **kwargs):
         super().__init__(faction, x, y, angle, 0, rad, color, hp, dmg, parent=parent,
                          regen_rate=regen_rate, **kwargs)
-        assert self.hp != 0
+        self._default_regen_rate = regen_rate
         self.prev_hp = self.hp
         self.is_hit = False
         self.show_timer = 0
@@ -28,9 +28,9 @@ class Shield(FactionParticle):
         self.tick = 0
         self.down_cd = 180
         self.down_timer = 0
+        self._inner_rad = self.parent.rad + 20 #max(self.max_rad - 50, self.parent.rad + 20)
 
     def move(self):
-        super().move()
         self.is_hit = self.hp < self.prev_hp
         self.show_timer = self.show_duration if self.is_hit else self.show_timer
 
@@ -38,15 +38,14 @@ class Shield(FactionParticle):
         if self.down_timer > 0:
             self.rad = 0
         else:
-            self.rad = self.parent.rad + (self.max_rad - self.parent.rad) * (self.prev_hp / self.max_hp) + 15
+            self.rad = self._inner_rad + (self.max_rad - self._inner_rad) * (self.prev_hp / self.max_hp)
 
         if self.hp <= 0 and self.down_timer <= 0:
             self.down_timer = self.down_cd
         else:
             self.down_timer -= 1
 
-        regen_rate = self.regen_rate if self.show_timer <= 0 else self.regen_rate / 10
-        self.regen_hp(regen_rate)
+        self.regen_rate = self._default_regen_rate if self.show_timer <= 0 else self._default_regen_rate / 10
         self.prev_hp = self.hp
 
         if self.parent is not None:
@@ -56,6 +55,7 @@ class Shield(FactionParticle):
             # transferred_hp = min(self.hp, missing_hp)
             # self.hp -= transferred_hp
             # self.parent.hp += transferred_hp
+        super().move()
 
     def draw(self, surface: pygame.Surface):
         if self.rad <= 0:

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
-
-from srcs.classes.UI.ui_element import UIElement
-from srcs.classes.UI.pane import Pane
-from srcs.classes.UI.button import Button
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -19,7 +16,7 @@ except ImportError:
     import pygame
     import numpy
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
-    ENEMY_COLOR, SCREEN_HEIGHT, SCREEN_WIDTH
+    ENEMY_COLOR, SCREEN_HEIGHT, SCREEN_WIDTH, PLAYER_RADIUS, UNIT_RADIUS
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
@@ -27,15 +24,17 @@ from srcs.classes.controller import PlayerController, AIController, BotControlle
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
 from srcs.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
-    UnitMothership, SuicideUnit, UnitMiniMothership
+    UnitMothership, SuicideUnit, MiniMothershipUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
 from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
+from srcs.classes.UI.pane import Pane
+from srcs.classes.UI.button import Button
 
 dev_mode = 0
-test_mode = 0
+test_mode = 1
 god_mode: bool = False
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
@@ -57,8 +56,9 @@ big_font = pygame.font.Font(None, 180)
 consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 
 # TODO:
-#  add buttons (testing)
-#  remove mothership
+#  add buttons (testing) [Done]
+#  remove mothership [Done]
+#  add initial enemy spawning mother ships [Done]
 #  implement buttons to upgrade player
 #  player can choose three paths: [spawner, turret spawner, attacker]
 #  since there are two weapon slots, player can choose more than one path
@@ -71,24 +71,49 @@ class Game:
         self.prev_controller = SmartAIController()
         self.ally_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.enemy_faction = FactionData(self.data, self.data.enemies, self.data.allies)
-        self.ally_unit_dict = {}
-        self.enemy_unit_dict = {}
         self.upgrade_pane = Pane(
-            500, SCREEN_HEIGHT - 200, SCREEN_WIDTH - 500, SCREEN_HEIGHT - 100
+            300, SCREEN_HEIGHT - 200, SCREEN_WIDTH - 300, SCREEN_HEIGHT - 100
         )
         self.upgrade_pane.add_child(
-            Button("HP +1000", lambda: self.data.player.increase_max_hp(1000)),
-            Button("SPEED x2", self.double_speed),
-            Button("Self Destruct", lambda: self.data.player.set_hp(-100000000)),
+            Button("Score -50\nHP +10", self.increase_hp),
+            Button("Score -50\nSPEED +1", self.increase_speed),
+            Button("Score -500\nRADIUS +10", self.increase_rad),
+            Button("Score -5000\nOVERDRIVE +50%", self.increase_overdrive),
         )
+        self.upgrade_pane.hide()
         self.init_game()
 
-    def double_speed(self):
-        self.data.player.speed *= 2
+    def increase_overdrive(self):
+        if not self.data.player.use_score(5000):
+            return
         if isinstance(self.data.player, Unit):
-            self.data.player.max_speed *= 2
+            self.data.player.main_weapon.overdrive_percentage += 0.5
+            self.data.player.sub_weapon.overdrive_percentage += 0.5
+
+    def increase_speed(self):
+        if not self.data.player.use_score(50):
+            return
+        self.data.player.speed += 1
+        if isinstance(self.data.player, Unit):
+            self.data.player.max_speed += 1
+
+    def increase_hp(self):
+        if not self.data.player.use_score(50):
+            return
+        self.data.player.max_hp += 10
+        self.data.player.hp += 10
+
+    def increase_rad(self):
+        if not self.data.player.use_score(500):
+            return
+        self.data.player.max_rad += 10
+        self.data.player.rad += 10
+
+    def self_destruct(self):
+        self.data.player.set_hp(-100000000)
 
     def init_game(self):
+        self.data.zoom = 1.0
         self.data.running = True
         self.data.allies = []
         self.data.enemies = []
@@ -96,32 +121,34 @@ class Game:
         self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
-        self.ally_unit_dict = {
-            UnitMiniMothership: 1,
-            # SniperUnit: 1,
-            # SuperUnit: 1,
-            # EliteUnit: 2,
-            # SuicideUnit: 5,
-            # BasicUnit: 30,
-        }
-        self.enemy_unit_dict = {
-            SniperUnit: 1,
-            SuperShootingUnit: 1,
-            EliteUnit: 2,
-            SuicideUnit: 5,
-            BasicShootingUnit: 30,
-        }
         DISTANCE_FROM_BOUND = 1000
-        self.data.ally_mothership = UnitMothership(
-            self.ally_faction, MAP_WIDTH / 2, MAP_HEIGHT - DISTANCE_FROM_BOUND,
-            color=PLAYER_COLOR
-        )
-        self.data.enemy_mothership = UnitMothership(
-            self.enemy_faction, MAP_WIDTH / 2, DISTANCE_FROM_BOUND,
-            color=ENEMY_COLOR
-        )
-        self.data.allies.append(self.data.ally_mothership)
-        self.data.enemies.append(self.data.enemy_mothership)
+        if not test_mode:
+            ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+            self.data.allies.append(UnitMothership(
+                self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT - 100,
+                color=PLAYER_COLOR, parent=ghost
+            ))
+            self.data.allies.append(UnitMothership(
+                self.ally_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+                color=PLAYER_COLOR, parent=ghost
+            ))
+            self.data.allies.append(UnitMothership(
+                self.ally_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+                color=PLAYER_COLOR, parent=ghost
+            ))
+            ghost = Unit(self.enemy_faction, color=ENEMY_COLOR)
+            self.data.enemies.append(UnitMothership(
+                self.enemy_faction, MAP_WIDTH // 2, 100,
+                color=ENEMY_COLOR, parent=ghost
+            ))
+            self.data.enemies.append(UnitMothership(
+                self.enemy_faction, DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+                color=ENEMY_COLOR, parent=ghost
+            ))
+            self.data.enemies.append(UnitMothership(
+                self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+                color=ENEMY_COLOR, parent=ghost
+            ))
         self.data.player = EliteUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      color=PLAYER_COLOR)
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
@@ -145,15 +172,16 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
-        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.missile)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
         self.data.allies.append(
             Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
         # self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
         #                                       hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
         #                                       controller=BotController(), variable_shape=True
         #                                       ))
+        # self.data.allies[:] = [self.data.player]
         self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
-                                              hp=100, dmg=10,
+                                              hp=100000000, dmg=10,
                                               shield_hp=200, shield_rad=300,
                                               controller=BotController(), variable_shape=True
                                               ))
@@ -183,15 +211,22 @@ class Game:
                     self.change_player_unit()
                 if event.key == pygame.K_e:
                     self.data.autofire = not self.data.autofire
+                if event.key == pygame.K_DELETE:
+                    self.self_destruct()
+                if event.key == pygame.K_m:
+                    if self.upgrade_pane.is_active():
+                        self.upgrade_pane.hide()
+                    else:
+                        self.upgrade_pane.show()
                 self.data.pressed_keys[event.key] = True
             elif event.type == pygame.KEYUP:
                 self.data.pressed_keys[event.key] = False
-            if event.type == pygame.MOUSEWHEEL:
-                if event.y > 0:
-                    self.data.zoom *= 1.1
-                elif event.y < 0 and self.data.zoom >= 0.1:
-                    self.data.zoom /= 1.1
-                self.center_focus(1.0)
+            # if event.type == pygame.MOUSEWHEEL:
+            #     if event.y > 0:
+            #         self.data.zoom *= 1.1
+            #     elif event.y < 0 and self.data.player.max_rad * self.data.zoom >= UNIT_RADIUS * 0.75 and self.data.zoom > 0.35:
+            #         self.data.zoom /= 1.1
+            #     self.center_focus(1.0)
                 # if self.data.pressed_keys[pygame.K_TAB]:
                 #     self.data.player.sub_weapon.cycle_weapon(- event.y)
                 # else:
@@ -258,29 +293,6 @@ class Game:
                                  parent=parent)
             break
 
-    def spawn_enemies(self):
-        if self.data.enemy_mothership.is_dead():
-            return
-        self.data.spawn_enemy_timer -= 1
-        if self.data.spawn_enemy_timer > 0:
-            return
-        self.data.spawn_enemy_timer = constants.SPAWN_CD
-        self._spawn_units(faction=self.enemy_faction, color=constants.ENEMY_COLOR, side='top',
-                          controller_class=SmartAIController, units_dict=self.enemy_unit_dict,
-                          parent=self.data.enemy_mothership)
-
-    def spawn_allies(self):
-        if self.data.ally_mothership.is_dead():
-            return
-        self.data.spawn_ally_timer -= 1
-        if self.data.spawn_ally_timer > 0:
-            return
-        self.data.spawn_ally_timer = constants.SPAWN_CD
-
-        self._spawn_units(faction=self.ally_faction, color=constants.PLAYER_COLOR, side='bot',
-                          controller_class=SmartAIController, units_dict=self.ally_unit_dict,
-                          parent=self.data.ally_mothership)
-
     def get_view_rect(self) -> tuple[int, int, int, int]:
         return self.data.screen_x, self.data.screen_y, self.data.screen_x + constants.SCREEN_WIDTH, self.data.screen_y + constants.SCREEN_HEIGHT
 
@@ -336,15 +348,15 @@ class Game:
         self.data.enemies[:] = [p for p in self.data.enemies if not p.is_dead()]
         self.data.allies[:] = [p for p in self.data.allies if not p.is_dead()]
         self.data.effects[:] = [p for p in self.data.effects if not p.is_dead()]
-
-        if sum(i for i in self.ally_unit_dict.values()) < constants.SPAWN_CAP:
-            for p in [p for p in dead_enemies if isinstance(p, BaseUnit)]:
-                self.ally_unit_dict[type(p)] = 1 + self.ally_unit_dict.get(type(p), 0)
-                self.enemy_unit_dict[type(p)] = -1 + self.enemy_unit_dict.get(type(p), 0)
-        if sum(i for i in self.enemy_unit_dict.values()) < constants.SPAWN_CAP:
-            for p in [p for p in dead_allies if isinstance(p, BaseUnit)]:
-                self.enemy_unit_dict[type(p)] = 1 + self.enemy_unit_dict.get(type(p), 0)
-                self.ally_unit_dict[type(p)] = -1 + self.ally_unit_dict.get(type(p), 0)
+        #
+        # if sum(i for i in self.ally_unit_dict.values()) < constants.SPAWN_CAP:
+        #     for p in [p for p in dead_enemies if isinstance(p, BaseUnit)]:
+        #         self.ally_unit_dict[type(p)] = 1 + self.ally_unit_dict.get(type(p), 0)
+        #         self.enemy_unit_dict[type(p)] = -1 + self.enemy_unit_dict.get(type(p), 0)
+        # if sum(i for i in self.enemy_unit_dict.values()) < constants.SPAWN_CAP:
+        #     for p in [p for p in dead_allies if isinstance(p, BaseUnit)]:
+        #         self.enemy_unit_dict[type(p)] = 1 + self.enemy_unit_dict.get(type(p), 0)
+        #         self.ally_unit_dict[type(p)] = -1 + self.ally_unit_dict.get(type(p), 0)
 
         for collectible in self.data.collectibles:
             if collectible.is_dead() and isinstance(collectible, Collectible):
@@ -386,6 +398,7 @@ class Game:
         self.data.player.controller = PlayerController()
         self.data.player.max_speed *= 2
 
+
     def check_player_death(self):
         self.data.player.hp = max(0.0, min(self.data.player.max_hp, self.data.player.hp))
         if not self.data.player.is_dead():
@@ -407,8 +420,19 @@ class Game:
         self.data.running = False
 
     def center_focus(self, lerp_const=0.1):
-        self.data.screen_x += (self.data.player.x - constants.SCREEN_WIDTH / 2 / self.data.zoom - self.data.screen_x) * lerp_const
-        self.data.screen_y += (self.data.player.y - constants.SCREEN_HEIGHT / 2 / self.data.zoom - self.data.screen_y) * lerp_const
+        target_screen_x = self.data.player.x - (constants.SCREEN_WIDTH / 2) / self.data.zoom
+        target_screen_y = self.data.player.y - (constants.SCREEN_HEIGHT / 2) / self.data.zoom
+        self.data.screen_x += (target_screen_x - self.data.screen_x) * lerp_const
+        self.data.screen_y += (target_screen_y - self.data.screen_y) * lerp_const
+
+    def refocus_zoom(self, lerp_const=0.1):
+        target_zoom = max(0.1, math.sqrt(UNIT_RADIUS / self.data.player.max_rad) * 0.5)
+        old_zoom = self.data.zoom
+        self.data.zoom += (target_zoom - self.data.zoom) * lerp_const
+        x_diff = (constants.SCREEN_WIDTH / old_zoom - constants.SCREEN_WIDTH / self.data.zoom) / 2
+        y_diff = (constants.SCREEN_HEIGHT / old_zoom - constants.SCREEN_HEIGHT / self.data.zoom) / 2
+        self.data.screen_x += x_diff
+        self.data.screen_y += y_diff
 
     def increment_constants(self):
         TIME_PASSED = self.data.current_time - self.data.start_ticks
@@ -434,6 +458,7 @@ class Game:
         self.data.current_time = pygame.time.get_ticks()
         self.increment_constants()
         self.center_focus()
+        self.refocus_zoom()
         self.move_everything()
         self.collide_everything()
         self.remove_dead_particles()
@@ -442,8 +467,6 @@ class Game:
         self.throttled_refresh()
         self.check_player_death()
         self.check_game_over()
-        self.spawn_enemies()
-        self.spawn_allies()
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.data.player.score:.0f}

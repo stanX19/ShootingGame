@@ -14,8 +14,6 @@ class GameData:
         self.enemies: list[GameParticle] = []
         self.collectibles: list[GameParticle] = []
         self.water_particle_handler: 'WaterParticleHandler' = None
-        self.ally_mothership: GameParticle | None = None
-        self.enemy_mothership: GameParticle | None = None
         self.score: int = 0
         self.collectible_spawn_score: int = 0
         self.kills: int = 0

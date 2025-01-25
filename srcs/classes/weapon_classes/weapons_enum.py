@@ -36,13 +36,13 @@ class MainWeaponEnum:
     simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
                                    radius=MISSILE_RADIUS, speed=MISSILE_SPEED, spread=math.pi * 2)
     missile = CompositeWeapon("Swarm Missile", [
-        MissileWeapon("missile", 3000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi),
-        MissileWeapon("missile", 3000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 2),
-        MissileWeapon("missile", 3000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
-    ], 100)
+    ] * 3, 100)
 
     spawner = CompositeWeapon("Spawner", [
         SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2),

@@ -27,5 +27,8 @@ class CooldownTimer:
         time_since_last_shot = current_time - self.last_shot_time
         return min(1.0, max(0.0, time_since_last_shot / self.shoot_cd))
 
+    def set_reload_percentage(self, current_time: float, val: float):
+        self.last_shot_time = current_time - (val * self.shoot_cd)
+
     def add_to_timer(self, val):
         self.last_shot_time += val

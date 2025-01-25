@@ -53,10 +53,12 @@ class CompositeWeapon(BaseWeapon):
     def start_overdrive_if_available(self, current_time: float):
         for w in self._weapons:
             w.start_overdrive_if_available(current_time)
+        if any(w._overdrive_is_active for w in self._weapons):
+            self._unlocked_index = 1
 
     @override
     def get_overdrive_cd(self, current_time: float):
-        return sum(w.get_overdrive_cd(current_time) for w in self._weapons) / len(self._weapons)
+        return min(w.get_overdrive_cd(current_time) for w in self._weapons)
 
     @override
     def set_overdrive_cd(self, current_time: float, new_cd: float):
@@ -65,7 +67,12 @@ class CompositeWeapon(BaseWeapon):
 
     @override
     def get_overdrive_reload_percentage(self, current_time: float):
-        return sum(w.get_overdrive_reload_percentage(current_time) for w in self._weapons) / len(self._weapons)
+        return max(w.get_overdrive_reload_percentage(current_time) for w in self._weapons)
+
+    @override
+    def set_overdrive_reload_percentage(self, current_time: float, val: float):
+        for w in self._weapons:
+            w.set_overdrive_reload_percentage(current_time, val)
 
     @override
     def update_bullet(self, **kwargs):

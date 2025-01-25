@@ -56,12 +56,17 @@ class BaseWeapon:
     def get_overdrive_reload_percentage(self, current_time: float):
         return self._overdrive_cd_timer.get_reload_percentage(current_time)
 
+    def set_overdrive_reload_percentage(self, current_time: float, val: float):
+        return self._overdrive_cd_timer.set_reload_percentage(current_time, val)
+
     def start_overdrive_if_available(self, current_time: float):
         if not self._overdrive_cd_timer.is_ended(current_time, auto_restart=True):
             return
+        if self._overdrive_is_active:
+            self._end_overdrive()
         self._overdrive_active_timer.start_timer(current_time)
-        self._overdrive_is_active = True
         self._start_overdrive()
+        self._overdrive_is_active = True
 
     @final
     def check_overdrive_end(self, current_time: float):
@@ -69,8 +74,8 @@ class BaseWeapon:
             return
         if not self._overdrive_active_timer.is_ended(current_time):
             return
-        self._overdrive_is_active = False
         self._end_overdrive()
+        self._overdrive_is_active = False
 
 
     def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[FactionParticle]:

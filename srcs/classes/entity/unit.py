@@ -18,8 +18,8 @@ from srcs.constants import *
 class Unit(BaseUnit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: Optional[BaseController] = None, radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-                 weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
-                 sub_weapons: list[BaseWeapon] | None = None,
+                 weapons: list[BaseWeapon] | BaseWeapon | None = MainWeaponEnum.machine_gun,
+                 sub_weapons: list[BaseWeapon] | BaseWeapon | None = None,
                  shield_hp: float = 0, shield_rad: float = 0, **kwargs):
         super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
         self.controller: BaseController = AIController() if controller is None else controller.copy()
@@ -41,7 +41,6 @@ class Unit(BaseUnit):
 
     def move(self):
         super().move()
-        self.controller.update_based_on(self)
         if not self.controller.is_moving:
             self.speed = 0
         else:
@@ -54,6 +53,7 @@ class Unit(BaseUnit):
             self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
         if self.hp and self.controller.fire_sub:
             self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+        self.controller.update_based_on(self)
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)

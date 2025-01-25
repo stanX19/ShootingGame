@@ -1,5 +1,7 @@
 import copy
 from typing import Optional
+
+
 from srcs import constants, utils
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.weapon_classes.general_weapon import BaseWeapon
@@ -25,7 +27,7 @@ class WeaponHandler:
             weapons = []
 
         for w in weapons:
-            w.mix_bullet_color_with(self.unit.color)
+            w.mix_bullet_color_with(self.unit.get_greatest_parent().color)
         self.weapon: Optional[BaseWeapon] = weapons[0] if weapons else None
         self.all_weapons = weapons
 
@@ -51,6 +53,10 @@ class WeaponHandler:
     @property
     def overdrive_percentage(self):
         return self.weapon.get_overdrive_reload_percentage(self.current_time)
+
+    @overdrive_percentage.setter
+    def overdrive_percentage(self, val):
+        self.weapon.set_overdrive_reload_percentage(self.current_time, val)
 
     @property
     def overdrive_cd(self):

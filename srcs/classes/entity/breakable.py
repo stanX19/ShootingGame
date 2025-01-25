@@ -13,7 +13,7 @@ from srcs.utils import color_mix
 
 
 class Breakable(FactionParticle):
-    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0,
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0, speed=0.0, radius=1.0,
                  color=(255, 255, 255), hp=1, dmg=1,
                  score=0, **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
@@ -23,10 +23,11 @@ class Breakable(FactionParticle):
         return super().on_death()
 
     def explode(self):
-        # n = particle count
-        k = 0.75
-        n = random.randint(max(3, math.ceil(self.max_hp / 2)),
-                           max(3, math.ceil(self.max_hp)))  # math.ceil(self.max_hp / 2 + 1)
+        # n = particle count, k = maximum size
+        cap = MAX_ENEMY_COUNT - len(self.faction.parent_list)
+        k = 0.5
+        n = min(cap, random.randint(max(3, math.ceil(self.max_hp / 2)),
+                                    max(3, math.ceil(self.max_hp))))  # math.ceil(self.max_hp / 2 + 1)
         particle_angle = self.angle
         color = color_mix(self.color, (255, 255, 255), weight2=2)
         for i in range(n):
@@ -42,7 +43,7 @@ class Breakable(FactionParticle):
             particle_y = self.y + offset_y
             particle = Effect(self.faction.game_data, particle_x, particle_y, particle_angle, speed, radius,
                               color, hp, speed * hp,
-                              lifespan=3000, target_rad=0.1, fade_off=False)
+                              lifespan=300, target_rad=0.1, fade_off=True)
             particle.xv += self.xv
             particle.yv += self.yv
             self.faction.parent_list.append(particle)

@@ -4,7 +4,7 @@ from srcs.classes.UI.ui_element import UIElement
 
 
 class Pane(UIElement):
-    def __init__(self, x1: int, y1: int, x2: int, y2: int, margin: int = 10, spacing: int = 5):
+    def __init__(self, x1: int, y1: int, x2: int, y2: int, margin: int = 10, spacing: int = 10):
         super().__init__(x1, y1, x2, y2, margin, spacing)
         self.child_list: list[UIElement] = []
 
@@ -35,7 +35,7 @@ class Pane(UIElement):
             child.y = self.top + self.margin
             child.width = width
             child.height = height
-            current_x += self.margin + width
+            current_x += self.spacing + width
 
     def _draw(self, surface):
         pygame.draw.rect(surface, (79,69,87), self)

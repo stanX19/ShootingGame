@@ -30,6 +30,9 @@ class UIElement(pygame.Rect):
     def _handle_click_on_self(self):
         raise NotImplementedError(f"_handle_click() not implemented in {self.__class__.__name__}")
 
+    def is_active(self):
+        return self._active
+
     def hide(self):
         self._active = False
 

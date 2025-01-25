@@ -62,9 +62,21 @@ class GameParticle(Particle):
         self.max_hp: float = hp
         self.max_rad: float = radius
         self.dmg: float = dmg
-        self.score: int = score
+        self.base_score: int = score
+        self.score: int = 0
         self.parent: GameParticle | None = parent
         self.regen_rate = regen_rate
+
+    def use_score(self, amount: int) -> bool:
+        """
+
+        :return: True if success, False otherwise
+        """
+        if amount > self.score:
+            return False
+        self.score -= amount
+        self.base_score += amount
+        return True
 
     def set_hp(self, hp):
         self.hp = min(self.max_hp, hp)
@@ -77,6 +89,12 @@ class GameParticle(Particle):
         self.score += amount
         if isinstance(self.parent, GameParticle):
             self.parent.add_score(amount * 0.1)
+
+    def get_greatest_parent(self) -> GameParticle:
+        current: GameParticle = self
+        while isinstance(current.parent, GameParticle):
+            current = current.parent
+        return current
 
     def regen_hp(self, regen_amount: float):
         self.hp = min(self.hp + regen_amount, self.max_hp)
