@@ -38,13 +38,15 @@ class BulletSpawner:
         return bullet
 
     def circular_spawn(self, x, y, angle: float, count: int, parent: BaseUnit) -> list:
+        if count == 0:
+            return []
         angle_offset = self.spread / count
         spawned_bullets = []
 
         for i in range(count):
             offset = (i - (count - 1) / 2) * angle_offset
             shoot_angle = angle + offset + self.angle_offset
-            bullet_angle = angle + offset * self.offset_factor
+            bullet_angle = shoot_angle * self.offset_factor
             dy, dx = math.sin(shoot_angle) * self.spawn_radius, math.cos(shoot_angle) * self.spawn_radius
 
             spawned_bullets.append(

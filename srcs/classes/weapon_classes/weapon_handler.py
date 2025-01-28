@@ -71,7 +71,7 @@ class WeaponHandler:
     def overdrive_start(self):
         if not self.weapon:
             return
-        self.weapon.start_overdrive_if_available(self.current_time)
+        self.weapon.start_overdrive_try(self.current_time)
 
     def upgrade_weapon(self):
         if self.weapon.level.is_max():

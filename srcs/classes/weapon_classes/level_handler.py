@@ -1,3 +1,6 @@
+import math
+
+
 class LevelHandler:
     def __init__(self, max_level: int, min_count: int, max_count: int, growth_factor: int):
         """
@@ -17,7 +20,7 @@ class LevelHandler:
         if max_count < min_count:
             max_count = min_count
 
-        self.max_level = max_level
+        self.max_level = math.ceil((max_count - min_count) / growth_factor) + 1
         self.min_count = min_count
         self.max_count = max_count
         self.growth_factor = growth_factor

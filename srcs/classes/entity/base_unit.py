@@ -58,17 +58,13 @@ class BaseUnit(Breakable):
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
             dis = self.distance_with(target)
-            unit_weight = 0
-            if isinstance(target, BaseUnit) or isinstance(target, Shield):
-                unit_weight = K - target.hp * 2
             distance = (
                dis
-               - target.score / 10
-               + target.hp * 2
-               - unit_weight  # = K - target.hp * 2
-               - self.is_targeting_self(target) * 2 * K
-               - (isinstance(self.parent, BaseUnit) and self.parent.is_targeting_self(target)) * 3 * K
-               - (dis < self.shoot_range) * 4 * K
+               - K * utils.sigmoid(target.score + target.base_score, 30000) # 30000 will reach 0.9
+               - (isinstance(target, BaseUnit) or isinstance(target, Shield)) * 2 * K
+               - (hasattr(target, 'target') and target.target is self) * 3 * K
+               - (isinstance(self.parent, BaseUnit) and self.parent.is_targeting_self(target)) * 4 * K
+               - (dis < self.shoot_range) * 5 * K
             )
             if distance < min_distance:
                 min_distance = distance
@@ -87,6 +83,7 @@ class BaseUnit(Breakable):
         self.angle = (self.angle + math.pi) % (2 * math.pi) - math.pi
 
     def move(self):
+        super().move()
         self.update_appearance_based_on_hp()
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
@@ -94,7 +91,6 @@ class BaseUnit(Breakable):
         if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
             self.yv = -self.yv
         self.speed = spd
-        super().move()
         self.warn_target()
 
     def warn_target(self):

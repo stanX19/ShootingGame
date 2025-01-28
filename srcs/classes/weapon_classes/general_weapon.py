@@ -73,7 +73,8 @@ class GeneralWeapon(BaseWeapon):
         )
 
         unit.faction.parent_list.extend(new_bullets)
-        self._apply_recoil(unit, shoot_angle, self._recoil)
+        for b in new_bullets:
+            self._apply_recoil(unit, b.angle, self._recoil / len(new_bullets))
         return new_bullets
 
     def _apply_recoil(self, unit: BaseUnit, shoot_angle: float, magnitude: float) -> None:

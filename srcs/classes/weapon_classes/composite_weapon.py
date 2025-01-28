@@ -50,11 +50,11 @@ class CompositeWeapon(BaseWeapon):
             w.change_bullet_class(new_bullet_class)
 
     @override
-    def start_overdrive_if_available(self, current_time: float):
-        for w in self._weapons:
-            w.start_overdrive_if_available(current_time)
-        if any(w._overdrive_is_active for w in self._weapons):
+    def start_overdrive_try(self, current_time: float):
+        activated = any([w.start_overdrive_try(current_time) for w in self._weapons])
+        if activated:
             self._unlocked_index = 1
+        return activated
 
     @override
     def get_overdrive_cd(self, current_time: float):

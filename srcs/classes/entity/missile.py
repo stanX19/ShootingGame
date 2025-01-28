@@ -20,6 +20,7 @@ class Missile(Explosive):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
         self.target: [GameParticle, None] = target
         self.reached_target: bool = False
+        self._warned_target = False
 
     def find_target(self):
         search_radius = 200
@@ -44,11 +45,17 @@ class Missile(Explosive):
     def update(self):
         if self.target not in self.faction.target_list:
             self.find_target()
+            self._warned_target = False
         if isinstance(self.target, GameParticle):
             target_angle = calculate_intercept_angle(self, self.target)
             angle_diff = utils.angle_diff(target_angle, self.angle)
             angle_diff = utils.normalize(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff
+        # TODO:
+        #  combine warn target from base_unit
+        if not self._warned_target and isinstance(self.target, BaseUnit) and self.distance_with(self.target) < self.target.shoot_range:
+            self.target.find_new_target()
+            self._warned_target = True
 
     def move(self):
         self.update()

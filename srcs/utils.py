@@ -1,5 +1,21 @@
 import math
 
+def sigmoid(x: float, q: float) -> float:
+    """
+
+    :param float x: the variable
+    :param float q: value where f(x) reaches 0.9
+    :return float: [0.0, 1.0)
+    """
+    k = 4 / q
+    # got value through desmos by
+    # using x=q
+    # using k=\frac{4}{q}
+    # using \left(\frac{2}{\pi}\right)\arctan(\left(\frac{\pi}{2}\right)kx)
+    result = (2 / math.pi) * math.atan((math.pi / 2) * k * x)
+    return result
+
+
 def normalize(value, min_val, max_val):
     if min_val > max_val:
         min_val, max_val = max_val, min_val

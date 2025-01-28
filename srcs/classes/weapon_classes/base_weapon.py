@@ -59,14 +59,15 @@ class BaseWeapon:
     def set_overdrive_reload_percentage(self, current_time: float, val: float):
         return self._overdrive_cd_timer.set_reload_percentage(current_time, val)
 
-    def start_overdrive_if_available(self, current_time: float):
+    def start_overdrive_try(self, current_time: float) -> bool:
         if not self._overdrive_cd_timer.is_ended(current_time, auto_restart=True):
-            return
+            return False
         if self._overdrive_is_active:
             self._end_overdrive()
         self._overdrive_active_timer.start_timer(current_time)
         self._start_overdrive()
         self._overdrive_is_active = True
+        return True
 
     @final
     def check_overdrive_end(self, current_time: float):

@@ -1,12 +1,13 @@
 import math
 
-from numpy.ma.core import count
+import random
 
 from srcs.classes.controller import SmartAIController, AIDroneController
 from srcs.classes.entity.bullet import Bullet
 from srcs.classes.entity.lazer import Lazer
 from srcs.classes.entity.unit import *
 from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
+from srcs.classes.weapon_classes.random_spawner_weapon import RandomSpawnerWeapon
 from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import SubWeaponEnum
 
@@ -37,13 +38,13 @@ class SuperShootingUnit(Unit):
                          **kwargs)
 
 
-class SuicideUnit(Unit):
+class RammerUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=125, radius=20, score=5000, speed=UNIT_SPEED,
                          variable_shape=True, variable_color=True,
-                         weapons=MainWeaponEnum.dancer,
-                         sub_weapons=SubWeaponEnum.sub_inverted_dancer,
+                         weapons=MainWeaponEnum.booster_left,
+                         sub_weapons=MainWeaponEnum.booster_right,
                          shoot_range=UNIT_SHOOT_RANGE * 5,
                          **kwargs)
 
@@ -74,16 +75,20 @@ class MiniMothershipUnit(Unit):
                          **kwargs)
 
 
+# TODO:
+#  encapsulate main spawner weapon in a weapon class
+#  such that player can use it too
 class UnitMothership(Unit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
-            BasicShootingUnit: 30,
+            Unit: 20,
+            BasicShootingUnit: 20,
             EliteUnit: 3,
-            SuicideUnit: 3,
+            RammerUnit: 3,
             MiniMothershipUnit: 1,
-            SuperShootingUnit: 5
+            SuperShootingUnit: 1
         }
-        spawner = SpawnerWeapon("mothership spawner", reload=1000)
+        spawner = RandomSpawnerWeapon("mothership spawner", reload=SPAWN_CD * 1000)
         spawner.change_bullet_class(BasicShootingUnit)
 
         emergency = CompositeWeapon("Emergency", [
@@ -94,8 +99,8 @@ class UnitMothership(Unit):
         super().__init__(faction, x, y,
                          hp=2000, dmg=125, speed=0,
                          variable_shape=True, variable_color=True,
-                         radius=500, score=50000,
-                         shield_hp=500, shield_rad=700,
+                         radius=200, score=50000,
+                         shield_hp=500, shield_rad=300,
                          controller=SmartAIController(),
                          weapons=emergency,
                          sub_weapons=spawner,
@@ -103,17 +108,16 @@ class UnitMothership(Unit):
                          regen_rate=1/60/FPS*2000,  # recover in 60 seconds
                          **kwargs)
 
-    def _spawner_sub_preprocess(self):
-        self.controller.fire_sub = False
+    def move(self):
+        self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
-        for unit_type, cap in self.unit_dict.items():
+        items = list(self.unit_dict.items())
+        # random.shuffle(items)
+        for unit_type, cap in items:
             count = len([i for i in self.faction.parent_list if isinstance(i, unit_type)])
             if count >= cap:
                 continue
             self.sub_weapon.weapon.change_bullet_class(unit_type)
             self.controller.fire_sub = True
             break
-
-    def move(self):
-        self._spawner_sub_preprocess()
         super().move()

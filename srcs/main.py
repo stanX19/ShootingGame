@@ -24,7 +24,7 @@ from srcs.classes.controller import PlayerController, AIController, BotControlle
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
 from srcs.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
-    UnitMothership, SuicideUnit, MiniMothershipUnit
+    UnitMothership, RammerUnit, MiniMothershipUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
@@ -33,15 +33,15 @@ from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs.classes.UI.pane import Pane
 from srcs.classes.UI.button import Button
 
-dev_mode = 0
-test_mode = 1
+dev_mode = 1
+test_mode = 0
 god_mode: bool = False
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
 if dev_mode:
     god_mode = True
     constants.OVERDRIVE_CD = constants.OVERDRIVE_DURATION - 1
     for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST:
-        w.level = w.max_lvl
+        w.level.current_level = w.level.max_level
     # default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
 # Initialize Pygame
 pygame.init()
@@ -121,24 +121,16 @@ class Game:
         self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
-        DISTANCE_FROM_BOUND = 1000
         if not test_mode:
-            ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
-            self.data.allies.append(UnitMothership(
-                self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT - 100,
-                color=PLAYER_COLOR, parent=ghost
-            ))
-            self.data.allies.append(UnitMothership(
-                self.ally_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
-                color=PLAYER_COLOR, parent=ghost
-            ))
-            self.data.allies.append(UnitMothership(
-                self.ally_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
-                color=PLAYER_COLOR, parent=ghost
-            ))
+            DISTANCE_FROM_BOUND = 300
+            # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
             ghost = Unit(self.enemy_faction, color=ENEMY_COLOR)
             self.data.enemies.append(UnitMothership(
-                self.enemy_faction, MAP_WIDTH // 2, 100,
+                self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+                color=ENEMY_COLOR, parent=ghost
+            ))
+            self.data.enemies.append(UnitMothership(
+                self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
                 color=ENEMY_COLOR, parent=ghost
             ))
             self.data.enemies.append(UnitMothership(
@@ -172,7 +164,6 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
-        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.lazer)
         self.data.allies.append(
             Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
         # self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
@@ -180,11 +171,12 @@ class Game:
         #                                       controller=BotController(), variable_shape=True
         #                                       ))
         # self.data.allies[:] = [self.data.player]
-        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
-                                              hp=100000000, dmg=10,
-                                              shield_hp=200, shield_rad=300,
-                                              controller=BotController(), variable_shape=True
-                                              ))
+        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 800, self.data.player.y,
+                                      weapons=[],
+                                      hp=100000000, dmg=10, radius=300,
+                                      shield_hp=200, shield_rad=300,
+                                      controller=BotController(), variable_shape=True
+                                      ))
         # self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=50, dmg=1,
         #                                 rad=self.data.player.rad + 50, parent=self.data.player, regen_rate=10))
         # self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y - 40)
@@ -425,7 +417,7 @@ class Game:
         self.data.screen_x += (target_screen_x - self.data.screen_x) * lerp_const
         self.data.screen_y += (target_screen_y - self.data.screen_y) * lerp_const
 
-    def refocus_zoom(self, lerp_const=0.1):
+    def refocus_zoom(self, lerp_const=0.05):
         target_zoom = max(0.1, math.sqrt(UNIT_RADIUS / self.data.player.max_rad) * 0.5)
         old_zoom = self.data.zoom
         self.data.zoom += (target_zoom - self.data.zoom) * lerp_const

@@ -4,6 +4,7 @@ import math
 from typing import Callable
 
 from srcs.classes import algo
+from srcs.classes.entity.breakable import Breakable
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.entity.lazer import Lazer
 from collections import defaultdict
@@ -44,6 +45,10 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
         bullet.add_score(enemy.score + enemy.base_score)
     if bullet.is_dead():
         enemy.add_score(bullet.score + enemy.base_score)
+    if isinstance(enemy, Breakable):
+        enemy.handle_hit_by(bullet)
+    if isinstance(bullet, Breakable):
+        bullet.handle_hit_by(bullet)
 
 
 def is_colliding(a: GameParticle, b: GameParticle):

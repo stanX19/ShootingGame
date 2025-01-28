@@ -59,6 +59,11 @@ class MainWeaponEnum:
                            min_count=1, max_count=20, growth_factor=1, spread=math.pi,
                            recoil=-20, lifespan=(1, 3))
 
+    booster_left = BoosterWeapon("Booster Left", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
+                                 recoil=20, lifespan=(1, 3), angle_offset=-math.pi * (1 - 1/3))
+    booster_right = BoosterWeapon("Booster Right", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
+                                  recoil=20, lifespan=(1, 3), angle_offset=math.pi * (1 - 1/3))
+
 
 class SubWeaponEnum:
     sub_missile = MissileWeapon("sub missile", 2000, MISSILE_SPEED, 8, min_count=2,
