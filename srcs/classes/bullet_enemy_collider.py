@@ -48,7 +48,7 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
     if isinstance(enemy, Breakable):
         enemy.handle_hit_by(bullet)
     if isinstance(bullet, Breakable):
-        bullet.handle_hit_by(bullet)
+        bullet.handle_hit_by(enemy)
 
 
 def is_colliding(a: GameParticle, b: GameParticle):

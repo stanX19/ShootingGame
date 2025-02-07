@@ -35,7 +35,7 @@ from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs.classes.UI.pane import Pane
 from srcs.classes.UI.button import Button
 
-dev_mode = 1
+dev_mode = 0
 test_mode = 0
 god_mode: bool = False
 # default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
@@ -134,14 +134,15 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
+        self.data.player.score = 100000000000000
         self.data.allies.append(
             Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
-        # self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
-        #                                       hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
-        #                                       controller=BotController(), variable_shape=True
-        #                                       ))
-        # self.data.allies[:] = [self.data.player]
-        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 800, self.data.player.y,
+        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
+                                              hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
+                                              controller=BotController(), variable_shape=True
+                                              ))
+        self.data.allies[:] = [self.data.player]
+        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x - 800, self.data.player.y,
                                       weapons=[],
                                       hp=100000000, dmg=10, radius=300,
                                       shield_hp=200, shield_rad=300,
