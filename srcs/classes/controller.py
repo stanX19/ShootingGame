@@ -163,12 +163,10 @@ class PlayerController(AIController):
 
 class AIDroneController(SmartAIController):
     def update_based_on(self, unit: BaseUnit):
-        DISTANCE_K = 1.5
         if isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub and unit.parent.target:
             unit.target = unit.parent.target
         super().update_based_on(unit)
-        if isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub and unit.target is not unit.parent.target:
-            parent_angle = unit.angle_with(unit.parent)
-            if abs(self.move_angle - parent_angle) > math.pi / 2:
-                if unit.distance_with(unit.parent) > unit.parent.shoot_range * DISTANCE_K:
-                    self.move_angle = unit.angle_with(unit.parent) + math.pi / 3
+        if (isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub
+                and unit.target is not unit.parent.target
+                and unit.distance_with_cord(unit.parent.x, unit.parent.y) - unit.rad > unit.parent.shoot_range):
+            self.move_angle = unit.angle_with(unit.parent) + math.pi / 4

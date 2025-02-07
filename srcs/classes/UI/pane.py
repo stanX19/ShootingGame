@@ -17,7 +17,7 @@ class Pane(UIElement):
                 ret += child.get_all_child(class_type)
         return ret
 
-    def set_child(self, *children):
+    def set_child(self, *children: list[UIElement]):
         self.child_list = children
         self._arrange_child()
 
@@ -27,6 +27,8 @@ class Pane(UIElement):
 
     def _arrange_child(self):
         n = len(self.child_list)
+        if not n:
+            return
         width = (self.width - 2 * self.margin - (n - 1) * self.spacing) / n
         height = self.height - 2 * self.margin
         current_x = self.x + self.margin

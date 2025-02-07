@@ -26,6 +26,7 @@ class Unit(BaseUnit):
         self.update_appearance_based_on_hp()
         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
+        self.shield: Shield | None = None
 
         # Shield
         if shield_hp != 0:
@@ -35,9 +36,9 @@ class Unit(BaseUnit):
             self._spawn_shield(shield_hp, shield_rad)
 
     def _spawn_shield(self, shield_hp, shield_rad):
-        self.faction.parent_list.append(
-            Shield(self.faction, self.x, self.y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
-                   hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
+        self.shield = Shield(self.faction, self.x, self.y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
+                   hp=shield_hp, parent=self, regen_rate=shield_hp / 50)
+        self.faction.parent_list.append(self.shield)
 
     def move(self):
         super().move()

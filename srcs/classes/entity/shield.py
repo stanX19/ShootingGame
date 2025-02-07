@@ -28,7 +28,7 @@ class Shield(FactionParticle):
         self.tick = 0
         self.down_cd = 180
         self.down_timer = 0
-        self._inner_rad = self.parent.rad + 20 #max(self.max_rad - 50, self.parent.rad + 20)
+        self.inner_rad = self.parent.max_rad + 20
 
     def move(self):
         self.is_hit = self.hp < self.prev_hp
@@ -38,7 +38,8 @@ class Shield(FactionParticle):
         if self.down_timer > 0:
             self.rad = 0
         else:
-            self.rad = self._inner_rad + (self.max_rad - self._inner_rad) * (self.prev_hp / self.max_hp)
+            self.inner_rad = self.parent.max_rad + 20
+            self.rad = self.inner_rad + (self.max_rad - self.inner_rad) * (self.prev_hp / self.max_hp)
 
         if self.hp <= 0 and self.down_timer <= 0:
             self.down_timer = self.down_cd

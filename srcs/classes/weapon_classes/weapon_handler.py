@@ -18,7 +18,7 @@ class WeaponHandler:
         self.weapon_change_energy = 10000
         self.last_charge_time = 0
 
-    def reinit_weapons(self, weapons: Optional[list[BaseWeapon]] = None):
+    def reinit_weapons(self, weapons: list[BaseWeapon] | BaseWeapon | None = None):
         if isinstance(weapons, list):
             weapons = [weapon.copy() for weapon in weapons if isinstance(weapon, BaseWeapon)]
         elif isinstance(weapons, BaseWeapon):

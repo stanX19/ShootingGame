@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+from srcs.upgrade_pane import UpgradePane
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
 try:
@@ -71,43 +73,9 @@ class Game:
         self.prev_controller = SmartAIController()
         self.ally_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.enemy_faction = FactionData(self.data, self.data.enemies, self.data.allies)
-        self.upgrade_pane = Pane(
-            300, SCREEN_HEIGHT - 200, SCREEN_WIDTH - 300, SCREEN_HEIGHT - 100
-        )
-        self.upgrade_pane.add_child(
-            Button("Score -50\nHP +10", self.increase_hp),
-            Button("Score -50\nSPEED +1", self.increase_speed),
-            Button("Score -500\nRADIUS +10", self.increase_rad),
-            Button("Score -5000\nOVERDRIVE +50%", self.increase_overdrive),
-        )
-        self.upgrade_pane.hide()
+        self.upgrade_pane = UpgradePane(self.data)
         self.init_game()
 
-    def increase_overdrive(self):
-        if not self.data.player.use_score(5000):
-            return
-        if isinstance(self.data.player, Unit):
-            self.data.player.main_weapon.overdrive_percentage += 0.5
-            self.data.player.sub_weapon.overdrive_percentage += 0.5
-
-    def increase_speed(self):
-        if not self.data.player.use_score(50):
-            return
-        self.data.player.speed += 1
-        if isinstance(self.data.player, Unit):
-            self.data.player.max_speed += 1
-
-    def increase_hp(self):
-        if not self.data.player.use_score(50):
-            return
-        self.data.player.max_hp += 10
-        self.data.player.hp += 10
-
-    def increase_rad(self):
-        if not self.data.player.use_score(500):
-            return
-        self.data.player.max_rad += 10
-        self.data.player.rad += 10
 
     def self_destruct(self):
         self.data.player.set_hp(-100000000)
@@ -461,6 +429,7 @@ class Game:
         self.throttled_refresh()
         self.check_player_death()
         self.check_game_over()
+        self.upgrade_pane.update_status()
 
     def add_text_to_screen(self):
         info_str = f"""Score: {self.data.player.score:.0f}
