@@ -119,3 +119,6 @@ class GameParticle(Particle):
     def move(self):
         super().move()
         self.hp = min(self.max_hp, self.hp + self.regen_rate)
+
+    def __repr__(self):
+        return f"{type(self).__name__}<{self.hp:.0f}/{self.max_hp:.0f}>"

@@ -46,7 +46,7 @@ class BulletSpawner:
         for i in range(count):
             offset = (i - (count - 1) / 2) * angle_offset
             shoot_angle = angle + offset + self.angle_offset
-            bullet_angle = shoot_angle * self.offset_factor
+            bullet_angle = angle + offset * self.offset_factor + self.angle_offset
             dy, dx = math.sin(shoot_angle) * self.spawn_radius, math.cos(shoot_angle) * self.spawn_radius
 
             spawned_bullets.append(

@@ -14,13 +14,13 @@ from srcs.constants import *
 
 
 class MainWeaponEnum:
-    machine_gun = GeneralWeapon("machine gun", reload=300, speed=15, max_count=1, radius=3, growth_factor=1,
+    machine_gun = GeneralWeapon("machine gun", reload=300, speed=15, min_count=1, radius=3, growth_factor=1,
                                 offset_factor=0.1, dmg=1, hp=1, recoil=3)
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=800, speed=25, max_count=1, radius=5,
                                          growth_factor=1,
                                          offset_factor=0.1, dmg=8, hp=1, recoil=3)
     lazer_mini = GeneralWeapon("lazer mini", reload=200, speed=50, min_count=1, max_count=1, radius=2,
-                               growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=1, hp=25, spread=math.pi / 8)
+                               growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=0.5, hp=25, spread=math.pi / 8)
     lazer = GeneralWeapon("lazer", reload=200, speed=100, min_count=1, max_count=1, radius=2,
                           growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=1, hp=100)
     giant_canon = GeneralWeapon("giant canon", reload=200, speed=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
@@ -47,7 +47,7 @@ class MainWeaponEnum:
     spawner = CompositeWeapon("Spawner", [
         SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2),
         SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2, angle_offset=math.pi * 0.25),
-    ] * 2, shoot_interval=300)
+    ] * 2, shoot_interval=200)
     # shield = GeneralWeapon("shield", reload=2500, speed=1, max_count=100, hp=25, radius=1,
     #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
     #                     min_count=30, growth_factor=5)

@@ -50,9 +50,10 @@ class AIController(BaseController):
             unit.find_new_target()
         if unit.target:
             self.move_angle = unit.angle_with(unit.target)
-            self.aim_x, self.aim_y = AIController.calculate_shoot_coordinate(unit)
             self.fire_main = unit.distance_with(unit.target) <= unit.shoot_range
             self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
+            if self.fire_sub or self.fire_main:
+                self.aim_x, self.aim_y = AIController.calculate_shoot_coordinate(unit)
 
     @staticmethod
     def calculate_shoot_coordinate(unit: BaseUnit) -> tuple[float, float]:
@@ -141,19 +142,20 @@ class PlayerController(AIController):
 
     def _update_using_ai(self, unit: BaseUnit):
         self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos_in_map()
-        closest_unit = None
+        unit.target = None
         closest_distance = float('inf')
         is_unit = False
         for target in unit.faction.target_list:
             distance = target.distance_with_cord(self.aim_x, self.aim_y)
+            if distance > 25 / unit.faction.game_data.zoom:
+                continue
             if is_unit and not isinstance(target, BaseUnit):
                 continue
             if distance < closest_distance:
-                closest_unit = target
+                unit.target = target
                 closest_distance = distance
                 is_unit = isinstance(target, BaseUnit)
-        if closest_distance < 25 / unit.faction.game_data.zoom:
-            unit.target = closest_unit
+        if unit.target:
             super().update_based_on(unit)
 
     def get_child(self):
@@ -161,6 +163,12 @@ class PlayerController(AIController):
 
 class AIDroneController(SmartAIController):
     def update_based_on(self, unit: BaseUnit):
-        if isinstance(unit.parent, BaseUnit):
+        DISTANCE_K = 1.5
+        if isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub and unit.parent.target:
             unit.target = unit.parent.target
         super().update_based_on(unit)
+        if isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub and unit.target is not unit.parent.target:
+            parent_angle = unit.angle_with(unit.parent)
+            if abs(self.move_angle - parent_angle) > math.pi / 2:
+                if unit.distance_with(unit.parent) > unit.parent.shoot_range * DISTANCE_K:
+                    self.move_angle = unit.angle_with(unit.parent) + math.pi / 3

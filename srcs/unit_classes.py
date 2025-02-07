@@ -15,7 +15,15 @@ from srcs.classes.weapon_classes.weapons_enum import SubWeaponEnum
 class BasicShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=10, dmg=1, score=100, speed=UNIT_SPEED * 3,
+                         hp=10, dmg=1, score=100, speed=UNIT_SPEED * 3, radius=15,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         **kwargs)
+
+
+class FastShootingUnit(Unit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=1, dmg=1, score=100, speed=UNIT_SPEED * 10, radius=5,
                          weapons=MainWeaponEnum.lazer_mini,
                          **kwargs)
 
@@ -23,7 +31,7 @@ class BasicShootingUnit(Unit):
 class EliteUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=50, dmg=1, score=500, speed=UNIT_SPEED * 1.5,
+                         hp=50, dmg=1, score=500, speed=UNIT_SPEED * 1.5, radius=20,
                          shield_hp=100, shield_rad=100,
                          weapons=MainWeaponEnum.lazer_mini,
                          sub_weapons=MainWeaponEnum.missile,
@@ -41,7 +49,7 @@ class SuperShootingUnit(Unit):
 class RammerUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=250, dmg=125, radius=20, score=5000, speed=UNIT_SPEED,
+                         hp=250, dmg=125, radius=30, score=5000, speed=UNIT_SPEED,
                          variable_shape=True, variable_color=True,
                          weapons=MainWeaponEnum.booster_left,
                          sub_weapons=MainWeaponEnum.booster_right,
@@ -63,7 +71,7 @@ class SniperUnit(Unit):
 class MiniMothershipUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         spawner = MainWeaponEnum.spawner.copy()
-        spawner.change_bullet_class(BasicShootingUnit)
+        spawner.change_bullet_class(FastShootingUnit)
         spawner.update_bullet(controller=AIDroneController())
 
         super().__init__(faction, x, y, angle,
@@ -81,12 +89,12 @@ class MiniMothershipUnit(Unit):
 class UnitMothership(Unit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
-            Unit: 20,
-            BasicShootingUnit: 20,
+            Unit: 30,
+            BasicShootingUnit: 10,
             EliteUnit: 3,
             RammerUnit: 3,
             MiniMothershipUnit: 1,
-            SuperShootingUnit: 1
+            SuperShootingUnit: 2
         }
         spawner = RandomSpawnerWeapon("mothership spawner", reload=SPAWN_CD * 1000)
         spawner.change_bullet_class(BasicShootingUnit)
@@ -109,7 +117,7 @@ class UnitMothership(Unit):
                          **kwargs)
 
     def move(self):
-        self.controller.fire_sub = True
+        self.controller.fire_sub = False
         self.controller.fire_main = self.hp < self.max_hp / 2
         items = list(self.unit_dict.items())
         # random.shuffle(items)

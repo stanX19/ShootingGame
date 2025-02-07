@@ -5,7 +5,7 @@ from typing import Optional
 import pygame
 
 from srcs import utils
-from srcs.classes.controller import BaseController, AIController
+from srcs.classes.controller import BaseController, AIController, SmartAIController
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.shield import Shield
 from srcs.classes.faction_data import FactionData
@@ -22,7 +22,7 @@ class Unit(BaseUnit):
                  sub_weapons: list[BaseWeapon] | BaseWeapon | None = None,
                  shield_hp: float = 0, shield_rad: float = 0, **kwargs):
         super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
-        self.controller: BaseController = AIController() if controller is None else controller.copy()
+        self.controller: BaseController = SmartAIController() if controller is None else controller.copy()
         self.update_appearance_based_on_hp()
         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
@@ -57,6 +57,7 @@ class Unit(BaseUnit):
 
     def draw(self, surface: pygame.Surface):
         super().draw(surface)
+        # pygame.draw.circle(surface, (0, 255, 0), (int(self.x), int(self.y)), self.shoot_range, width=2)
         # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
 
 #

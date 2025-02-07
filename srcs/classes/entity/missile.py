@@ -36,8 +36,8 @@ class Missile(Explosive):
         for enemy in target_list:
             y_dis = enemy.y - y
             x_dis = enemy.x - x
-            distance = math.hypot(x_dis, y_dis) - 2000 * isinstance(enemy, BaseUnit)
-            if distance < lowest_distance + enemy.rad:
+            distance = math.hypot(x_dis, y_dis) - 2000 * isinstance(enemy, BaseUnit) - enemy.rad
+            if distance < lowest_distance:
                 lowest_distance = distance
                 target = enemy
         return target

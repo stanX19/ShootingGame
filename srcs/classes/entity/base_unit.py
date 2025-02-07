@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from ctypes import wstring_at
 from typing import Optional
 
 import pygame
@@ -44,25 +45,26 @@ class BaseUnit(Breakable):
 
     def find_new_target(self):
         """Find the closest target from the list of target_list."""
-        if not self.faction.target_list:
-            self.target = None
-            return
+        return self.find_new_target_at(self.x, self.y)
 
+    def find_new_target_at(self, x, y, distance_limit=float('inf')):
         # Find the closest target
-        targets = [i for i in self.faction.target_list if self.faction.game_data.in_map(i)]
+        targets: list[GameParticle] = [i for i in self.faction.target_list if self.faction.game_data.in_map(i)]
         closest_target = None
         min_distance = float('inf')
 
         K = MAP_WIDTH + MAP_HEIGHT
         for target in targets:
+            dis = target.distance_with_cord(x, y)
+            if dis > distance_limit:
+                continue
             if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
                 continue
-            dis = self.distance_with(target)
             distance = (
                dis
-               - K * utils.sigmoid(target.score + target.base_score, 30000) # 30000 will reach 0.9
+               # - K * utils.sigmoid(target.score + target.base_score, 30000) # 30000 will reach 0.9
                - (isinstance(target, BaseUnit) or isinstance(target, Shield)) * 2 * K
-               - (hasattr(target, 'target') and target.target is self) * 3 * K
+               - self.is_targeting_self(target) * 3 * K
                - (isinstance(self.parent, BaseUnit) and self.parent.is_targeting_self(target)) * 4 * K
                - (dis < self.shoot_range) * 5 * K
             )
@@ -84,6 +86,8 @@ class BaseUnit(Breakable):
 
     def move(self):
         super().move()
+        while isinstance(self.parent, GameParticle) and self.parent.is_dead():
+            self.parent = self.parent.parent
         self.update_appearance_based_on_hp()
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):

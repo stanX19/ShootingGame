@@ -141,13 +141,15 @@ class Game:
                 self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
                 color=ENEMY_COLOR, parent=ghost
             ))
-        self.data.player = EliteUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-                                     color=PLAYER_COLOR)
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,
         #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
         #                                   child_class=Unit, child_spawn_cd=100,
         #                                   child_kwargs={"hp": 0.01, "dmg": 10, "controller": PlayerDroneController()})
+        self.data.player = MiniMothershipUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+                                     color=PLAYER_COLOR)
+        self.prev_max_speed = self.data.player.speed
+        self.prev_controller = self.data.player.controller
         self.data.player.controller = PlayerController()
         self.data.allies.append(self.data.player)
         # self.data.player.main_weapon.reinit_weapons(default_weapons[0])
@@ -418,7 +420,7 @@ class Game:
         self.data.screen_y += (target_screen_y - self.data.screen_y) * lerp_const
 
     def refocus_zoom(self, lerp_const=0.05):
-        target_zoom = max(0.1, math.sqrt(UNIT_RADIUS / self.data.player.max_rad) * 0.5)
+        target_zoom = max(0.1, math.sqrt(UNIT_RADIUS / self.data.player.max_rad))
         old_zoom = self.data.zoom
         self.data.zoom += (target_zoom - self.data.zoom) * lerp_const
         x_diff = (constants.SCREEN_WIDTH / old_zoom - constants.SCREEN_WIDTH / self.data.zoom) / 2
@@ -441,7 +443,7 @@ class Game:
         # count = 0 | while count < 3 and ...
         while self.throttled_refresh_timer < len(lst):
             e = lst[self.throttled_refresh_timer]
-            if isinstance(e, Unit):
+            if isinstance(e, Unit) and e is not self.data.player:
                 e.find_new_target()
                 return
             self.throttled_refresh_timer += 1
@@ -472,6 +474,7 @@ class Game:
   enemy count     : {len(self.data.enemies)}
   ally count      : {len(self.data.allies)}
   kills           : {self.data.kills}
+  target          : {self.data.player.target}
   auto fire       : {'on' if self.data.autofire else 'off':4}(E)
   overdrive       : {(self.data.player.main_weapon.overdrive_percentage if isinstance(self.data.player, Unit) else 0) * 100:.0f}% (Q)""".title()
         y = 10
