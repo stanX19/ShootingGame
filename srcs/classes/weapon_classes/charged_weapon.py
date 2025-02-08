@@ -48,7 +48,7 @@ class ChargedWeapon(GeneralWeapon):
             **bullet_kwargs,
     ):
         super().__init__(name, reload, recoil, offset_factor, spread, spawn_radius, bullet_class,
-                         max_level, min_count, max_count, growth_factor,
+                         min_count, max_count, growth_factor,
                          overdrive_duration, overdrive_cooldown, **bullet_kwargs)
         self._charge_lifespan = charge_lifespan
 

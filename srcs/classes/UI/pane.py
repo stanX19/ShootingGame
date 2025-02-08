@@ -47,3 +47,19 @@ class Pane(UIElement):
     def _handle_click_on_self(self):
         for child in self.child_list:
             child.handle_click()
+
+
+class VPane(Pane):
+    def _arrange_child(self):
+        n = len(self.child_list)
+        if not n:
+            return
+        width = self.width - 2 * self.margin
+        height = (self.height - 2 * self.margin - (n - 1) * self.spacing) / n
+        current_y = self.y + self.margin
+        for child in self.child_list:
+            child.x = self.x + self.margin
+            child.y = current_y
+            child.width = width
+            child.height = height
+            current_y += self.spacing + height

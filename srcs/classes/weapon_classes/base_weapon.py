@@ -13,7 +13,6 @@ from srcs.constants import BULLET_SPEED, BULLET_COLOR, OVERDRIVE_DURATION, OVERD
 
 class BaseWeapon:
     def __init__(self, name: str,
-                 max_level: int = 1,
                  min_count: int = 1,
                  max_count: int = 1,
                  growth_factor: int = 1,
@@ -22,7 +21,7 @@ class BaseWeapon:
                  overdrive_cooldown: float = OVERDRIVE_CD,
                  **bullet_kwargs: dict[str: Any]):
         self.name: str = name
-        self.level: LevelHandler = LevelHandler(max_level, min_count, max_count, growth_factor)
+        self.level: LevelHandler = LevelHandler(min_count, max_count, growth_factor)
 
         # general handlers
         self._bullet_kwargs = BulletKwargsHandler(bullet_kwargs)
@@ -101,8 +100,13 @@ class BaseWeapon:
     def copy(self):
         return copy.deepcopy(self)
 
+    def __eq__(self, other):
+        if not isinstance(other, BaseWeapon):
+            return False
+        return self.name == other.name
+
     def __str__(self):
-        return self.name
+        return f"{self.name} {self.level}"
 
     def __repr__(self):
         return f"{type(self).__name__}<{self.name}>"

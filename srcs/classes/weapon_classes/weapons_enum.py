@@ -14,39 +14,41 @@ from srcs.constants import *
 
 
 class MainWeaponEnum:
-    machine_gun = GeneralWeapon("machine gun", reload=300, speed=15, min_count=1, radius=3, growth_factor=1,
+    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, min_count=1, radius=3, growth_factor=1,
                                 offset_factor=0.1, dmg=1, hp=1, recoil=3)
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=800, speed=25, max_count=1, radius=5,
                                          growth_factor=1,
                                          offset_factor=0.1, dmg=8, hp=1, recoil=3)
     lazer_mini = GeneralWeapon("lazer mini", reload=200, speed=50, min_count=1, max_count=1, radius=2,
-                               growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=0.5, hp=25, spread=math.pi / 8)
+                               growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=0.25, hp=25, spread=math.pi / 8)
     lazer = GeneralWeapon("lazer", reload=200, speed=100, min_count=1, max_count=1, radius=2,
                           growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=1, hp=100)
-    giant_canon = GeneralWeapon("giant canon", reload=200, speed=50, max_count=1, radius=20, recoil=5, hp=10, dmg=10)
+    giant_canon = GeneralWeapon("giant canon", reload=200, speed=25, max_count=5, radius=20, recoil=1, hp=10, dmg=10, offset_factor=0.0)
     lazer_super = ChargedWeapon("lazer super", reload=2000, speed=200, min_count=1, max_count=1, radius=10,
                                 growth_factor=5, bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
     # lazer_mini = machine_gun
     # lazer = machine_gun
-    shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 50), max_count=300, radius=1,
-                            recoil=PLAYER_SPEED, dmg=5, min_count=25, growth_factor=25, spread=math.pi * 0.4,
+    shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 75), max_count=300, radius=3,
+                            recoil=5, dmg=5, min_count=25, growth_factor=25, spread=math.pi * 0.4,
                             lifespan=(5, 20))
     bomb = GeneralWeapon("destroyer", reload=2000, speed=10, max_count=1, radius=50, recoil=5, hp=1, dmg=10,
                          bullet_class=Explosive)
     simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
                                    radius=MISSILE_RADIUS, speed=MISSILE_SPEED, spread=math.pi * 2)
-    missile = CompositeWeapon("Swarm Missile", [
+    missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1,
+                      dmg=10, hp=1, offset_factor=1, spread=math.pi)
+    swarm = CompositeWeapon("Swarm", [
         MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi),
         MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 2),
         MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
-    ] * 3, 100)
+    ] * 2, 100)
 
     spawner = CompositeWeapon("Spawner", [
-        SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2),
-        SpawnerWeapon("Spawner 1", reload=10000, min_count=4, max_count=8, spawn_radius=UNIT_RADIUS * 2, angle_offset=math.pi * 0.25),
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2),
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2, angle_offset=math.pi * 0.25),
     ] * 2, shoot_interval=200)
     # shield = GeneralWeapon("shield", reload=2500, speed=1, max_count=100, hp=25, radius=1,
     #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
@@ -55,10 +57,15 @@ class MainWeaponEnum:
     #                   bullet_class=NOVA_CLASS, growth_factor=0.2)
     # piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=250, speed=25, max_count=5, radius=3,
     #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
-    dancer = BoosterWeapon("dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.1, hp=10,
+    dancer = BoosterWeapon("Dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.1, hp=10,
                            min_count=1, max_count=20, growth_factor=1, spread=math.pi,
                            recoil=-20, lifespan=(1, 3))
-
+    flash = BoosterWeapon("Flash", reload=1000, speed=1, radius=5, dmg=0.0, hp=100,
+                           bullet_class=Lazer, spread=math.pi * 2,
+                           recoil=-500, lifespan=3)
+    warp = BoosterWeapon("Warp", reload=5000, speed=1, radius=25, dmg=0.0, hp=100,
+                          bullet_class=Lazer, spread=math.pi * 2,
+                          recoil=-2500, lifespan=3)
     booster_left = BoosterWeapon("Booster Left", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
                                  recoil=20, lifespan=(1, 3), angle_offset=-math.pi * (1 - 1/3))
     booster_right = BoosterWeapon("Booster Right", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
@@ -67,7 +74,7 @@ class MainWeaponEnum:
 
 class SubWeaponEnum:
     sub_missile = MissileWeapon("sub missile", 2000, MISSILE_SPEED, 8, min_count=2,
-                                dmg=MainWeaponEnum.missile._bullet_kwargs.getattr('dmg'),
+                                dmg=MainWeaponEnum.swarm._bullet_kwargs.getattr('dmg'),
                                 growth_factor=1, radius=MISSILE_RADIUS)
 
     sub_shield = GeneralWeapon("sub shield", reload=7500, speed=1, max_count=100, hp=10, radius=1,

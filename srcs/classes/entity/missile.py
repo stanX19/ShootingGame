@@ -49,7 +49,7 @@ class Missile(Explosive):
         if isinstance(self.target, GameParticle):
             target_angle = calculate_intercept_angle(self, self.target)
             angle_diff = utils.angle_diff(target_angle, self.angle)
-            angle_diff = utils.normalize(angle_diff, -math.pi / 24, math.pi / 24)
+            angle_diff = utils.clamp(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff
         # TODO:
         #  combine warn target from base_unit

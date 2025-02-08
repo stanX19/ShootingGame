@@ -20,7 +20,6 @@ class GeneralWeapon(BaseWeapon):
             spread: float = math.pi * 2,
             spawn_radius: float = 0,
             bullet_class: type[Bullet] = Bullet,
-            max_level: int = 1,
             min_count: int = 1,
             max_count: int = 1,
             growth_factor: int = 1,
@@ -29,7 +28,7 @@ class GeneralWeapon(BaseWeapon):
             angle_offset: float = 0.0,
             **bullet_kwargs,
     ):
-        super().__init__(name, max_level, min_count, max_count, growth_factor,
+        super().__init__(name, min_count, max_count, growth_factor,
                          reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
         self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
                                       offset_factor=offset_factor, spawn_radius=spawn_radius,

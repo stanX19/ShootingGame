@@ -7,7 +7,31 @@ from srcs import utils
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.level_handler import LevelHandler
 from srcs.classes.weapon_classes.reload_counter import CooldownTimer
+
+
+class CompositeLevelHandler(LevelHandler):
+    def __init__(self, weapons: list[BaseWeapon]):
+        super().__init__(1, 1, 1)
+        self._levels: list[LevelHandler] = [i.level for i in weapons]
+        self.max_level = max(l.max_level for l in self._levels)
+        self.min_count = sum(l.min_count for l in self._levels)
+        self.max_count = sum(l.max_count for l in self._levels)
+        self.growth_factor = sum(l.growth_factor for l in self._levels)
+
+    @property
+    def current_level(self):
+        return max(l.current_level for l in self._levels)
+
+    @current_level.setter
+    def current_level(self, val):
+        for l in self._levels:
+            l.current_level = val
+
+    @property
+    def bullet_count(self) -> int:
+        return sum(l.bullet_count for l in self._levels)
 
 
 class CompositeWeapon(BaseWeapon):
@@ -21,6 +45,9 @@ class CompositeWeapon(BaseWeapon):
         self._weapons = [copy.deepcopy(w) for w in weapons]
         self._interval_cd = CooldownTimer(shoot_interval)
         self._unlocked_index = 0
+
+        # override
+        self.level = CompositeLevelHandler(self._weapons)
 
     @override
     def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:

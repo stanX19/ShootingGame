@@ -16,7 +16,7 @@ def sigmoid(x: float, q: float) -> float:
     return result
 
 
-def normalize(value, min_val, max_val):
+def clamp(value, min_val, max_val):
     if min_val > max_val:
         min_val, max_val = max_val, min_val
     return min(max(value, min_val), max_val)

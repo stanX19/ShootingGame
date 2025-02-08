@@ -42,9 +42,9 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
         bullet.hp -= enemy.dmg
 
     if enemy.is_dead():
-        bullet.add_score(enemy.score + enemy.base_score)
+        bullet.add_score(enemy.base_score)
     if bullet.is_dead():
-        enemy.add_score(bullet.score + enemy.base_score)
+        enemy.add_score(enemy.base_score)
     if isinstance(enemy, Breakable):
         enemy.handle_hit_by(bullet)
     if isinstance(bullet, Breakable):

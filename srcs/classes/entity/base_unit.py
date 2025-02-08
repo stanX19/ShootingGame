@@ -25,7 +25,7 @@ class BaseUnit(Breakable):
     def __init__(self, faction: FactionData,
                  x: float = 0.0, y: float = 0.0,
                  angle=0.0, speed=UNIT_SPEED, radius=UNIT_RADIUS, color=ENEMY_COLOR,
-                 hp=1, dmg=1, score=100, variable_shape=True, variable_color=True,
+                 hp=1, dmg=1, score=10, variable_shape=True, variable_color=True,
                  shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED,
                  # importance:int=0,
                  **kwargs):
@@ -92,8 +92,10 @@ class BaseUnit(Breakable):
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
             self.xv = -self.xv
+            self.x = utils.clamp(self.x, self.rad, MAP_WIDTH - self.rad)
         if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
             self.yv = -self.yv
+            self.y = utils.clamp(self.y, self.rad, MAP_HEIGHT - self.rad)
         self.speed = spd
         self.warn_target()
 

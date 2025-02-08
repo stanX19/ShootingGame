@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 
-from srcs.upgrade_pane import UpgradePane
+from srcs.unit_classes.spawner_unit import UnitMothership
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -18,22 +18,20 @@ except ImportError:
     import pygame
     import numpy
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
-    ENEMY_COLOR, SCREEN_HEIGHT, SCREEN_WIDTH, PLAYER_RADIUS, UNIT_RADIUS
+    ENEMY_COLOR, UNIT_RADIUS
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
-from srcs.unit_classes import BasicShootingUnit, EliteUnit, SuperShootingUnit, SniperUnit, \
-    UnitMothership, RammerUnit, MiniMothershipUnit
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
 from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
-from srcs.classes.UI.pane import Pane
-from srcs.classes.UI.button import Button
+from srcs.upgrade_pane import UpgradePane
 
 dev_mode = 0
 test_mode = 0
@@ -114,8 +112,10 @@ class Game:
         #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
         #                                   child_class=Unit, child_spawn_cd=100,
         #                                   child_kwargs={"hp": 0.01, "dmg": 10, "controller": PlayerDroneController()})
-        self.data.player = MiniMothershipUnit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
                                      color=PLAYER_COLOR)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
+        self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
         self.prev_max_speed = self.data.player.speed
         self.prev_controller = self.data.player.controller
         self.data.player.controller = PlayerController()
@@ -244,7 +244,7 @@ class Game:
             return
         if units_dict is None:
             units_dict = {
-                BasicShootingUnit: constants.SPAWN_CAP
+                BasicLazerUnit: constants.SPAWN_CAP
             }
         for unit_type, cap in units_dict.items():
             count = len([i for i in faction.parent_list if isinstance(i, unit_type)])
@@ -436,14 +436,15 @@ class Game:
         info_str = f"""Score: {self.data.player.score:.0f}
   {int(self.data.player.hp)} / {int(self.data.player.max_hp)} hp
   """.strip()
+        # particle count: {len(self.data.water_particle_handler.particles)}
+        # buff count: {len(self.data.collectibles)}
         debug_str = f"""\
   fps             : {self.data.clock.get_fps():.0f}
+  main weapon     : {self.data.player.main_weapon}
+  sub weapon      : {self.data.player.sub_weapon}
   zoom            : {self.data.zoom:.2f}
-  particle count  : {len(self.data.water_particle_handler.particles)}
-  buff count      : {len(self.data.collectibles)}
   enemy count     : {len(self.data.enemies)}
   ally count      : {len(self.data.allies)}
-  kills           : {self.data.kills}
   target          : {self.data.player.target}
   auto fire       : {'on' if self.data.autofire else 'off':4}(E)
   overdrive       : {(self.data.player.main_weapon.overdrive_percentage if isinstance(self.data.player, Unit) else 0) * 100:.0f}% (Q)""".title()

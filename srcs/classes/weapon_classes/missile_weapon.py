@@ -32,7 +32,6 @@ class MissileWeapon(GeneralWeapon):
             spread=spread,
             spawn_radius=spawn_radius,
             bullet_class=Missile,
-            max_level=max_level,
             max_count=max_count,
             growth_factor=growth_factor,
             **missile_kwargs,
