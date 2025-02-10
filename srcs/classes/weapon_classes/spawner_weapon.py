@@ -3,6 +3,7 @@ from typing import override
 
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.bullet_spawner import BulletSpawner
@@ -17,7 +18,7 @@ class SpawnerWeapon(BaseWeapon):
             offset_factor: float = 1.0,
             spread: float = math.pi * 2,
             spawn_radius: float = 0,
-            bullet_class: type[Bullet] = Bullet,
+            bullet_class: type[FactionParticle] = Bullet,
             min_count: int = 1,
             max_count: int = 1,
             growth_factor: int = 1,

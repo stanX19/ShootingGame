@@ -16,9 +16,8 @@ class MissileWeapon(GeneralWeapon):
             offset_factor: float = 1.0,
             spread: float = math.pi * 2,
             spawn_radius: float = UNIT_RADIUS,
-            max_level: int = 1,
             max_count: int = 1,
-            growth_factor: int = 1,
+            growth_factor: float = 1,
             **missile_kwargs,
     ):
         """

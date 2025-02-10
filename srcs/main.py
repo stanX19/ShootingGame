@@ -4,8 +4,9 @@ import math
 import os
 import subprocess
 import sys
+import traceback
 
-from srcs.unit_classes.spawner_unit import UnitMothership
+from srcs.unit_classes.advanced_weapons import ALL_ADVANCED_WEAPON_LIST
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -18,14 +19,16 @@ except ImportError:
     import pygame
     import numpy
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
-    ENEMY_COLOR, UNIT_RADIUS
+    ENEMY_COLOR, UNIT_RADIUS, SCREEN_WIDTH, SCREEN_HEIGHT
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
-from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, ResourceUnit, BasicShootingUnit, RammerUnit, \
+    SuperShootingUnit
+from srcs.unit_classes.spawner_unit import UnitMothership, MiniMothershipUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
@@ -33,14 +36,14 @@ from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs.upgrade_pane import UpgradePane
 
-dev_mode = 0
+dev_mode = 1
 test_mode = 0
 god_mode: bool = False
-# default_weapons = ([MainWeaponEnum.machine_gun], [SubWeaponEnum.sub_missile])
+
 if dev_mode:
-    god_mode = True
+    # god_mode = True
     constants.OVERDRIVE_CD = constants.OVERDRIVE_DURATION - 1
-    for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST:
+    for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST + ALL_ADVANCED_WEAPON_LIST:
         w.level.current_level = w.level.max_level
     # default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
 # Initialize Pygame
@@ -59,9 +62,8 @@ consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
 #  add buttons (testing) [Done]
 #  remove mothership [Done]
 #  add initial enemy spawning mother ships [Done]
-#  implement buttons to upgrade player
+#  implement buttons to upgrade player [Done]
 #  player can choose three paths: [spawner, turret spawner, attacker]
-#  since there are two weapon slots, player can choose more than one path
 #  spawner and turret's child will have options to use [weapon, hp, dmg, speed] series upgrade
 class Game:
     def __init__(self):
@@ -87,39 +89,65 @@ class Game:
         self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
-        if not test_mode:
-            DISTANCE_FROM_BOUND = 300
-            # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
-            ghost = Unit(self.enemy_faction, color=ENEMY_COLOR)
-            self.data.enemies.append(UnitMothership(
-                self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
-                color=ENEMY_COLOR, parent=ghost
-            ))
-            self.data.enemies.append(UnitMothership(
-                self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
-                color=ENEMY_COLOR, parent=ghost
-            ))
-            self.data.enemies.append(UnitMothership(
-                self.enemy_faction, DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
-                color=ENEMY_COLOR, parent=ghost
-            ))
-            self.data.enemies.append(UnitMothership(
-                self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
-                color=ENEMY_COLOR, parent=ghost
-            ))
-        # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-        #                                   targets=self.data.enemies, parent_list=self.data.bullets,
-        #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
-        #                                   child_class=Unit, child_spawn_cd=100,
-        #                                   child_kwargs={"hp": 0.01, "dmg": 10, "controller": PlayerDroneController()})
         self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-                                     color=PLAYER_COLOR)
+                                     color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3)
         self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
         self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
         self.prev_max_speed = self.data.player.speed
         self.prev_controller = self.data.player.controller
         self.data.player.controller = PlayerController()
         self.data.allies.append(self.data.player)
+
+        DISTANCE_FROM_BOUND = 300
+        # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        ghost = Unit(self.enemy_faction, color=ENEMY_COLOR)
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(ResourceUnit(
+            self.enemy_faction, MAP_WIDTH // 2, DISTANCE_FROM_BOUND * 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(ResourceUnit(
+            self.enemy_faction, MAP_WIDTH // 2, MAP_HEIGHT - DISTANCE_FROM_BOUND * 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, self.data.player.x + SCREEN_WIDTH // 2 + 300, MAP_HEIGHT // 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        mothership = UnitMothership(
+            self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
+            color=PLAYER_COLOR, parent=ghost
+        )
+        mothership.unit_dict = {
+            BasicShootingUnit: 30,
+            BasicLazerUnit: 10,
+            EliteUnit: 3,
+            RammerUnit: 3,
+        }
+        self.data.allies.append(mothership)
+
+        # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        #                                   targets=self.data.enemies, parent_list=self.data.bullets,
+        #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
+        #                                   child_class=Unit, child_spawn_cd=100,
+        #                                   child_kwargs={"hp": 0.01, "dmg": 10, "controller": PlayerDroneController()})
+
         # self.data.player.main_weapon.reinit_weapons(default_weapons[0])
         # self.data.player.sub_weapon.reinit_weapons(default_weapons[1])
         self.center_focus(lerp_const=1.0)
@@ -134,14 +162,30 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
+        self.data.enemies[:] = []
+        self.data.allies[:] = []
+        self.data.player = UnitMothership(
+            self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
+            color=PLAYER_COLOR
+        )
+        self.data.player.unit_dict = {
+            BasicShootingUnit: 30,
+            BasicLazerUnit: 10,
+            EliteUnit: 3,
+            RammerUnit: 3,
+        }
         self.data.player.score = 100000000000000
-        self.data.allies.append(
-            Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
+        # self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.swarm)
+        # self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.giant_canon)
+        self.data.allies.append(self.data.player)
+
+        # self.data.allies[:] = [self.data.player]
+        # self.data.allies.append(
+        #     Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
         self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
                                               hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
                                               controller=BotController(), variable_shape=True
                                               ))
-        self.data.allies[:] = [self.data.player]
         self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x - 800, self.data.player.y,
                                       weapons=[],
                                       hp=100000000, dmg=10, radius=300,
@@ -534,8 +578,12 @@ class Game:
 
 
 def main():
-    game = Game()
-    game.run()
+    # try:
+        game = Game()
+        game.run()
+    # except BaseException:
+    #     print(traceback.format_exc())
+    #     input("\nPress enter to quit")
 
 
 if __name__ == '__main__':

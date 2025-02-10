@@ -32,4 +32,6 @@ class BulletKwargsHandler:
     def getattr(self, name: str, default: Any = None) -> Any:
         return self._original_kwargs.get(name, default)
 
+    def __str__(self):
+        return str(self.get_processed_kwargs())
 

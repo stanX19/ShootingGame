@@ -12,9 +12,20 @@ from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import SubWeaponEnum
 
 
+class ResourceUnit(Unit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+        self._resource_size = 10000
+        super().__init__(faction, x, y, angle, speed=0, hp=self._resource_size, radius=self._resource_size // 50)
+
+    def move(self):
+        super().move()
+        self.add_score(1 / FPS)
+        self.use_score(10)
+
+
 class BasicShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
-        super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun)
+        super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun, **kwargs)
 
 
 class BasicLazerUnit(Unit):

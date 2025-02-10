@@ -2,21 +2,21 @@ from __future__ import annotations
 import math
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.weapon_classes.bullet_kwargs_handler import BulletKwargsHandler
-from srcs.constants import *
 
 
 class BulletSpawner:
     def __init__(self,
                  bullet_kwargs: BulletKwargsHandler,
-                 bullet_class: type[Bullet] = Bullet,
+                 bullet_class: type[FactionParticle] = Bullet,
                  spread: float = math.pi * 0.8,
                  spawn_radius: float = 0,
                  offset_factor: float = 1.0,
                  angle_offset: float = 0.0):
         self.bullet_kwargs: BulletKwargsHandler = bullet_kwargs
-        self.bullet_class: type[Bullet] = bullet_class
+        self.bullet_class: type[FactionParticle] = bullet_class
         self.spread: float = spread
         self.spawn_radius: float = spawn_radius
         self.offset_factor: float = offset_factor
@@ -45,8 +45,8 @@ class BulletSpawner:
 
         for i in range(count):
             offset = (i - (count - 1) / 2) * angle_offset
-            shoot_angle = angle + offset + self.angle_offset
-            bullet_angle = angle + offset * self.offset_factor + self.angle_offset
+            shoot_angle = angle + self.angle_offset + offset
+            bullet_angle = angle + self.angle_offset + offset * self.offset_factor
             dy, dx = math.sin(shoot_angle) * self.spawn_radius, math.cos(shoot_angle) * self.spawn_radius
 
             spawned_bullets.append(

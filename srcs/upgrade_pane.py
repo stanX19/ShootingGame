@@ -33,6 +33,12 @@ class UpgradeHP(BaseUpgrade):
         self.data.player.max_hp += self.args[0]
         self.data.player.hp += self.args[0]
 
+class UpgradeBodyDmg(BaseUpgrade):
+    def get_description(self):
+        return f"BODY DAMAGE {self.args[0]:+}"
+
+    def on_click(self):
+        self.data.player.dmg += self.args[0]
 
 class UpgradeSpeed(BaseUpgrade):
     def get_description(self):
@@ -64,31 +70,35 @@ class UpgradeOverdriveCD(BaseUpgrade):
 
 class ChangeMainWeapon(BaseUpgrade):
     def get_description(self):
-        return f"MAIN WEAPON {self.args[0]}"
+        if isinstance(self.data.player, Unit):
+            return f"MAIN WEAPON {self.data.player.main_weapon.get_weapon(self.args[0])}"
+        else:
+            f"MAIN WEAPON {self.args[0]}"
 
     def on_click(self):
         if isinstance(self.data.player, Unit):
-            self.data.player.main_weapon.reinit_weapons(self.args)
+            self.data.player.main_weapon.change_weapon(self.args[0])
 
     def is_available(self):
-        if (isinstance(self.data.player, Unit)
-                and self.data.player.main_weapon.weapon != self.args[0]):
-            return super().is_available()
-        return False
+        return (isinstance(self.data.player, Unit)
+                and self.data.player.main_weapon.weapon != self.args[0]
+                and super().is_available())
 
 class ChangeSubWeapon(BaseUpgrade):
     def get_description(self):
-        return f"SUB WEAPON {self.args[0]}"
+        if isinstance(self.data.player, Unit):
+            return f"SUB WEAPON {self.data.player.sub_weapon.get_weapon(self.args[0])}"
+        else:
+            f"SUB WEAPON {self.args[0]}"
 
     def on_click(self):
         if isinstance(self.data.player, Unit):
-            self.data.player.sub_weapon.reinit_weapons(self.args)
+            self.data.player.sub_weapon.change_weapon(self.args[0])
 
     def is_available(self):
-        if (isinstance(self.data.player, Unit)
-                and self.data.player.sub_weapon.weapon != self.args[0]):
-            return super().is_available()
-        return False
+        return (isinstance(self.data.player, Unit)
+                and self.data.player.sub_weapon.weapon != self.args[0]
+                and super().is_available())
 
 class UpgradeMainWeapon(BaseUpgrade):
     def get_description(self):
@@ -136,6 +146,9 @@ class UpgradeShieldRad(BaseUpgrade):
             self.data.player.shield.max_rad += self.args[0]
             self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
 
+# TODO:
+#  Idea: starter upgrade, one time upgrade
+#  get machine gun, missile, and shield, cost score 5, remove upgrade afterwards
 class UpgradePane(VPane):
     def __init__(self, data: GameData):
         super().__init__(5, SCREEN_HEIGHT // 2 + 200, 405, SCREEN_HEIGHT - 20)
@@ -144,6 +157,7 @@ class UpgradePane(VPane):
 
         self.upgrades: list[BaseUpgrade] = [
             UpgradeHP(self.data, 50, 10),
+            UpgradeBodyDmg(self.data, 50, 5),
             UpgradeSpeed(self.data, 50, 1),
             UpgradeRad(self.data, 50, 10),
             UpgradeShieldHp(self.data, 50, 10),
@@ -162,13 +176,14 @@ class UpgradePane(VPane):
             ChangeMainWeapon(self.data, 1000, MainWeaponEnum.giant_canon),
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.dancer),
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.missile),
-            ChangeSubWeapon(self.data, 500, MainWeaponEnum.swarm),
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.flash),
             ChangeSubWeapon(self.data, 500, MainWeaponEnum.warp),
+            ChangeSubWeapon(self.data, 1000, MainWeaponEnum.swarm),
             ChangeSubWeapon(self.data, 1000, AdvancedWeaponsEnum.mini_spawner),
             ChangeSubWeapon(self.data, 3000, AdvancedWeaponsEnum.elite_spawner),
             ChangeSubWeapon(self.data, 5000, AdvancedWeaponsEnum.rammer_spawner),
             UpgradeHP(self.data, 5000, 2000),
+            UpgradeBodyDmg(self.data, 5000, 1000),
             UpgradeMainWeapon(self.data, 5000, 100),
             UpgradeOverdriveCD(self.data, 10000, 1.0),
         ]

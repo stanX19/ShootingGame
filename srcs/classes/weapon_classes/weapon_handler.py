@@ -1,4 +1,5 @@
 import copy
+from ast import Index
 from typing import Optional
 
 
@@ -20,19 +21,27 @@ class WeaponHandler:
 
     def reinit_weapons(self, weapons: list[BaseWeapon] | BaseWeapon | None = None):
         if isinstance(weapons, list):
-            weapons = [weapon.copy() for weapon in weapons if isinstance(weapon, BaseWeapon)]
+            weapons = [weapon for weapon in weapons if isinstance(weapon, BaseWeapon)]
         elif isinstance(weapons, BaseWeapon):
-            weapons = [weapons.copy()]
+            weapons = [weapons]
         else:
             weapons = []
 
+        self.all_weapons = []
         for w in weapons:
-            w.mix_bullet_color_with(self.unit.get_greatest_parent().color)
-        self.weapon: Optional[BaseWeapon] = weapons[0] if weapons else None
-        self.all_weapons = weapons
+            self.add_weapon(w)
+        self.weapon: Optional[BaseWeapon] = self.all_weapons[0] if self.all_weapons else None
+
+    def has_weapon(self, weapon: BaseWeapon):
+        return weapon is not self.get_weapon(weapon)
+
+    def add_weapon(self, weapon: BaseWeapon):
+        weapon = weapon.copy()
+        weapon.mix_bullet_color_with(self.unit.get_greatest_parent().color)
+        self.all_weapons.append(weapon)
 
     def is_max(self):
-        return self.weapon.level.is_max()
+        return isinstance(self.weapon, BaseWeapon) and self.weapon.level.is_max()
 
     @property
     def current_time(self):
@@ -40,7 +49,7 @@ class WeaponHandler:
 
     @property
     def level_str(self):
-        if self.weapon is None:
+        if not isinstance(self.weapon, BaseWeapon):
             return
         return self.weapon.level.__str__()
 
@@ -57,7 +66,9 @@ class WeaponHandler:
 
     @property
     def overdrive_percentage(self):
-        return self.weapon.get_overdrive_reload_percentage(self.current_time)
+        if isinstance(self.weapon, BaseWeapon):
+            return self.weapon.get_overdrive_reload_percentage(self.current_time)
+        return 0.0
 
     @overdrive_percentage.setter
     def overdrive_percentage(self, val):
@@ -84,6 +95,12 @@ class WeaponHandler:
         else:
             self.weapon.level.level_up(amount)
 
+    def get_weapon(self, weapon: BaseWeapon):
+        found_weapons = [w for w in self.all_weapons if w.name == weapon.name]
+        if found_weapons:
+            return found_weapons[0]
+        return weapon
+
     def change_weapon(self, weapon=None):
         if weapon is None:
             self.cycle_weapon()
@@ -107,12 +124,11 @@ class WeaponHandler:
             return
         if self._change_in_cooldown():
             return
-        if weapon.name in [w.name for w in self.all_weapons]:
-            weapon = next(w for w in self.all_weapons if w.name == weapon.name)
+        if self.has_weapon(weapon):
+            self.weapon = self.get_weapon(weapon)
         else:
-            weapon = weapon.copy()
-            self.all_weapons.append(weapon)
-        self.weapon = weapon
+            self.add_weapon(weapon)
+            self.weapon = self.all_weapons[-1]
         self.is_first_shot = True
 
     def _change_in_cooldown(self):

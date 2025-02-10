@@ -88,7 +88,7 @@ class GameParticle(Particle):
     def add_score(self, amount):
         self.score += amount
         if isinstance(self.parent, GameParticle):
-            self.parent.add_score(amount * 0.5)
+            self.parent.add_score(amount)
 
     def get_greatest_parent(self) -> GameParticle:
         current: GameParticle = self

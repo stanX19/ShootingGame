@@ -40,7 +40,7 @@ class Pane(UIElement):
             current_x += self.spacing + width
 
     def _draw(self, surface):
-        pygame.draw.rect(surface, (79,69,87), self)
+        # pygame.draw.rect(surface, (79,69,87), self)
         for child in self.child_list:
             child.draw(surface)
 

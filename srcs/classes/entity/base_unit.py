@@ -9,7 +9,7 @@ import random
 
 from srcs import utils
 from srcs.classes import algo
-from srcs.classes.entity.breakable import Breakable
+from srcs.classes.entity.breakable import Breakable, Debris
 from srcs.classes.entity.bullet import Bullet
 from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
@@ -58,7 +58,7 @@ class BaseUnit(Breakable):
             dis = target.distance_with_cord(x, y)
             if dis > distance_limit:
                 continue
-            if isinstance(target, Bullet) and not algo.can_catch_up(self, target):
+            if isinstance(target, (Bullet, Debris)) and not algo.can_catch_up(self, target):
                 continue
             distance = (
                dis

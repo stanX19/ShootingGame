@@ -15,7 +15,7 @@ class BaseWeapon:
     def __init__(self, name: str,
                  min_count: int = 1,
                  max_count: int = 1,
-                 growth_factor: int = 1,
+                 growth_factor: float = 1,
                  reload: int = 200,
                  overdrive_duration: float = OVERDRIVE_DURATION,
                  overdrive_cooldown: float = OVERDRIVE_CD,

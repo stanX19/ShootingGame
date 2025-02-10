@@ -1,11 +1,13 @@
 import math
 
-from srcs.classes.controller import AIDroneController, SmartAIController
+from srcs.classes.controller import AIDroneController, SmartAIController, BaseController
 from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.entity.unit import Unit
 from srcs.classes.faction_data import FactionData
 from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
 from srcs.classes.weapon_classes.random_spawner_weapon import RandomSpawnerWeapon
+from srcs.classes.weapon_classes.spawner_dict_weapon import SpawnerDictWeapon
 from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS
@@ -24,7 +26,11 @@ class MiniMothershipUnit(Unit):
                          **kwargs)
 
 
+
+
+
 # TODO:
+#  urgent, is causing bugs
 #  encapsulate main spawner weapon in a weapon class
 #  such that player can use it too
 class UnitMothership(Unit):
@@ -34,12 +40,11 @@ class UnitMothership(Unit):
             BasicShootingUnit: 30,
             BasicLazerUnit: 10,
             EliteUnit: 3,
-            RammerUnit: 3,
+            SuperShootingUnit: 2,
             MiniMothershipUnit: 1,
-            SuperShootingUnit: 2
+            RammerUnit: 3,
         }
-        spawner = RandomSpawnerWeapon("mothership spawner", reload=SPAWN_CD * 1000)
-        spawner.change_bullet_class(BasicLazerUnit)
+        spawner = SpawnerDictWeapon("mothership spawner", reload=SPAWN_CD * 1000)
 
         emergency = CompositeWeapon("Emergency", [
             SpawnerWeapon("1", reload=60 * 1000, min_count=4, bullet_class=BasicLazerUnit),
@@ -59,15 +64,12 @@ class UnitMothership(Unit):
                          **kwargs)
 
     def move(self):
-        self.controller.fire_sub = False
+        if isinstance(self.sub_weapon.weapon, SpawnerDictWeapon):
+            self.sub_weapon.weapon.unit_dict = self.unit_dict
+        self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
-        items = list(self.unit_dict.items())
-        # random.shuffle(items)
-        for unit_type, cap in items:
-            count = len([i for i in self.faction.parent_list if isinstance(i, unit_type)])
-            if count >= cap:
-                continue
-            self.sub_weapon.weapon.change_bullet_class(unit_type)
-            self.controller.fire_sub = True
-            break
+        if self.hp < self.max_hp / 4:
+            self.sub_weapon.overdrive_start()
+            self.main_weapon.overdrive_start()
         super().move()
+

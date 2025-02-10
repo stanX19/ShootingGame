@@ -4,7 +4,7 @@ from srcs import utils
 
 
 class LevelHandler:
-    def __init__(self, min_count: int, max_count: int, growth_factor: int):
+    def __init__(self, min_count: int, max_count: int, growth_factor: float):
         """
         Handles level progression and bullet count calculations for weapons.
 
@@ -12,8 +12,6 @@ class LevelHandler:
         :param max_count: The maximum bullet count at the highest level.
         :param growth_factor: The number of bullets added per level.
         """
-        if min_count < 1:
-            raise ValueError("min_count must be at least 1.")
         if growth_factor < 0:
             raise ValueError("growth_factor cannot be negative.")
         if max_count < min_count:
@@ -36,7 +34,7 @@ class LevelHandler:
     @property
     def bullet_count(self) -> int:
         count = self.min_count + (self.current_level - 1) * self.growth_factor
-        return min(count, self.max_count)
+        return utils.clamp(int(count), 0, self.max_count)
 
     def level_up(self, amount):
         self.current_level += amount
