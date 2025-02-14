@@ -113,15 +113,18 @@ def circle_line_overlap(cx, cy, radius, x1, y1, x2, y2):
     return chord_length
 
 
-
-def line_point_distance(sx1, sy1, sx2, sy2, px, py):
+def line_point_closest_point_on_line(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> tuple[float, float]:
     if sx1 == sx2 and sy1 == sy2:
-        return math.hypot(px - sx1, py - sy1)
+        return sx1, sy1
     segment_length_squared = (sx2 - sx1) ** 2 + (sy2 - sy1) ** 2
     t = ((px - sx1) * (sx2 - sx1) + (py - sy1) * (sy2 - sy1)) / segment_length_squared
-    t = max(0, min(1, t))
+    t = max(0.0, min(1.0, t))
     closest_x = sx1 + t * (sx2 - sx1)
     closest_y = sy1 + t * (sy2 - sy1)
+    return closest_x, closest_y
+
+def line_point_distance(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> float:
+    closest_x, closest_y = line_point_closest_point_on_line(sx1, sy1, sx2, sy2, px, py)
     return math.hypot(px - closest_x, py - closest_y)
 
 

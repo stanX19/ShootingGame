@@ -9,3 +9,4 @@ pyvenv.cfg
 .git
 ./idea/*
 .venv
+test/

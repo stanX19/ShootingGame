@@ -4,6 +4,7 @@ import math
 
 from srcs.classes.entity.explosive import Explosive
 from srcs.classes.entity.lazer import Lazer
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.booster_weapon import BoosterWeapon
 from srcs.classes.weapon_classes.charged_weapon import ChargedWeapon
 from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
@@ -14,17 +15,28 @@ from srcs.constants import *
 
 
 class MainWeaponEnum:
-    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=10, radius=3, growth_factor=1,
+    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=5, radius=3, growth_factor=1,
                                 offset_factor=0.1, dmg=1, hp=1, recoil=3, spread=math.pi, spawn_radius=UNIT_RADIUS * 3)
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=800, speed=25, max_count=5, radius=5,
                                          growth_factor=1,
                                          offset_factor=0.1, dmg=8, hp=1, recoil=3)
-    lazer_mini = GeneralWeapon("lazer mini", reload=200, speed=50, min_count=1, max_count=3, radius=2,
-                               growth_factor=1, bullet_class=Lazer, lifespan=120, dmg=0.25, hp=25,
-                          offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
-    lazer = GeneralWeapon("lazer", reload=200, speed=100, min_count=1, max_count=3, radius=2,
-                          growth_factor=1, bullet_class=Lazer, lifespan=120, dmg=1, hp=100,
-                          offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
+    beam = GeneralWeapon("beam", reload=0, speed=1, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.05,
+                         hp=50000)
+
+    lazer_mini = CompositeWeapon("lazer mini", [
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=1),
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=0),
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=-1),
+    ], 200 // 3)
+    lazer = lazer_mini.copy()
+    lazer.update_bullet(speed=100, hp=100, radius=2)
+    lazer.name = "lazer"
+    # lazer = GeneralWeapon("lazer", reload=200, speed=100, min_count=1, max_count=3, radius=2,
+    #                       growth_factor=1, bullet_class=Lazer, lifespan=120, dmg=1, hp=100,
+    #                       offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
     giant_canon = GeneralWeapon("giant canon", reload=200, speed=25, max_count=5, radius=20, recoil=1, hp=10, dmg=10,
                           offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
     lazer_super = ChargedWeapon("lazer super", reload=2000, speed=200, max_count=1, radius=10,
@@ -48,6 +60,8 @@ class MainWeaponEnum:
         MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
     ] * 2, 100)
+    torpedo = MissileWeapon("torpedo", 4000, dmg=100, hp=50, radius=20, max_count=4, spread=math.pi*2,
+                            speed=MISSILE_SPEED/2, explosion_rad=400)
 
     spawner = CompositeWeapon("Spawner", [
         SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2),
@@ -61,8 +75,7 @@ class MainWeaponEnum:
     # piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=250, speed=25, max_count=5, radius=3,
     #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
     dancer = BoosterWeapon("Dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.1, hp=10,
-                           min_count=1, max_count=20, growth_factor=1, spread=math.pi,
-                           recoil=-20, lifespan=(1, 3))
+                           spread=math.pi, recoil=-20, lifespan=(1, 3))
     flash = BoosterWeapon("Flash", reload=500, speed=1, radius=5, dmg=0.0, hp=100,
                            bullet_class=Lazer, spread=math.pi * 2,
                            recoil=-500, lifespan=3)
@@ -92,8 +105,8 @@ class SubWeaponEnum:
                                         recoil=10, lifespan=(1, 60), bullet_class=Lazer)
 
 
-ALL_MAIN_WEAPON_LIST: list[GeneralWeapon] = [w for w in vars(MainWeaponEnum).values() if isinstance(w, GeneralWeapon)]
-ALL_SUB_WEAPON_LIST: list[GeneralWeapon] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, GeneralWeapon)]
+ALL_MAIN_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(MainWeaponEnum).values() if isinstance(w, BaseWeapon)]
+ALL_SUB_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, BaseWeapon)]
 #
 # if __name__ == '__main__':
 #     print(f"{' ':20}{'min dmg':>20}{'max dmg':>20}{'max lvl':>20}")

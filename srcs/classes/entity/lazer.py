@@ -3,6 +3,7 @@ import math
 
 import pygame
 
+from srcs.classes import algo
 from srcs.classes.entity.bullet import Bullet
 from srcs.classes.faction_data import FactionData
 from srcs.classes.game_data import GameData
@@ -38,6 +39,10 @@ class Lazer(Bullet):
                          int(self.actual_rad) * 2 - 1)
         pygame.draw.circle(surface, self.color, (self.x, self.y), radius=self.actual_rad - 3)
         pygame.draw.circle(surface, self.color, (self.end_x, self.end_y), radius=self.actual_rad - 3)
+
+    def angle_with_cord(self, x, y):
+        nx, ny = algo.line_point_closest_point_on_line(self.prev_x, self.prev_y, self.end_x, self.end_y, x, y)
+        return math.atan2(y - ny, x - nx)
 
     def move(self):
         super().move()

@@ -151,10 +151,12 @@ class UpgradeShieldRad(BaseUpgrade):
 #  get machine gun, missile, and shield, cost score 5, remove upgrade afterwards
 class UpgradePane(VPane):
     def __init__(self, data: GameData):
-        super().__init__(5, SCREEN_HEIGHT // 2 + 200, 405, SCREEN_HEIGHT - 20)
+        super().__init__(5, SCREEN_HEIGHT // 2 + 100, 405, SCREEN_HEIGHT - 20)
         self.data = data
         self.hide()
 
+        self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 100, 1)
+        self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 100, 1)
         self.upgrades: list[BaseUpgrade] = [
             UpgradeHP(self.data, 50, 10),
             UpgradeBodyDmg(self.data, 50, 5),
@@ -162,8 +164,8 @@ class UpgradePane(VPane):
             UpgradeRad(self.data, 50, 10),
             UpgradeShieldHp(self.data, 50, 10),
             UpgradeShieldRad(self.data, 50, 100),
-            UpgradeMainWeapon(self.data, 100, 1),
-            UpgradeSubWeapon(self.data, 100, 1),
+            self.upgrade_main_weapon,
+            self.upgrade_sub_weapon,
             UpgradeMainWeapon(self.data, 250, 3),
             UpgradeSubWeapon(self.data, 250, 3),
             UpgradeSpeed(self.data, 300, 10),
@@ -177,6 +179,7 @@ class UpgradePane(VPane):
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.dancer),
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.missile),
             ChangeSubWeapon(self.data, 200, MainWeaponEnum.flash),
+            ChangeSubWeapon(self.data, 200, MainWeaponEnum.torpedo),
             ChangeSubWeapon(self.data, 500, MainWeaponEnum.warp),
             ChangeSubWeapon(self.data, 1000, MainWeaponEnum.swarm),
             ChangeSubWeapon(self.data, 1000, AdvancedWeaponsEnum.mini_spawner),
@@ -210,11 +213,15 @@ class UpgradePane(VPane):
             self.hide()
             return
         shuffle(self.current_upgrades)
+        if isinstance(self.prev_upgrade, ChangeMainWeapon):
+            self.prev_upgrade = self.upgrade_main_weapon
+        elif isinstance(self.prev_upgrade, ChangeSubWeapon):
+            self.prev_upgrade = self.upgrade_sub_weapon
         if self.prev_upgrade in self.current_upgrades:
             self.current_upgrades.remove(self.prev_upgrade)
         if self.prev_upgrade.is_available():
             self.current_upgrades.insert(self.prev_upgrade_idx, self.prev_upgrade)
-        self.current_upgrades = self.current_upgrades[:4]
+        self.current_upgrades = self.current_upgrades[:6]
         self.set_child(*[self.create_upgrade_button(upgrade) for upgrade in self.current_upgrades])
         self.show()
 

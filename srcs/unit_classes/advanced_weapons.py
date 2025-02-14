@@ -1,5 +1,6 @@
 from srcs.classes.controller import AIDroneController
 from srcs.classes.entity.unit import Unit
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
 from srcs.classes.weapon_classes.spawner_dict_weapon import SpawnerDictWeapon
 from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
@@ -30,4 +31,4 @@ class AdvancedWeaponsEnum:
         RammerUnit: 3,
     })
 
-ALL_ADVANCED_WEAPON_LIST: list[GeneralWeapon] = [w for w in vars(AdvancedWeaponsEnum).values() if isinstance(w, GeneralWeapon)]
+ALL_ADVANCED_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(AdvancedWeaponsEnum).values() if isinstance(w, BaseWeapon)]

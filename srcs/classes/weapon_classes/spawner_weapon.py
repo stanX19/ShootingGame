@@ -34,19 +34,24 @@ class SpawnerWeapon(BaseWeapon):
                                       angle_offset=angle_offset)
 
     @override
-    def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
-        if not self._shoot_cd.is_ended(unit.faction.game_data.current_time, auto_restart=True):
-            return []
-        self.check_overdrive_end(unit.faction.game_data.current_time)
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
         shoot_angle = unit.angle_with_cord(target_x, target_y)
         self._spawner.spawn_radius = unit.rad - 10
         new_bullets: list[BaseUnit] = self._spawner.circular_spawn(
             unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
         )
+
+        actual_spawned = []
+
         for b in new_bullets:
+            if not unit.use_score(b.base_score):
+                b.kill()
+                continue
             b.target = unit.target
-        unit.faction.parent_list.extend(new_bullets)
-        return new_bullets
+            actual_spawned.append(b)
+
+        unit.faction.parent_list.extend(actual_spawned)
+        return actual_spawned
 
     @override
     def update_bullet(self, **kwargs):

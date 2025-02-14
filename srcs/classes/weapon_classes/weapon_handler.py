@@ -41,7 +41,7 @@ class WeaponHandler:
         self.all_weapons.append(weapon)
 
     def is_max(self):
-        return isinstance(self.weapon, BaseWeapon) and self.weapon.level.is_max()
+        return not isinstance(self.weapon, BaseWeapon) or self.weapon.level.is_max()
 
     @property
     def current_time(self):
@@ -90,6 +90,8 @@ class WeaponHandler:
         self.weapon.start_overdrive_try(self.current_time)
 
     def upgrade_weapon(self, amount=1):
+        if not isinstance(self.weapon, BaseWeapon):
+            return
         if self.weapon.level.is_max():
             self.overdrive_cd -= constants.OVERDRIVE_CD * 0.25
         else:

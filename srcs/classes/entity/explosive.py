@@ -11,11 +11,13 @@ class Explosive(Bullet):
                  speed=BULLET_SPEED, radius=BULLET_RADIUS,
                  color=BULLET_COLOR, hp=1.0, dmg=1.0, lifespan=float('inf'),
                  explosion_color=EXPLOSION_COLOR, projectile_dmg=1,
+                 explosion_rad: float=None,
                  **kwargs):
         super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
         self.explosion_color = explosion_color
         self.explosion_dmg = dmg
         self.dmg = projectile_dmg
+        self.explosion_rad = explosion_rad if explosion_rad is not None else self.rad * 5
 
     def on_death(self):
         self.faction.parent_list.append(Effect(self.faction.game_data, self.x, self.y, self.angle, 0,
@@ -25,7 +27,7 @@ class Explosive(Bullet):
                                                lifespan=10,
                                                color=self.explosion_color,
                                                fade_off=True,
-                                               target_rad=self.rad * 5,
+                                               target_rad=self.explosion_rad,
                                                parent=self))
         # self.game_data.bullets.append(Bullet(self.game_data, self.x, self.y, self.angle, 0, self.rad * 10, (0, 0, 0),
         #                                      100000000, self.dmg / 10, lifespan=10))

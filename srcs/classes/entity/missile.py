@@ -43,6 +43,8 @@ class Missile(Explosive):
         return target
 
     def update(self):
+        if self.distance_with(self.target) < 0:
+            self.kill()
         if self.target not in self.faction.target_list:
             self.find_target()
             self._warned_target = False
@@ -51,6 +53,8 @@ class Missile(Explosive):
             angle_diff = utils.angle_diff(target_angle, self.angle)
             angle_diff = utils.clamp(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff
+
+
         # TODO:
         #  combine warn target from base_unit
         if not self._warned_target and isinstance(self.target, BaseUnit) and self.distance_with(self.target) < self.target.shoot_range:

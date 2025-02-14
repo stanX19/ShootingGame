@@ -5,6 +5,7 @@ import random
 
 import pygame
 
+from srcs import utils
 from srcs.classes.effect import Effect
 from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
@@ -41,11 +42,14 @@ class Breakable(FactionParticle):
 
     def handle_hit_by(self, other: GameParticle):
         angle = self.angle_with(other)
-        x = self.x + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.cos(angle)
-        y = self.y + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.sin(angle)
         rad = other.rad
         if isinstance(other, Lazer):
             rad = other.actual_rad
+            angle = utils.angle_add(other.angle_with_cord(self.x, self.y), math.pi)
+        if self.hp <= 0:
+            angle = utils.angle_add(angle, math.pi)
+        x = self.x + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.cos(angle)
+        y = self.y + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.sin(angle)
         self._explode(angle, math.pi / 2, (x, y), 0,
                       max(1, other.speed / 5 / max(rad, 0.1)))
 

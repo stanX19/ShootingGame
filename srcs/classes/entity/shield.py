@@ -4,9 +4,8 @@ from typing import Optional
 import pygame
 
 from srcs.classes.entity.faction_particle import FactionParticle
-from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.game_particle import GameParticle, Particle
 from srcs.classes.faction_data import FactionData
-from srcs.classes.game_data import GameData
 from srcs import utils
 
 
@@ -51,13 +50,9 @@ class Shield(FactionParticle):
         self.regen_rate = self._default_regen_rate if self.show_timer <= 0 else self._default_regen_rate / 10
         self.prev_hp = self.hp
 
-        if self.parent is not None:
+        if isinstance(self.parent, Particle):
             self.x = self.parent.x + self.parent.xv
             self.y = self.parent.y + self.parent.yv
-            # missing_hp = self.parent.max_hp - self.parent.hp
-            # transferred_hp = min(self.hp, missing_hp)
-            # self.hp -= transferred_hp
-            # self.parent.hp += transferred_hp
         super().move()
 
     def draw(self, surface: pygame.Surface):
@@ -78,7 +73,7 @@ class Shield(FactionParticle):
         self.show_timer -= 1
 
     def is_dead(self):
-        if self.parent:
+        if isinstance(self.parent, GameParticle):
             return self.parent.is_dead()
         else:
             return super().is_dead()

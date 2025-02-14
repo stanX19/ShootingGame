@@ -63,52 +63,5 @@ class Unit(BaseUnit):
         # pygame.draw.circle(surface, (0, 255, 0), (int(self.x), int(self.y)), self.shoot_range, width=2)
         # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
 
-#
-#
-# class Unit(BaseUnit):
-#     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-#                  controller: Optional[BaseController] = None, **kwargs):
-#         super().__init__(faction, x, y, angle, **kwargs)
-#         self.controller: BaseController = AIController() if controller is None else controller.copy()
-#         self.update_appearance_based_on_hp()
-#
-#     def move(self):
-#         super().move()
-#         self.controller.update_based_on(self)
-#         if not self.controller.is_moving:
-#             self.speed = 0
-#         else:
-#             self.speed = self.max_speed
-#         self.turn_to(self.controller.move_angle)
-#
-#     def draw(self, surface: pygame.Surface):
-#         super().draw(surface)
-#         # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
-#
-#
-# class ShootingUnit(Unit):
-#     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-#                  radius=10, speed=UNIT_SPEED * 2.5, hp=10,
-#                  weapons: list[BaseWeapon] | None = MainWeaponEnum.machine_gun,
-#                  sub_weapons: list[BaseWeapon] | None = None, **kwargs):
-#         super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
-#         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
-#         self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
-#
-#     def move(self):
-#         super().move()
-#         if self.main_weapon.weapon is not None:
-#             self.bullet_speed = self.main_weapon.weapon.get_speed(self)
-#         if self.hp and self.controller.fire_main:
-#             self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
-#         if self.hp and self.controller.fire_sub:
-#             self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
-#
-# class ShieldedUnit(Unit):
-#     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
-#                  shield_hp=None, shield_rad=None, **kwargs):
-#         super().__init__(faction, x, y, angle, **kwargs)
-#         shield_rad = shield_rad if shield_rad is not None else max(50, self.rad + 2 * self.hp)
-#         shield_hp = shield_hp if shield_hp is not None else 2 * self.hp
-#         self.faction.parent_list.append(Shield(faction, x, y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
-#                                         hp=shield_hp, parent=self, regen_rate=shield_hp / 50))
+    # def __str__(self):
+    #     return super().__str__() + f" {self.controller.__class__.__name__}"

@@ -23,16 +23,16 @@ class MiniMothershipUnit(Unit):
                          weapons=MainWeaponEnum.lazer_super,
                          sub_weapons=AdvancedWeaponsEnum.mini_spawner,
                          shoot_range=UNIT_SHOOT_RANGE,
+                         controller=SmartAIController(),
                          **kwargs)
+        self.score = 0
 
 
+    def move(self):
+        super().move()
+        self.score += 100 / FPS / SPAWN_CD
 
 
-
-# TODO:
-#  urgent, is causing bugs
-#  encapsulate main spawner weapon in a weapon class
-#  such that player can use it too
 class UnitMothership(Unit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
@@ -47,12 +47,12 @@ class UnitMothership(Unit):
         spawner = SpawnerDictWeapon("mothership spawner", reload=SPAWN_CD * 1000)
 
         emergency = CompositeWeapon("Emergency", [
-            SpawnerWeapon("1", reload=60 * 1000, min_count=4, bullet_class=BasicLazerUnit),
+            SpawnerWeapon("1", reload=60 * 1000, min_count=12, bullet_class=BasicLazerUnit),
             SpawnerWeapon("1", reload=60 * 1000, min_count=12, bullet_class=Unit, angle_offset=math.pi/12)
         ] * 3, 400)
 
         super().__init__(faction, x, y,
-                         hp=2000, dmg=125, speed=0,
+                         hp=5000, dmg=125, speed=0,
                          variable_shape=True, variable_color=True,
                          radius=200, score=5000,
                          shield_hp=500, shield_rad=300,
@@ -62,12 +62,14 @@ class UnitMothership(Unit):
                          shoot_range=1500,
                          regen_rate=1/60/FPS*2000,  # recover in 60 seconds
                          **kwargs)
+        self.score = 0
 
     def move(self):
         if isinstance(self.sub_weapon.weapon, SpawnerDictWeapon):
             self.sub_weapon.weapon.unit_dict = self.unit_dict
         self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
+        self.score += 50 / FPS / SPAWN_CD
         if self.hp < self.max_hp / 4:
             self.sub_weapon.overdrive_start()
             self.main_weapon.overdrive_start()

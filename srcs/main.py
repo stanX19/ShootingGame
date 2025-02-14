@@ -6,7 +6,6 @@ import subprocess
 import sys
 import traceback
 
-from srcs.unit_classes.advanced_weapons import ALL_ADVANCED_WEAPON_LIST
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -21,6 +20,7 @@ except ImportError:
 from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
     ENEMY_COLOR, UNIT_RADIUS, SCREEN_WIDTH, SCREEN_HEIGHT
 from srcs.classes.faction_data import FactionData
+from srcs.unit_classes.advanced_weapons import ALL_ADVANCED_WEAPON_LIST
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
@@ -36,7 +36,7 @@ from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs.upgrade_pane import UpgradePane
 
-dev_mode = 1
+dev_mode = 0
 test_mode = 0
 god_mode: bool = False
 
@@ -78,7 +78,7 @@ class Game:
 
 
     def self_destruct(self):
-        self.data.player.set_hp(-100000000)
+        self.data.player.kill()
 
     def init_game(self):
         self.data.zoom = 1.0
@@ -89,7 +89,7 @@ class Game:
         self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
-        self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 4,
                                      color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3)
         self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
         self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
@@ -117,21 +117,25 @@ class Game:
             self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
             color=ENEMY_COLOR, parent=ghost
         ))
-        self.data.enemies.append(ResourceUnit(
-            self.enemy_faction, MAP_WIDTH // 2, DISTANCE_FROM_BOUND * 2,
-            color=ENEMY_COLOR, parent=ghost
-        ))
-        self.data.enemies.append(ResourceUnit(
-            self.enemy_faction, MAP_WIDTH // 2, MAP_HEIGHT - DISTANCE_FROM_BOUND * 2,
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH // 2, DISTANCE_FROM_BOUND,
             color=ENEMY_COLOR, parent=ghost
         ))
         self.data.enemies.append(UnitMothership(
-            self.enemy_faction, self.data.player.x + SCREEN_WIDTH // 2 + 300, MAP_HEIGHT // 2,
+            self.enemy_faction, MAP_WIDTH // 2, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT // 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT // 2,
             color=ENEMY_COLOR, parent=ghost
         ))
         ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
         mothership = UnitMothership(
-            self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
+            self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
             color=PLAYER_COLOR, parent=ghost
         )
         mothership.unit_dict = {
@@ -157,39 +161,39 @@ class Game:
         # self.data.player.main_weapon.set_weapon_by_index(0)
         self.data.collectible_spawn_score = 10000
         self.spawn_starter_pack()
-        self.background_update()
+        # self.background_update()
 
     def spawn_starter_pack(self):
         if not test_mode:
             return
         self.data.enemies[:] = []
         self.data.allies[:] = []
-        self.data.player = UnitMothership(
-            self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
-            color=PLAYER_COLOR
-        )
-        self.data.player.unit_dict = {
-            BasicShootingUnit: 30,
-            BasicLazerUnit: 10,
-            EliteUnit: 3,
-            RammerUnit: 3,
-        }
+        # self.data.player = UnitMothership(
+        #     self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
+        #     color=PLAYER_COLOR
+        # )
+        # self.data.player.unit_dict = {
+        #     BasicShootingUnit: 30,
+        #     BasicLazerUnit: 10,
+        #     EliteUnit: 3,
+        #     RammerUnit: 3,
+        # }
         self.data.player.score = 100000000000000
         # self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.swarm)
-        # self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.giant_canon)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.beam)
         self.data.allies.append(self.data.player)
 
         # self.data.allies[:] = [self.data.player]
         # self.data.allies.append(
         #     Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
         self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
-                                              hp=200, dmg=10000, weapons=MainWeaponEnum.lazer_mini,
+                                              hp=200, dmg=0, weapons=MainWeaponEnum.lazer_mini,
                                               controller=BotController(), variable_shape=True
                                               ))
         self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x - 800, self.data.player.y,
                                       weapons=[],
                                       hp=100000000, dmg=10, radius=300,
-                                      shield_hp=200, shield_rad=300,
+                                      # shield_hp=200, shield_rad=300,
                                       controller=BotController(), variable_shape=True
                                       ))
         # self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=50, dmg=1,

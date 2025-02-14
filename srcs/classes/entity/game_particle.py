@@ -4,6 +4,8 @@ import math
 
 import pygame
 
+from srcs.constants import FPS
+
 
 class Particle:
     def __init__(self, x: float, y: float, angle=0.0, speed=0.0, rad=1.0, color=(255, 255, 255), *wargs, **kwargs):
@@ -37,7 +39,7 @@ class Particle:
         self.yv = speed * math.sin(new_angle)
 
     def distance_with(self, other) -> float:
-        if other is None:
+        if not isinstance(other, Particle):
             return float('inf')
         return math.hypot(self.x - other.x, self.y - other.y) - self.rad - other.rad
 
@@ -63,7 +65,7 @@ class GameParticle(Particle):
         self.max_rad: float = radius
         self.dmg: float = dmg
         self.base_score: int = score
-        self.score: int = 0
+        self.score: int = 500
         self.parent: GameParticle | None = parent
         self.regen_rate = regen_rate
 
@@ -75,8 +77,11 @@ class GameParticle(Particle):
         if amount > self.score:
             return False
         self.score -= amount
-        self.base_score += amount
+        # self.base_score += amount
         return True
+
+    def kill(self):
+        self.hp = - self.max_hp - self.regen_rate
 
     def set_hp(self, hp):
         self.hp = min(self.max_hp, hp)
@@ -118,6 +123,7 @@ class GameParticle(Particle):
 
     def move(self):
         super().move()
+        self.score += 1 / FPS
         self.hp = min(self.max_hp, self.hp + self.regen_rate)
 
     def __repr__(self):
