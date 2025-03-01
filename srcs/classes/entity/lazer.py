@@ -17,18 +17,28 @@ class Lazer(Bullet):
                  **kwargs):
         super().__init__(faction, x, y, angle, speed, radius,
                          color, hp, dmg, lifespan, **kwargs)
-        self.length = 0
+        self._length = 0
         self.end_x = self.x
         self.end_y = self.y
         self.actual_rad = self.rad
         self.update_length()
 
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, val):
+        self.hp = val / self.actual_rad
+        self.max_hp = val / self.actual_rad
+        self.update_length()
+
     def update_length(self):
-        self.length = (self.hp - 1) * self.actual_rad
+        self._length = (self.hp - 1) * self.actual_rad
         angle = self.angle
-        self.end_x = self.x + self.length * math.cos(angle)
-        self.end_y = self.y + self.length * math.sin(angle)
-        self.rad = self.length
+        self.end_x = self.x + self._length * math.cos(angle)
+        self.end_y = self.y + self._length * math.sin(angle)
+        self.rad = self._length
 
     def draw(self, surface: pygame.Surface):
         """Draw the lazer as a line extending in its direction."""

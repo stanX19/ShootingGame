@@ -133,18 +133,18 @@ class Game:
             self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT // 2,
             color=ENEMY_COLOR, parent=ghost
         ))
-        ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
-        mothership = UnitMothership(
-            self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
-            color=PLAYER_COLOR, parent=ghost
-        )
-        mothership.unit_dict = {
-            BasicShootingUnit: 30,
-            BasicLazerUnit: 10,
-            EliteUnit: 3,
-            RammerUnit: 3,
-        }
-        self.data.allies.append(mothership)
+        # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        # mothership = UnitMothership(
+        #     self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        #     color=PLAYER_COLOR, parent=ghost
+        # )
+        # mothership.unit_dict = {
+        #     BasicShootingUnit: 30,
+        #     BasicLazerUnit: 10,
+        #     EliteUnit: 3,
+        #     RammerUnit: 3,
+        # }
+        # self.data.allies.append(mothership)
 
         # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
         #                                   targets=self.data.enemies, parent_list=self.data.bullets,

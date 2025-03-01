@@ -54,10 +54,8 @@ class Missile(Explosive):
             angle_diff = utils.clamp(angle_diff, -math.pi / 24, math.pi / 24)
             self.angle += angle_diff
 
-
-        # TODO:
-        #  combine warn target from base_unit
-        if not self._warned_target and isinstance(self.target, BaseUnit) and self.distance_with(self.target) < self.target.shoot_range:
+        if (not self._warned_target and isinstance(self.target, BaseUnit)
+                and self.distance_with(self.target) + self.target.rad < self.target.shoot_range):
             self.target.find_new_target()
             self._warned_target = True
 

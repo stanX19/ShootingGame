@@ -10,7 +10,7 @@ from srcs.classes.weapon_classes.random_spawner_weapon import RandomSpawnerWeapo
 from srcs.classes.weapon_classes.spawner_dict_weapon import SpawnerDictWeapon
 from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
-from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS
+from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS, UNIT_SCORE
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
 from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, SuperShootingUnit, BasicShootingUnit
 
@@ -36,8 +36,8 @@ class MiniMothershipUnit(Unit):
 class UnitMothership(Unit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
-            Unit: 60,
-            BasicShootingUnit: 30,
+            Unit: 200,
+            BasicShootingUnit: 10,
             BasicLazerUnit: 10,
             EliteUnit: 3,
             SuperShootingUnit: 2,
@@ -62,14 +62,14 @@ class UnitMothership(Unit):
                          shoot_range=1500,
                          regen_rate=1/60/FPS*2000,  # recover in 60 seconds
                          **kwargs)
-        self.score = 0
+        self.score = UNIT_SCORE
 
     def move(self):
         if isinstance(self.sub_weapon.weapon, SpawnerDictWeapon):
             self.sub_weapon.weapon.unit_dict = self.unit_dict
         self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
-        self.score += 50 / FPS / SPAWN_CD
+        self.score += UNIT_SCORE / FPS / SPAWN_CD
         if self.hp < self.max_hp / 4:
             self.sub_weapon.overdrive_start()
             self.main_weapon.overdrive_start()

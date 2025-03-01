@@ -11,6 +11,7 @@ from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
 from srcs.classes.weapon_classes.missile_weapon import MissileWeapon
 from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
+from srcs.classes.weapon_classes.teleport_weapon import TeleportWeapon
 from srcs.constants import *
 
 
@@ -38,8 +39,8 @@ class MainWeaponEnum:
     #                       growth_factor=1, bullet_class=Lazer, lifespan=120, dmg=1, hp=100,
     #                       offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
     giant_canon = GeneralWeapon("giant canon", reload=200, speed=25, max_count=5, radius=20, recoil=1, hp=10, dmg=10,
-                          offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
-    lazer_super = ChargedWeapon("lazer super", reload=2000, speed=200, max_count=1, radius=10,
+                          offset_factor=0.0)
+    lazer_super = ChargedWeapon("charged lazer", reload=2000, speed=200, max_count=1, radius=10,
                                 bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
     # lazer_mini = machine_gun
     # lazer = machine_gun
@@ -60,8 +61,8 @@ class MainWeaponEnum:
         MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
     ] * 2, 100)
-    torpedo = MissileWeapon("torpedo", 4000, dmg=100, hp=50, radius=20, max_count=4, spread=math.pi*2,
-                            speed=MISSILE_SPEED/2, explosion_rad=400)
+    torpedo = MissileWeapon("torpedo", 4000, dmg=200, hp=50, radius=20, spread=math.pi*2,
+                            speed=MISSILE_SPEED/2, explosion_rad=300, explosion_lifespan=6)
 
     spawner = CompositeWeapon("Spawner", [
         SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2),
@@ -75,17 +76,13 @@ class MainWeaponEnum:
     # piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=250, speed=25, max_count=5, radius=3,
     #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
     dancer = BoosterWeapon("Dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.1, hp=10,
-                           spread=math.pi, recoil=-20, lifespan=(1, 3))
-    flash = BoosterWeapon("Flash", reload=500, speed=1, radius=5, dmg=0.0, hp=100,
-                           bullet_class=Lazer, spread=math.pi * 2,
-                           recoil=-500, lifespan=3)
-    warp = BoosterWeapon("Warp", reload=5000, speed=1, radius=25, dmg=0.0, hp=100,
-                          bullet_class=Lazer, spread=math.pi * 2,
-                          recoil=-2500, lifespan=3)
-    booster_left = BoosterWeapon("Booster Left", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
-                                 recoil=20, lifespan=(1, 3), angle_offset=-math.pi * (1 - 1/3))
-    booster_right = BoosterWeapon("Booster Right", reload=0, speed=(5, 0), radius=2, dmg=0.1, hp=10,
-                                  recoil=20, lifespan=(1, 3), angle_offset=math.pi * (1 - 1/3))
+                           spread=math.pi, recoil=-1, lifespan=(1, 3), min_count=20, max_count=50, growth_factor=5)
+    flash = TeleportWeapon("Flash", reload=500, speed=1, radius=5, dmg=0.0, hp=100,
+                           spread=math.pi * 2, lifespan=3,
+                           recoil=-100, min_count=2, max_count=7)
+    warp = TeleportWeapon("Warp", reload=5000, speed=1, radius=25, dmg=0.0, hp=100,
+                          spread=math.pi * 2,lifespan=3,
+                          recoil=-500, min_count=5, max_count=10)
 
 
 class SubWeaponEnum:

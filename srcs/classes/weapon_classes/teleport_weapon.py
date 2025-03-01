@@ -3,12 +3,12 @@ import math
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.faction_particle import FactionParticle
 from srcs.classes.entity.game_particle import GameParticle
-from srcs.classes.entity.missile import Missile
+from srcs.classes.entity.lazer import Lazer
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
-from srcs.constants import PLAYER_RADIUS, UNIT_RADIUS
+from srcs.constants import UNIT_RADIUS, BULLET_RADIUS
 
 
-class MissileWeapon(GeneralWeapon):
+class TeleportWeapon(GeneralWeapon):
     def __init__(
             self,
             name: str,
@@ -17,10 +17,10 @@ class MissileWeapon(GeneralWeapon):
             offset_factor: float = 1.0,
             spread: float = math.pi * 2,
             spawn_radius: float = UNIT_RADIUS,
-            bullet_class: type[FactionParticle]=Missile,
+            bullet_class: type[Lazer]=Lazer,
             max_count: int = 1,
             growth_factor: float = 1,
-            **missile_kwargs,
+            **lazer_kwargs,
     ):
         """
         Initializes the MissileWeapon with specific settings for missiles.
@@ -35,15 +35,22 @@ class MissileWeapon(GeneralWeapon):
             bullet_class=bullet_class,
             max_count=max_count,
             growth_factor=growth_factor,
-            **missile_kwargs,
+            **lazer_kwargs,
         )
 
     def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
-        target = unit.target or Missile.find_target_at(target_x, target_y, unit.faction.target_list)
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        bullet_count = self.level.bullet_count
+        recoil = self._recoil * bullet_count
 
-        spawned_missiles: list[GameParticle] = super()._shoot(unit, target_x, target_y)
+        new_bullets: list[Lazer] = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, 1, unit
+        )
 
-        for missile in spawned_missiles:
-            missile.target = target
-
-        return spawned_missiles
+        unit.faction.parent_list.extend(new_bullets)
+        try:
+            self._apply_recoil(unit, new_bullets[0].angle, recoil)
+            new_bullets[0].length = abs(recoil)
+        except IndexError:
+            pass
+        return new_bullets

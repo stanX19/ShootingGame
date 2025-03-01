@@ -20,7 +20,7 @@ class SpawnerDictWeapon(RandomSpawnerWeapon):
         # items.reverse()
         random.shuffle(items)
         for unit_type, cap in items:
-            count = len([i for i in unit.faction.parent_list if isinstance(i, unit_type)])
+            count = sum(isinstance(i, unit_type) for i in unit.faction.parent_list)
             if count >= cap:
                 continue
             sample = unit_type(unit.faction, -100000, -100000)

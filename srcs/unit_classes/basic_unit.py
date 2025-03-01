@@ -8,7 +8,7 @@ class ResourceUnit(Unit):
         self._resource_size = 10000
         super().__init__(faction, x, y, angle, speed=0, hp=self._resource_size,
                          radius=self._resource_size // 50,
-                         controller=controller, **kwargs)
+                         controller=controller, score=500, **kwargs)
 
     def move(self):
         super().move()
@@ -20,14 +20,14 @@ class BasicShootingUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = SmartAIController(), **kwargs):
         super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun,
-                         controller=controller, **kwargs)
+                         controller=controller, score=100, **kwargs)
 
 
 class BasicLazerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = SmartAIController(), **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=10, dmg=1, score=100, speed=UNIT_SPEED, radius=15,
+                         hp=10, dmg=1, score=150, speed=UNIT_SPEED, radius=15,
                          weapons=MainWeaponEnum.lazer_mini,
                          controller=controller,
                          **kwargs)
@@ -37,7 +37,7 @@ class FastLazerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = SmartAIController(), **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=1, dmg=1, score=25, speed=UNIT_SPEED * 10, radius=5,
+                         hp=1, dmg=1, score=30, speed=UNIT_SPEED * 5, radius=5,
                          weapons=MainWeaponEnum.lazer_mini,
                          controller=controller,
                          **kwargs)
@@ -69,10 +69,10 @@ class RammerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = AIController(), **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=125, dmg=75, radius=30, score=500, speed=UNIT_SPEED,
+                         hp=250, dmg=50, radius=30, score=1500, speed=UNIT_SPEED,
                          variable_shape=True, variable_color=True,
                          weapons=MainWeaponEnum.dancer,
-                         shoot_range=UNIT_SHOOT_RANGE * 5,
+                         shoot_range=UNIT_SHOOT_RANGE * 2,
                          controller=controller,
                          **kwargs)
 

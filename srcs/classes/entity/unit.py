@@ -20,8 +20,8 @@ class Unit(BaseUnit):
                  controller: Optional[BaseController] = None, radius=10, speed=UNIT_SPEED * 2.5, hp=1,
                  weapons: list[BaseWeapon] | BaseWeapon | None = None,
                  sub_weapons: list[BaseWeapon] | BaseWeapon | None = None,
-                 shield_hp: float = 0, shield_rad: float = 0, **kwargs):
-        super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, **kwargs)
+                 shield_hp: float = 0, shield_rad: float = 0, score:int=UNIT_SCORE,**kwargs):
+        super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, score=score, **kwargs)
         self.controller: BaseController = AIController() if controller is None else controller.copy()
         self.update_appearance_based_on_hp()
         self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
