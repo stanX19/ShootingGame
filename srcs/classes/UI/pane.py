@@ -1,5 +1,6 @@
 import pygame
 
+from srcs.classes.UI.button import RoundedButton
 from srcs.classes.UI.ui_element import UIElement
 
 
@@ -33,9 +34,10 @@ class Pane(UIElement):
         height = self.height - 2 * self.margin
         current_x = self.x + self.margin
         for child in self.child_list:
-            child.x = current_x
+            x_padding = height // 2 if isinstance(child, RoundedButton) else 0
+            child.x = current_x + x_padding
             child.y = self.top + self.margin
-            child.width = width
+            child.width = width - 2 * x_padding
             child.height = height
             current_x += self.spacing + width
 
@@ -58,8 +60,9 @@ class VPane(Pane):
         height = (self.height - 2 * self.margin - (n - 1) * self.spacing) / n
         current_y = self.y + self.margin
         for child in self.child_list:
-            child.x = self.x + self.margin
+            x_padding = height // 2 if isinstance(child, RoundedButton) else 0
+            child.x = self.x + self.margin + x_padding
             child.y = current_y
-            child.width = width
+            child.width = width - 2 * x_padding
             child.height = height
             current_y += self.spacing + height

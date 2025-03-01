@@ -34,4 +34,4 @@ OVERDRIVE_CD = 65000.0
 GOOD_GRAPHICS = False
 FPS = 30
 SPAWN_CAP = 200
-SPAWN_CD = 5  # seconds
+SPAWN_CD = 4  # seconds

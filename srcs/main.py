@@ -166,6 +166,7 @@ class Game:
     def spawn_starter_pack(self):
         if not test_mode:
             return
+        self.data.player.score += 1000000
         self.data.enemies[:] = []
         self.data.allies[:] = []
         # self.data.player = UnitMothership(
@@ -180,7 +181,7 @@ class Game:
         # }
         self.data.player.score = 100000000000000
         # self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.swarm)
-        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.beam)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.fireworks)
         self.data.allies.append(self.data.player)
 
         # self.data.allies[:] = [self.data.player]

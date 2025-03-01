@@ -62,3 +62,9 @@ class GameData:
 
     def get_time_passed(self):
         return self.current_time - self.start_ticks
+
+    def get_player_shield_hp(self):
+        try:
+            return self.player.shield.hp
+        except AttributeError:
+            return 0

@@ -27,7 +27,8 @@ class ChargeParticle(Effect):
     def on_death(self, *args, **kwargs) -> None:
         self.death_callback()
 
-
+# TODO:
+#  make charged weapon a wrapper instead of a weapon itself
 class ChargedWeapon(GeneralWeapon):
     def __init__(
             self,
@@ -68,5 +69,5 @@ class ChargedWeapon(GeneralWeapon):
                                      color=bullet.color,
                                      charge_lifespan=self._charge_lifespan)
             chargers.append(charger)
-        unit.faction.parent_list.extend(chargers)
+        unit.faction.game_data.effects.extend(chargers)
         return chargers

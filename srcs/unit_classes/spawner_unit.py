@@ -20,7 +20,7 @@ class MiniMothershipUnit(Unit):
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=10, radius=100, score=3000, speed=UNIT_SPEED / 2,
                          shield_rad=200, shield_hp=500,
-                         weapons=MainWeaponEnum.lazer_super,
+                         weapons=MainWeaponEnum.charged_lazer,
                          sub_weapons=AdvancedWeaponsEnum.mini_spawner,
                          shoot_range=UNIT_SHOOT_RANGE,
                          controller=SmartAIController(),
@@ -69,7 +69,7 @@ class UnitMothership(Unit):
             self.sub_weapon.weapon.unit_dict = self.unit_dict
         self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
-        self.score += UNIT_SCORE / FPS / SPAWN_CD
+        self.score += UNIT_SCORE / FPS / SPAWN_CD / 2
         if self.hp < self.max_hp / 4:
             self.sub_weapon.overdrive_start()
             self.main_weapon.overdrive_start()

@@ -1,28 +1,39 @@
+from collections.abc import Callable
 from random import shuffle, random, randint
 
-from srcs.classes.UI.button import Button
+from PIL.ImageCms import isIntentSupported
+
+from srcs.classes.UI.button import RoundedButton
 from srcs.classes.UI.pane import Pane, VPane
 from srcs.classes.entity.unit import Unit
 from srcs.classes.game_data import GameData
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
 from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
 
 
 class BaseUpgrade:
-    def __init__(self, data: GameData, score: int, *args):
+    def __init__(self, data: GameData, score: int, *args, condition=lambda : 1):
         self.data: GameData = data
         self.score: int = score
         self.args: list = list(args)
+        self.condition: callable = condition
 
     def on_click(self):
         pass
 
     def get_description(self):
-        return f"Score -{self.score}"
+        return f""
 
     def is_available(self):
-        return self.score <= self.data.player.score
+        return self.score <= self.data.player.score and self.condition()
+
+    def __str__(self):
+        return f"{self.__class__.__name__}<score={self.score}, args={self.args}>"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class UpgradeHP(BaseUpgrade):
@@ -51,7 +62,7 @@ class UpgradeSpeed(BaseUpgrade):
 
 class UpgradeRad(BaseUpgrade):
     def get_description(self):
-        return f"RAD {self.args[0]:+}"
+        return f"SIZE {self.args[0]:+}"
 
     def on_click(self):
         self.data.player.max_rad += self.args[0]
@@ -68,6 +79,13 @@ class UpgradeOverdriveCD(BaseUpgrade):
             self.data.player.main_weapon.overdrive_percentage += self.args[0]
             self.data.player.sub_weapon.overdrive_percentage += self.args[0]
 
+    def is_available(self):
+        player = self.data.player
+        if not isinstance(player, Unit):
+            return False
+        max_overdrive = max(player.main_weapon.overdrive_percentage, player.sub_weapon.overdrive_percentage)
+        return super().is_available() and max_overdrive < 1.0
+
 class ChangeMainWeapon(BaseUpgrade):
     def get_description(self):
         if isinstance(self.data.player, Unit):
@@ -79,10 +97,21 @@ class ChangeMainWeapon(BaseUpgrade):
         if isinstance(self.data.player, Unit):
             self.data.player.main_weapon.change_weapon(self.args[0])
 
+    def _prerequisite_is_met(self):
+        if len(self.args) <= 1:
+            return True
+        w = self.args[1]
+        player = self.data.player
+        if not isinstance(w, BaseWeapon) or not isinstance(player, Unit):
+            return True
+        if player.main_weapon.weapon == self.args[1] and player.main_weapon.is_max():
+            return True
+        return False
+
     def is_available(self):
         return (isinstance(self.data.player, Unit)
                 and self.data.player.main_weapon.weapon != self.args[0]
-                and super().is_available())
+                and self._prerequisite_is_met() and super().is_available())
 
 class ChangeSubWeapon(BaseUpgrade):
     def get_description(self):
@@ -95,9 +124,21 @@ class ChangeSubWeapon(BaseUpgrade):
         if isinstance(self.data.player, Unit):
             self.data.player.sub_weapon.change_weapon(self.args[0])
 
+    def _prerequisite_is_met(self):
+        if len(self.args) <= 1:
+            return True
+        w = self.args[1]
+        player = self.data.player
+        if not isinstance(w, BaseWeapon) or not isinstance(player, Unit):
+            return True
+        if player.sub_weapon.weapon == w and player.sub_weapon.is_max():
+            return True
+        return False
+
     def is_available(self):
         return (isinstance(self.data.player, Unit)
                 and self.data.player.sub_weapon.weapon != self.args[0]
+                and self._prerequisite_is_met()
                 and super().is_available())
 
 class UpgradeMainWeapon(BaseUpgrade):
@@ -139,7 +180,7 @@ class UpgradeShieldHp(BaseUpgrade):
 
 class UpgradeShieldRad(BaseUpgrade):
     def get_description(self):
-        return f"SHIELD RAD {self.args[0]:+}"
+        return f"SHIELD SIZE {self.args[0]:+}"
 
     def on_click(self):
         if isinstance(self.data.player, Unit):
@@ -151,48 +192,56 @@ class UpgradeShieldRad(BaseUpgrade):
 #  get machine gun, missile, and shield, cost score 5, remove upgrade afterwards
 class UpgradePane(VPane):
     def __init__(self, data: GameData):
-        super().__init__(5, SCREEN_HEIGHT // 2 + 100, 405, SCREEN_HEIGHT - 20)
+        super().__init__(5, SCREEN_HEIGHT // 2 + 150, 405, SCREEN_HEIGHT - 20)
         self.data = data
         self.hide()
 
-        self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 100, 1)
-        self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 100, 1)
-        self.upgrades: list[BaseUpgrade] = [
-            UpgradeHP(self.data, 50, 10),
-            UpgradeBodyDmg(self.data, 50, 5),
-            UpgradeSpeed(self.data, 50, 1),
-            UpgradeRad(self.data, 50, 10),
-            UpgradeShieldHp(self.data, 50, 10),
-            UpgradeShieldRad(self.data, 50, 100),
-            self.upgrade_main_weapon,
-            self.upgrade_sub_weapon,
-            UpgradeMainWeapon(self.data, 250, 3),
-            UpgradeSubWeapon(self.data, 250, 3),
-            UpgradeSpeed(self.data, 300, 10),
-            UpgradeOverdriveCD(self.data, 300, 0.1),
-            UpgradeRad(self.data, 300, 100),
-            ChangeMainWeapon(self.data, 200, MainWeaponEnum.shotgun),
-            ChangeMainWeapon(self.data, 200, MainWeaponEnum.lazer_mini),
-            ChangeMainWeapon(self.data, 500, MainWeaponEnum.lazer),
-            ChangeMainWeapon(self.data, 1000, MainWeaponEnum.lazer_super),
-            ChangeMainWeapon(self.data, 1000, MainWeaponEnum.giant_canon),
-            ChangeSubWeapon(self.data, 200, MainWeaponEnum.dancer),
-            ChangeSubWeapon(self.data, 200, MainWeaponEnum.missile),
-            ChangeSubWeapon(self.data, 200, MainWeaponEnum.flash),
-            ChangeSubWeapon(self.data, 200, MainWeaponEnum.torpedo),
-            ChangeSubWeapon(self.data, 500, MainWeaponEnum.warp),
-            ChangeSubWeapon(self.data, 1000, MainWeaponEnum.swarm),
-            ChangeSubWeapon(self.data, 1000, AdvancedWeaponsEnum.mini_spawner),
-            ChangeSubWeapon(self.data, 3000, AdvancedWeaponsEnum.elite_spawner),
-            ChangeSubWeapon(self.data, 5000, AdvancedWeaponsEnum.rammer_spawner),
-            UpgradeHP(self.data, 5000, 2000),
-            UpgradeBodyDmg(self.data, 5000, 1000),
-            UpgradeMainWeapon(self.data, 5000, 100),
-            UpgradeOverdriveCD(self.data, 10000, 1.0),
+        self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 200, 1)
+        self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 200, 1)
+        self.upgrades: list[list[BaseUpgrade]] = [
+            [
+                UpgradeHP(self.data, 50, 10, condition=lambda : self.data.player.hp < 100),
+                UpgradeHP(self.data, 1000, 100, condition=lambda : self.data.player.hp < 1000),
+                UpgradeHP(self.data, 20000, 1000, condition=lambda : self.data.player.hp < 5000),
+                UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
+                UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
+                UpgradeShieldHp(self.data, 50, 10, condition=lambda : self.data.get_player_shield_hp() < 100),
+                UpgradeShieldHp(self.data, 2000, 100, condition=lambda : self.data.get_player_shield_hp() < 1000),
+                UpgradeShieldHp(self.data, 50000, 1000, condition=lambda : self.data.get_player_shield_hp() < 3000),
+            ], [
+                UpgradeSpeed(self.data, 50, 1, condition=lambda : self.data.player.speed < 10),
+                UpgradeSpeed(self.data, 1000, 10, condition=lambda : self.data.player.speed < 50),
+                UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.speed < 100),
+                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.speed < 500)
+            ], [
+                self.upgrade_main_weapon,
+                *self.generate_weapon_series(ChangeMainWeapon, [
+                    MainWeaponEnum.lazer_mini, [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
+                    [MainWeaponEnum.beam, MainWeaponEnum.deleter]
+                ], 200),
+                *self.generate_weapon_series(ChangeMainWeapon, [
+                    MainWeaponEnum.machine_gun, [MainWeaponEnum.shotgun, MainWeaponEnum.piercing_machine_gun],
+                    [MainWeaponEnum.fireworks, MainWeaponEnum.giant_canon]
+                ], 200),
+            ], [
+                self.upgrade_sub_weapon,
+                *self.generate_weapon_series(ChangeSubWeapon, [
+                    MainWeaponEnum.missile, [MainWeaponEnum.swarm, MainWeaponEnum.torpedo]
+                ], 200),
+                *self.generate_weapon_series(ChangeSubWeapon, [
+                    [MainWeaponEnum.dancer, MainWeaponEnum.flash], MainWeaponEnum.warp
+                ], 200),
+                *self.generate_weapon_series(ChangeSubWeapon, [
+                    AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]
+                ], 1000),
+            ], [
+                UpgradeOverdriveCD(self.data, 300, 0.1),
+                UpgradeOverdriveCD(self.data, 10000, 1.0),
+            ]
         ]
         self.current_upgrades: list[BaseUpgrade] = []
         self.prev_upgrade_idx: int = 0
-        self.prev_upgrade: BaseUpgrade = self.upgrades[0]
+        self.prev_upgrade: BaseUpgrade = self.upgrades[0][0]
 
     def create_upgrade_button(self, upgrade: BaseUpgrade):
         def on_click():
@@ -201,29 +250,70 @@ class UpgradePane(VPane):
             self.set_child()
             self.prev_upgrade = upgrade
             self.prev_upgrade_idx = self.current_upgrades.index(upgrade)
-        return Button(upgrade.get_description(), on_click)
+        return RoundedButton(f"{upgrade.score:4} {upgrade.get_description()}", on_click)
+
+    # TODO:
+    #  make [x [[a, b], [c, d]]] means two different pathways x--a--b and x--c--d
+    def generate_weapon_series(self, upgrade_class:type[BaseUpgrade],
+                               weapon_series: list, score: int, roots: list|None=None):
+        ret = []
+        prev_w = []
+        for w in weapon_series:
+            # if provided parent, follow parent
+            # else follow weapon to the left
+            inherit = roots if roots else prev_w
+
+            if isinstance(w, BaseWeapon):
+                if not inherit:
+                    ret.append(upgrade_class(self.data, score, w))
+                for pw in inherit:
+                    ret.append(upgrade_class(self.data, score, w, pw))
+                prev_w = [w]
+            elif isinstance(w, list):
+                new_ret: list[upgrade_class] = self.generate_weapon_series(upgrade_class, w, score, inherit)
+                prev_w = []
+                for u in new_ret:
+                    if u.args[0] not in prev_w:
+                        prev_w.append(u.args[0])
+                ret.extend(new_ret)
+            else:
+                raise ValueError(f"Unexpected value of type {type(w)} in weapon_series: {w}")
+        return ret
+
 
     def update_status(self):
         if not self.get_all_child():
             self._generate_upgrades()
 
     def _generate_upgrades(self):
-        self.current_upgrades = [i for i in self.upgrades if i.is_available()]
-        if not self.current_upgrades:
+        available_upgrades: list[list[BaseUpgrade]] = [[i for i in u if i.is_available()] for u in self.upgrades ]
+        if not any(u for u in available_upgrades):
             self.hide()
             return
-        shuffle(self.current_upgrades)
         if isinstance(self.prev_upgrade, ChangeMainWeapon):
             self.prev_upgrade = self.upgrade_main_weapon
         elif isinstance(self.prev_upgrade, ChangeSubWeapon):
             self.prev_upgrade = self.upgrade_sub_weapon
-        if self.prev_upgrade in self.current_upgrades:
-            self.current_upgrades.remove(self.prev_upgrade)
+        for u_list in available_upgrades:
+            shuffle(u_list)
+        filler_upgrades = [BaseUpgrade(self.data, 0)]
+        self.current_upgrades = [i for u_list in available_upgrades for i in (u_list + filler_upgrades)[:1]]
         if self.prev_upgrade.is_available():
-            self.current_upgrades.insert(self.prev_upgrade_idx, self.prev_upgrade)
-        self.current_upgrades = self.current_upgrades[:6]
+            self.current_upgrades[self.prev_upgrade_idx] = self.prev_upgrade
         self.set_child(*[self.create_upgrade_button(upgrade) for upgrade in self.current_upgrades])
         self.show()
 
 
+def main():
+    pane = UpgradePane(GameData())
+    print(*pane.generate_weapon_series(
+        ChangeMainWeapon,
+        [
+            MainWeaponEnum.lazer_mini, [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
+            [MainWeaponEnum.beam, MainWeaponEnum.deleter]
+        ],
+        200,
+    ), sep="\n")
 
+if __name__ == '__main__':
+    main()
