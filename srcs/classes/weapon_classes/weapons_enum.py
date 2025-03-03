@@ -22,8 +22,9 @@ class MainWeaponEnum:
                                          growth_factor=1,  min_count=3, max_count=5,
                                          spread=math.pi, spawn_radius=UNIT_RADIUS * 3, offset_factor=0.1,
                                          dmg=5, hp=5, recoil=3)
-    beam = GeneralWeapon("beam", reload=0, speed=2, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.1,
+    beam = GeneralWeapon("beam", reload=0, speed=1, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.1,
                          hp=1000)
+    beam.get_speed = lambda unit: unit.distance_with(unit.target)
 
     lazer_mini = CompositeWeapon("lazer mini", [
         GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,

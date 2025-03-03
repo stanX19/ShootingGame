@@ -52,7 +52,7 @@ class UnitMothership(Unit):
         ] * 3, 400)
 
         super().__init__(faction, x, y,
-                         hp=5000, dmg=125, speed=0,
+                         hp=20000, dmg=125, speed=0,
                          variable_shape=True, variable_color=True,
                          radius=200, score=5000,
                          shield_hp=500, shield_rad=300,

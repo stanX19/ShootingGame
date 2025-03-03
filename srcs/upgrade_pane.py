@@ -216,24 +216,35 @@ class UpgradePane(VPane):
             ], [
                 self.upgrade_main_weapon,
                 *self.generate_weapon_series(ChangeMainWeapon, [
-                    MainWeaponEnum.lazer_mini, [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
-                    [MainWeaponEnum.beam, MainWeaponEnum.deleter]
-                ], 200),
-                *self.generate_weapon_series(ChangeMainWeapon, [
-                    MainWeaponEnum.machine_gun, [MainWeaponEnum.shotgun, MainWeaponEnum.piercing_machine_gun],
-                    [MainWeaponEnum.fireworks, MainWeaponEnum.giant_canon]
+                    [
+                        MainWeaponEnum.lazer_mini,
+                        [
+                            [MainWeaponEnum.lazer, MainWeaponEnum.beam],
+                            [MainWeaponEnum.charged_lazer, MainWeaponEnum.deleter],
+                        ]
+                    ], [
+                        MainWeaponEnum.machine_gun,
+                        [
+                            [MainWeaponEnum.shotgun, MainWeaponEnum.fireworks],
+                            [MainWeaponEnum.piercing_machine_gun, MainWeaponEnum.giant_canon]
+                        ]
+                    ]
                 ], 200),
             ], [
                 self.upgrade_sub_weapon,
                 *self.generate_weapon_series(ChangeSubWeapon, [
-                    MainWeaponEnum.missile, [MainWeaponEnum.swarm, MainWeaponEnum.torpedo]
-                ], 200),
-                *self.generate_weapon_series(ChangeSubWeapon, [
-                    [MainWeaponEnum.dancer, MainWeaponEnum.flash], MainWeaponEnum.warp
-                ], 200),
-                *self.generate_weapon_series(ChangeSubWeapon, [
-                    AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]
-                ], 1000),
+                    [
+                        MainWeaponEnum.missile,
+                        [
+                            [MainWeaponEnum.swarm, MainWeaponEnum.torpedo],
+                            [AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]
+                        ]
+                    ], [
+                        MainWeaponEnum.dancer
+                    ], [
+                        MainWeaponEnum.flash, MainWeaponEnum.warp
+                    ]
+                ], 200)
             ], [
                 UpgradeOverdriveCD(self.data, 300, 0.1),
                 UpgradeOverdriveCD(self.data, 10000, 1.0),
@@ -255,13 +266,18 @@ class UpgradePane(VPane):
     # TODO:
     #  make [x [[a, b], [c, d]]] means two different pathways x--a--b and x--c--d
     def generate_weapon_series(self, upgrade_class:type[BaseUpgrade],
-                               weapon_series: list, score: int, roots: list|None=None):
+                               weapon_series: list, score: int, roots: list|None=None,
+                               is_series:bool=True):
+        roots = roots if roots else []
         ret = []
-        prev_w = []
+        prev_w = roots
+        child_is_series = all(isinstance(i, list) for i in weapon_series)
+        is_series = is_series and not child_is_series
+
         for w in weapon_series:
             # if provided parent, follow parent
             # else follow weapon to the left
-            inherit = roots if roots else prev_w
+            inherit = roots if not is_series else prev_w
 
             if isinstance(w, BaseWeapon):
                 if not inherit:
@@ -270,7 +286,9 @@ class UpgradePane(VPane):
                     ret.append(upgrade_class(self.data, score, w, pw))
                 prev_w = [w]
             elif isinstance(w, list):
-                new_ret: list[upgrade_class] = self.generate_weapon_series(upgrade_class, w, score, inherit)
+                new_ret: list[upgrade_class] = self.generate_weapon_series(
+                    upgrade_class, w, score, inherit, child_is_series
+                )
                 prev_w = []
                 for u in new_ret:
                     if u.args[0] not in prev_w:
@@ -306,14 +324,17 @@ class UpgradePane(VPane):
 
 def main():
     pane = UpgradePane(GameData())
-    print(*pane.generate_weapon_series(
+    weapon_series = pane.generate_weapon_series(
         ChangeMainWeapon,
         [
-            MainWeaponEnum.lazer_mini, [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
-            [MainWeaponEnum.beam, MainWeaponEnum.deleter]
+            [
+                [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
+                [MainWeaponEnum.beam, MainWeaponEnum.deleter]
+            ]
         ],
         200,
-    ), sep="\n")
+    )
+    print(*weapon_series, sep="\n")
 
 if __name__ == '__main__':
     main()
