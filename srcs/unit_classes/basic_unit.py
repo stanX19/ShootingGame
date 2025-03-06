@@ -37,7 +37,7 @@ class FastLazerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = SmartAIController(), **kwargs):
         super().__init__(faction, x, y, angle,
-                         hp=1, dmg=1, score=30, speed=UNIT_SPEED * 5, radius=5,
+                         hp=3, dmg=1, score=50, speed=UNIT_SPEED * 5, radius=5,
                          weapons=MainWeaponEnum.lazer_mini,
                          controller=controller,
                          **kwargs)

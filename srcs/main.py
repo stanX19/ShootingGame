@@ -89,8 +89,9 @@ class Game:
         self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
         self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
         self.data.water_particle_handler = WaterParticleHandler()
+        ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
         self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 4,
-                                     color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3)
+                                     color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3, parent=ghost)
         self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
         self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
         self.prev_max_speed = self.data.player.speed

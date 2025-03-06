@@ -1,6 +1,6 @@
 import math
 
-from srcs.classes.controller import AIDroneController, SmartAIController, BaseController
+from srcs.classes.controller import AIDroneController, SmartAIController, BaseController, BotController
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.game_particle import GameParticle
 from srcs.classes.entity.unit import Unit
@@ -14,6 +14,21 @@ from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS, UNIT_SCO
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
 from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, SuperShootingUnit, BasicShootingUnit
 
+
+class SpawningTurretUnit(Unit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+
+        super().__init__(faction, x, y, angle,
+                         hp=50, dmg=5, radius=30, score=500, speed=0,
+                         shield_rad=0, shield_hp=0,
+                         sub_weapons=AdvancedWeaponsEnum.basic_spawner,
+                         controller=BotController(),
+                         **kwargs)
+        self.score = 0
+
+    def move(self):
+        super().move()
+        self.score += 100 / FPS / SPAWN_CD
 
 class MiniMothershipUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):

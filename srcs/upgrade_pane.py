@@ -11,6 +11,8 @@ from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
 from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
+from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit
+from srcs.unit_classes.spawner_unit import SpawningTurretUnit, UnitMothership
 
 
 class BaseUpgrade:
@@ -187,6 +189,19 @@ class UpgradeShieldRad(BaseUpgrade):
             self.data.player.shield.max_rad += self.args[0]
             self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
 
+class UpgradeNewUnit(BaseUpgrade):
+    def get_description(self):
+        return f"New unit: {self.args[0].__name__}"
+
+    def on_click(self):
+        player = self.data.player
+        if isinstance(player, Unit):
+            player.faction.parent_list.append(
+                self.args[0](player.faction, player.x, player.y,
+                                   color=player.get_greatest_parent().color, parent=player)
+            )
+
+
 # TODO:
 #  Idea: starter upgrade, one time upgrade
 #  get machine gun, missile, and shield, cost score 5, remove upgrade afterwards
@@ -200,19 +215,19 @@ class UpgradePane(VPane):
         self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 200, 1)
         self.upgrades: list[list[BaseUpgrade]] = [
             [
-                UpgradeHP(self.data, 50, 10, condition=lambda : self.data.player.hp < 100),
-                UpgradeHP(self.data, 1000, 100, condition=lambda : self.data.player.hp < 1000),
-                UpgradeHP(self.data, 20000, 1000, condition=lambda : self.data.player.hp < 5000),
+                UpgradeHP(self.data, 50, 10, condition=lambda : self.data.player.max_hp < 100),
+                UpgradeHP(self.data, 1000, 100, condition=lambda : self.data.player.max_hp < 1000),
+                UpgradeHP(self.data, 20000, 1000, condition=lambda : self.data.player.max_hp < 3000),
                 UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
                 UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
-                UpgradeShieldHp(self.data, 50, 10, condition=lambda : self.data.get_player_shield_hp() < 100),
-                UpgradeShieldHp(self.data, 2000, 100, condition=lambda : self.data.get_player_shield_hp() < 1000),
-                UpgradeShieldHp(self.data, 50000, 1000, condition=lambda : self.data.get_player_shield_hp() < 3000),
+                UpgradeShieldHp(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_hp() < 100),
+                UpgradeShieldHp(self.data, 2000, 100, condition=lambda : self.data.get_player_shield_max_hp() < 1000),
+                UpgradeShieldHp(self.data, 50000, 1000, condition=lambda : self.data.get_player_shield_max_hp() < 2000),
             ], [
-                UpgradeSpeed(self.data, 50, 1, condition=lambda : self.data.player.speed < 10),
-                UpgradeSpeed(self.data, 1000, 10, condition=lambda : self.data.player.speed < 50),
-                UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.speed < 100),
-                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.speed < 500)
+                UpgradeSpeed(self.data, 50, 1, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 5),
+                UpgradeSpeed(self.data, 1000, 10, condition=lambda :  isinstance(self.data.player, Unit) and self.data.player.max_speed < 20),
+                UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.max_rad < 100),
+                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 500)
             ], [
                 self.upgrade_main_weapon,
                 *self.generate_weapon_series(ChangeMainWeapon, [
@@ -236,8 +251,10 @@ class UpgradePane(VPane):
                     [
                         MainWeaponEnum.missile,
                         [
-                            [MainWeaponEnum.swarm, MainWeaponEnum.torpedo],
-                            [AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]
+                            MainWeaponEnum.swarm,
+                            MainWeaponEnum.torpedo,
+                            [[AdvancedWeaponsEnum.mini_spawner,
+                              [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]]
                         ]
                     ], [
                         MainWeaponEnum.dancer
@@ -246,8 +263,12 @@ class UpgradePane(VPane):
                     ]
                 ], 200)
             ], [
-                UpgradeOverdriveCD(self.data, 300, 0.1),
-                UpgradeOverdriveCD(self.data, 10000, 1.0),
+                UpgradeNewUnit(self.data, 100, BasicShootingUnit),
+                UpgradeNewUnit(self.data, 150, BasicLazerUnit),
+                UpgradeNewUnit(self.data, 500, EliteUnit),
+                UpgradeNewUnit(self.data, 5000, UnitMothership),
+                # UpgradeOverdriveCD(self.data, 300, 0.1),
+                # UpgradeOverdriveCD(self.data, 10000, 1.0),
             ]
         ]
         self.current_upgrades: list[BaseUpgrade] = []
@@ -327,9 +348,11 @@ def main():
     weapon_series = pane.generate_weapon_series(
         ChangeMainWeapon,
         [
+            MainWeaponEnum.missile,
             [
-                [MainWeaponEnum.lazer, MainWeaponEnum.charged_lazer],
-                [MainWeaponEnum.beam, MainWeaponEnum.deleter]
+                MainWeaponEnum.swarm,
+                MainWeaponEnum.torpedo,
+                [[AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]]
             ]
         ],
         200,

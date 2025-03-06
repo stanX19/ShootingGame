@@ -1,4 +1,4 @@
-from srcs.classes.controller import AIDroneController
+from srcs.classes.controller import AIDroneController, BotController, AIController
 from srcs.classes.entity.unit import Unit
 from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
@@ -11,6 +11,9 @@ from srcs.unit_classes.basic_unit import FastLazerUnit, RammerUnit, EliteUnit, B
 
 
 class AdvancedWeaponsEnum:
+    basic_spawner = SpawnerWeapon("Basic Spawner", reload=1000, min_count=1, max_count=3,
+                                  bullet_class=BasicShootingUnit, controller=AIController())
+
     mini_spawner = MainWeaponEnum.spawner.copy()
     mini_spawner.name = "Fast Shooter Spawner"
     mini_spawner.change_bullet_class(FastLazerUnit)

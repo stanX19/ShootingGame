@@ -21,7 +21,7 @@ class MainWeaponEnum:
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=300, speed=25, radius=5,
                                          growth_factor=1,  min_count=3, max_count=5,
                                          spread=math.pi, spawn_radius=UNIT_RADIUS * 3, offset_factor=0.1,
-                                         dmg=5, hp=5, recoil=3)
+                                         dmg=5, hp=10, recoil=3)
     beam = GeneralWeapon("beam", reload=0, speed=1, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.1,
                          hp=1000)
     beam.get_speed = lambda unit: unit.distance_with(unit.target)
@@ -45,7 +45,7 @@ class MainWeaponEnum:
     charged_lazer = ChargedWeapon("charged lazer", reload=2000, speed=200, max_count=1, radius=10,
                                   bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
     deleter = ChargedWeapon("deleter", reload=10000, speed=400, max_count=1, radius=10,
-                                  bullet_class=Lazer, lifespan=240, dmg=100, hp=10000, charge_lifespan=FPS)
+                                  bullet_class=Lazer, lifespan=120, dmg=5, hp=2500, charge_lifespan=2 * FPS)
     # lazer_mini = machine_gun
     # lazer = machine_gun
     shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 75), radius=3,
