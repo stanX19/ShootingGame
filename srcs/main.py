@@ -94,6 +94,8 @@ class Game:
                                      color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3, parent=ghost)
         self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
         self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
+        if dev_mode:
+            self.data.player.score = 10000000
         self.prev_max_speed = self.data.player.speed
         self.prev_controller = self.data.player.controller
         self.data.player.controller = PlayerController()
@@ -475,9 +477,9 @@ class Game:
         self.move_everything()
         self.collide_everything()
         self.remove_dead_particles()
+        self.throttled_refresh()
         if not self.data.running:
             return
-        self.throttled_refresh()
         self.check_player_death()
         self.check_game_over()
         self.upgrade_pane.update_status()
@@ -519,7 +521,6 @@ class Game:
 
     def draw_everything(self):
         MAP_SURFACE.fill(constants.BACKGROUND_COLOR)
-        self.data.player.draw(MAP_SURFACE)
 
         # Particles
         def draw_particles(particles: [GameParticle]):

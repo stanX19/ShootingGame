@@ -68,3 +68,9 @@ class GameData:
             return self.player.shield.max_hp
         except AttributeError:
             return 0
+
+    def get_player_shield_max_rad(self):
+        try:
+            return self.player.shield.max_rad
+        except AttributeError:
+            return 0

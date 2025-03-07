@@ -44,7 +44,7 @@ class Breakable(FactionParticle):
         angle = self.angle_with(other)
         rad = other.rad
         if isinstance(other, Lazer):
-            rad = other.actual_rad
+            rad = other.rad
             angle = utils.angle_add(other.angle_with_cord(self.x, self.y), math.pi)
         if self.hp <= 0:
             angle = utils.angle_add(angle, math.pi)
@@ -54,7 +54,7 @@ class Breakable(FactionParticle):
                       max(1, other.speed / 5 / max(rad, 0.1)))
 
     def _explode(self, explode_angle: float, explode_spread: float, spawn_center:tuple, spawn_rad:float, velocity_k:float=1.0):
-        explode_hp = self._explode_prev_hp - self.hp
+        explode_hp = self._explode_prev_hp - max(0.0, self.hp)
         self._explode_prev_hp = self.hp
 
         if explode_hp == 0:

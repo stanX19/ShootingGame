@@ -171,14 +171,15 @@ class UpgradeSubWeapon(BaseUpgrade):
             return super().is_available()
         return False
 
-class UpgradeShieldHp(BaseUpgrade):
+class UpgradeShieldStrength(BaseUpgrade):
     def get_description(self):
-        return f"SHIELD HP {self.args[0]:+}"
+        return f"SHIELD STRENGTH {self.args[0]:+}"
 
     def on_click(self):
         if isinstance(self.data.player, Unit):
             self.data.player.shield.hp += self.args[0]
             self.data.player.shield.max_hp += self.args[0]
+            self.data.player.shield.dmg = max(self.data.player.shield.dmg, self.data.player.shield.max_hp // 100)
 
 class UpgradeShieldRad(BaseUpgrade):
     def get_description(self):
@@ -213,6 +214,8 @@ class UpgradePane(VPane):
 
         self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 200, 1)
         self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 200, 1)
+        self.current_upgrades: list[BaseUpgrade] = []
+        self.prev_upgrade_idx: int = 0
         self.upgrades: list[list[BaseUpgrade]] = [
             [
                 UpgradeHP(self.data, 50, 10, condition=lambda : self.data.player.max_hp < 100),
@@ -220,14 +223,16 @@ class UpgradePane(VPane):
                 UpgradeHP(self.data, 20000, 1000, condition=lambda : self.data.player.max_hp < 3000),
                 UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
                 UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
-                UpgradeShieldHp(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_hp() < 100),
-                UpgradeShieldHp(self.data, 2000, 100, condition=lambda : self.data.get_player_shield_max_hp() < 1000),
-                UpgradeShieldHp(self.data, 50000, 1000, condition=lambda : self.data.get_player_shield_max_hp() < 2000),
+                UpgradeShieldStrength(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_hp() < 100),
+                UpgradeShieldStrength(self.data, 1000, 100, condition=lambda : self.data.get_player_shield_max_hp() < 1000),
+                UpgradeShieldStrength(self.data, 20000, 1000, condition=lambda : self.data.get_player_shield_max_hp() < 3000),
             ], [
                 UpgradeSpeed(self.data, 50, 1, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 5),
                 UpgradeSpeed(self.data, 1000, 10, condition=lambda :  isinstance(self.data.player, Unit) and self.data.player.max_speed < 20),
                 UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.max_rad < 100),
-                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 500)
+                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 300),
+                UpgradeShieldRad(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_rad() < 100),
+                UpgradeShieldRad(self.data, 500, 100, condition=lambda : self.data.get_player_shield_max_rad() < 2000),
             ], [
                 self.upgrade_main_weapon,
                 *self.generate_weapon_series(ChangeMainWeapon, [
@@ -253,6 +258,7 @@ class UpgradePane(VPane):
                         [
                             MainWeaponEnum.swarm,
                             MainWeaponEnum.torpedo,
+                            MainWeaponEnum.spike,
                             [[AdvancedWeaponsEnum.mini_spawner,
                               [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]]
                         ]
@@ -271,8 +277,6 @@ class UpgradePane(VPane):
                 # UpgradeOverdriveCD(self.data, 10000, 1.0),
             ]
         ]
-        self.current_upgrades: list[BaseUpgrade] = []
-        self.prev_upgrade_idx: int = 0
         self.prev_upgrade: BaseUpgrade = self.upgrades[0][0]
 
     def create_upgrade_button(self, upgrade: BaseUpgrade):

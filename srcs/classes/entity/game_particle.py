@@ -55,6 +55,9 @@ class Particle:
         self.x += self.xv
         self.y += self.yv
 
+    def get_collision_rad(self):
+        return self.rad
+
 
 class GameParticle(Particle):
     def __init__(self, x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,

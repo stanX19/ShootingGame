@@ -20,7 +20,7 @@ def lazer_unit_collision(l: Lazer, p: GameParticle):
     else:
         distance = math.hypot(intersect[0] - l.x, intersect[1] - l.y)
     # dmg factor enough to kill either (or both survives)
-    dmg_factor = abs(l.hp - (distance / l.actual_rad))
+    dmg_factor = abs(l.hp - (distance / l.rad))
     dmg_factor = min(dmg_factor, p.hp / max(0.1 ,l.dmg))
 
     l.hp -= min(1.0, p.dmg) * dmg_factor
@@ -54,12 +54,12 @@ def handle_collision(bullet: GameParticle, enemy: GameParticle):
 def is_colliding(a: GameParticle, b: GameParticle):
     if isinstance(a, Lazer) and isinstance(b, Lazer):
         # return algo.line_line_distance(a.x, a.y, a.end_x, a.end_y, b.x, b.y, b.end_x,
-        #                                b.end_y) < a.actual_rad + b.actual_rad
+        #                                b.end_y) < a.rad + b.rad
         return False
     elif isinstance(a, Lazer):
-        return algo.line_point_distance(a.prev_x, a.prev_y, a.end_x, a.end_y, b.x, b.y) < a.actual_rad + b.rad
+        return algo.line_point_distance(a.prev_x, a.prev_y, a.end_x, a.end_y, b.x, b.y) < a.rad + b.rad
     elif isinstance(b, Lazer):
-        return algo.line_point_distance(b.prev_x, b.prev_y, b.end_x, b.end_y, a.x, a.y) < a.rad + b.actual_rad
+        return algo.line_point_distance(b.prev_x, b.prev_y, b.end_x, b.end_y, a.x, a.y) < a.rad + b.rad
     else:
         return a.distance_with(b) < 0
 
@@ -110,12 +110,12 @@ def check_collision_within_cells(bullets: Sequence[GameParticle], enemies: Seque
 def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int,
                               collision_handler:CollisionHandlerType = handle_collision):
     for enemy in enemies[start_idx:]:
-        if enemy.x + enemy.rad < bullet.x - bullet.rad:
+        if enemy.x + enemy.get_collision_rad() < bullet.x - bullet.get_collision_rad():
             start_idx += 1
             continue
         break
     for enemy in enemies[start_idx:]:
-        if enemy.x - enemy.rad > bullet.x + bullet.rad:
+        if enemy.x - enemy.get_collision_rad() > bullet.x + bullet.get_collision_rad():
             break
         if is_colliding(bullet, enemy):
             collision_handler(bullet, enemy)
@@ -133,13 +133,13 @@ def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list
 
 def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle],
                               collision_handler: CollisionHandlerType = handle_collision):
-    bullets = sorted(bullets, key=lambda b: b.x - b.rad)
-    enemies = sorted(enemies, key=lambda b: b.x - b.rad)
+    bullets = sorted(bullets, key=lambda b: b.x - b.get_collision_rad())
+    enemies = sorted(enemies, key=lambda b: b.x - b.get_collision_rad())
     # sep
     GROUP = [(0, 10), (10, 20), (20, float('inf'))]
 
-    enemy_groups = [[p for p in enemies if left <= p.rad <= right] for left, right in GROUP]
-    bullet_groups = [[p for p in bullets if left <= p.rad <= right] for left, right in GROUP]
+    enemy_groups = [[p for p in enemies if left <= p.get_collision_rad() <= right] for left, right in GROUP]
+    bullet_groups = [[p for p in bullets if left <= p.get_collision_rad() <= right] for left, right in GROUP]
     for enemy_group in enemy_groups:
         for bullet_group in bullet_groups:
             _collide_sorted_enemy_and_bullets(bullet_group, enemy_group, collision_handler)

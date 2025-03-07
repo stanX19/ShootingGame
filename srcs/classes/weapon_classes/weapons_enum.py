@@ -16,14 +16,14 @@ from srcs.constants import *
 
 
 class MainWeaponEnum:
-    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=5, radius=3, growth_factor=1,
+    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=5, radius=3, growth_factor=2,
                                 offset_factor=0.1, dmg=1, hp=1, recoil=3, spread=math.pi, spawn_radius=UNIT_RADIUS * 3)
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=300, speed=25, radius=5,
-                                         growth_factor=1,  min_count=3, max_count=5,
+                                         growth_factor=2,  min_count=1, max_count=5,
                                          spread=math.pi, spawn_radius=UNIT_RADIUS * 3, offset_factor=0.1,
                                          dmg=5, hp=10, recoil=3)
     beam = GeneralWeapon("beam", reload=0, speed=1, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.1,
-                         hp=1000)
+                         hp=3000)
     beam.get_speed = lambda unit: unit.distance_with(unit.target)
 
     lazer_mini = CompositeWeapon("lazer mini", [
@@ -50,24 +50,27 @@ class MainWeaponEnum:
     # lazer = machine_gun
     shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 75), radius=3,
                             recoil=5, dmg=5, spread=math.pi * 0.4, lifespan=(5, 20),
-                            min_count=100, max_count=300, growth_factor=50)
+                            min_count=100, max_count=250, growth_factor=75)
     fireworks = GeneralWeapon("fireworks", reload=1000, speed=(1, 55), radius=(3, 6),
                             recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(20, 40),
-                            min_count=75, max_count=300, growth_factor=25, spawn_radius=0)
+                            min_count=100, max_count=250, growth_factor=50, spawn_radius=0)
     destroyer = GeneralWeapon("giant canon", reload=2000, speed=25, max_count=3, radius=100, recoil=1, hp=100, dmg=10,
                               offset_factor=0.0)
     simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
                                    radius=MISSILE_RADIUS, speed=MISSILE_SPEED, spread=math.pi * 2)
-    missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=2,
+    missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=3,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 2)
     swarm = CompositeWeapon("Swarm", [
-        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi),
-        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 2),
-        MissileWeapon("missile", 9000, max_count=8, min_count=2, growth_factor=1,
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
     ] * 2, 100)
+    spike = MissileWeapon("Spike", 500, max_count=8, min_count=2, growth_factor=2,
+                          dmg=1, hp=1, offset_factor=1, spread=math.pi * 0.8, radius=2,
+                          color=(255, 255, 255), speed=MISSILE_SPEED*2)
     torpedo = MissileWeapon("torpedo", 4000, dmg=200, hp=50, radius=20, spread=math.pi*2,
                             speed=MISSILE_SPEED/2, explosion_rad=400, explosion_lifespan=10)
 
