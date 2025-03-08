@@ -1,4 +1,4 @@
-from srcs.classes.controller import AIDroneController, BotController, AIController
+from srcs.classes.controller import AIDroneController, BotController, AIController, SmartAIController
 from srcs.classes.entity.unit import Unit
 from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
@@ -7,12 +7,12 @@ from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.constants import UNIT_RADIUS
 from srcs.unit_classes.basic_unit import FastLazerUnit, RammerUnit, EliteUnit, BasicShootingUnit, BasicLazerUnit, \
-    SuperShootingUnit, ActivatedRammerUnit
+    LazerUnit, ActivatedRammerUnit
 
 
 class AdvancedWeaponsEnum:
-    basic_spawner = SpawnerWeapon("Basic Spawner", reload=1000, min_count=1, max_count=3,
-                                  bullet_class=BasicShootingUnit, controller=AIController())
+    basic_spawner = SpawnerWeapon("Basic Spawner", reload=5000, min_count=1, max_count=3,
+                                  bullet_class=BasicShootingUnit, controller=SmartAIController())
 
     mini_spawner = MainWeaponEnum.spawner.copy()
     mini_spawner.name = "Fast Shooter Spawner"
@@ -30,7 +30,7 @@ class AdvancedWeaponsEnum:
     dict_spawner = SpawnerDictWeapon("Mixed Spawner", {
         BasicLazerUnit: 10,
         EliteUnit: 3,
-        SuperShootingUnit: 3,
+        LazerUnit: 3,
         RammerUnit: 3,
     })
 

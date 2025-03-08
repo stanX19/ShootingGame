@@ -11,7 +11,7 @@ from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
 from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
-from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit
+from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit, BulletTurretUnit, LazerTurretUnit
 from srcs.unit_classes.spawner_unit import SpawningTurretUnit, UnitMothership
 
 
@@ -272,6 +272,9 @@ class UpgradePane(VPane):
                 UpgradeNewUnit(self.data, 100, BasicShootingUnit),
                 UpgradeNewUnit(self.data, 150, BasicLazerUnit),
                 UpgradeNewUnit(self.data, 500, EliteUnit),
+                UpgradeNewUnit(self.data, 100, BulletTurretUnit),
+                UpgradeNewUnit(self.data, 500, SpawningTurretUnit),
+                UpgradeNewUnit(self.data, 500, LazerTurretUnit),
                 UpgradeNewUnit(self.data, 5000, UnitMothership),
                 # UpgradeOverdriveCD(self.data, 300, 0.1),
                 # UpgradeOverdriveCD(self.data, 10000, 1.0),

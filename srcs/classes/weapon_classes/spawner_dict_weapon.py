@@ -11,8 +11,8 @@ class SpawnerDictWeapon(RandomSpawnerWeapon):
     def __init__(self, name: str, unit_dict: dict[type[BaseUnit], int]=None,
                  *args, **kwargs):
         super().__init__(name, *args, **kwargs)
-        self.unit_dict: dict[type[BaseUnit], int] = unit_dict if unit_dict is not None else {}
         # directly editing unit_dict will work
+        self.unit_dict: dict[type[BaseUnit], int] = unit_dict if unit_dict is not None else {}
 
     @override
     def _shoot(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:

@@ -12,14 +12,15 @@ from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS, UNIT_SCORE
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
-from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, SuperShootingUnit, BasicShootingUnit
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, LazerUnit, BasicShootingUnit, \
+    LazerTurretUnit, BulletTurretUnit
 
 
 class SpawningTurretUnit(Unit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
 
         super().__init__(faction, x, y, angle,
-                         hp=50, dmg=5, radius=30, score=500, speed=0,
+                         hp=50, dmg=5, radius=30, score=200, speed=0,
                          shield_rad=0, shield_hp=0,
                          sub_weapons=AdvancedWeaponsEnum.basic_spawner,
                          controller=BotController(),
@@ -54,9 +55,12 @@ class UnitMothership(Unit):
             Unit: 200,
             BasicShootingUnit: 10,
             BasicLazerUnit: 10,
+            BulletTurretUnit: 40,
+            SpawningTurretUnit: 30,
+            LazerTurretUnit: 20,
             EliteUnit: 3,
-            SuperShootingUnit: 2,
-            MiniMothershipUnit: 1,
+            LazerUnit: 2,
+            MiniMothershipUnit: 2,
             RammerUnit: 3,
         }
         spawner = SpawnerDictWeapon("mothership spawner", reload=SPAWN_CD * 1000)

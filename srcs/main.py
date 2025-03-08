@@ -6,6 +6,7 @@ import subprocess
 import sys
 import traceback
 
+from srcs.classes.collision_handler import repel_collision
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -27,7 +28,7 @@ from srcs.classes.controller import PlayerController, AIController, BotControlle
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
 from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, ResourceUnit, BasicShootingUnit, RammerUnit, \
-    SuperShootingUnit
+    LazerUnit
 from srcs.unit_classes.spawner_unit import UnitMothership, MiniMothershipUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
 from srcs.classes.collectible import *
@@ -351,6 +352,10 @@ class Game:
 
     def collide_everything(self):
         collide_enemy_and_bullets(self.data.allies, self.data.enemies)
+        allies = [i for i in self.data.allies if isinstance(i, Unit)]
+        collide_enemy_and_bullets(allies, allies, repel_collision)
+        enemies = [i for i in self.data.enemies if isinstance(i, Unit)]
+        collide_enemy_and_bullets(enemies, enemies, repel_collision)
         # collide_enemy_and_bullets([self.data.player], self.data.collectibles)
         self.data.water_particle_handler.collide_with_enemies(self.data.enemies)
         self.data.water_particle_handler.collide_with_enemies(self.data.allies)

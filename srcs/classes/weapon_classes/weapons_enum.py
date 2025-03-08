@@ -17,16 +17,16 @@ from srcs.constants import *
 
 class MainWeaponEnum:
     machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=5, radius=3, growth_factor=2,
-                                offset_factor=0.1, dmg=1, hp=1, recoil=3, spread=math.pi, spawn_radius=UNIT_RADIUS * 3)
+                                offset_factor=0.1, dmg=1, hp=1, recoil=0, spread=math.pi, spawn_radius=UNIT_RADIUS * 3)
     piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=300, speed=25, radius=5,
                                          growth_factor=2,  min_count=1, max_count=5,
                                          spread=math.pi, spawn_radius=UNIT_RADIUS * 3, offset_factor=0.1,
                                          dmg=5, hp=10, recoil=3)
-    beam = GeneralWeapon("beam", reload=0, speed=1, radius=2, bullet_class=Lazer, lifespan=2, dmg=0.1,
-                         hp=3000)
+    beam = GeneralWeapon("beam", reload=0, speed=1, radius=10, bullet_class=Lazer, lifespan=2, dmg=0.1,
+                         hp=200)
     beam.get_speed = lambda unit: unit.distance_with(unit.target)
 
-    lazer_mini = CompositeWeapon("lazer mini", [
+    lazer_mini = CompositeWeapon("Mini Lazer", [
         GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
                       hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=1),
         GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
@@ -44,7 +44,7 @@ class MainWeaponEnum:
                           offset_factor=0.0)
     charged_lazer = ChargedWeapon("charged lazer", reload=2000, speed=200, max_count=1, radius=10,
                                   bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
-    deleter = ChargedWeapon("deleter", reload=10000, speed=400, max_count=1, radius=10,
+    deleter = ChargedWeapon("deleter", reload=5000, speed=400, max_count=1, radius=10,
                                   bullet_class=Lazer, lifespan=120, dmg=5, hp=2500, charge_lifespan=2 * FPS)
     # lazer_mini = machine_gun
     # lazer = machine_gun
@@ -68,8 +68,8 @@ class MainWeaponEnum:
         MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
                       dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
     ] * 2, 100)
-    spike = MissileWeapon("Spike", 500, max_count=8, min_count=2, growth_factor=2,
-                          dmg=1, hp=1, offset_factor=1, spread=math.pi * 0.8, radius=2,
+    spike = MissileWeapon("Spike", 200, max_count=4, min_count=1, growth_factor=1,
+                          dmg=1, hp=1, offset_factor=1, spread=math.pi, radius=2,
                           color=(255, 255, 255), speed=MISSILE_SPEED*2)
     torpedo = MissileWeapon("torpedo", 4000, dmg=200, hp=50, radius=20, spread=math.pi*2,
                             speed=MISSILE_SPEED/2, explosion_rad=400, explosion_lifespan=10)

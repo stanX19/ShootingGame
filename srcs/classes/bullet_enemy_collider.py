@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Callable
+from typing import Callable, Any
 
 from srcs.classes import algo
 from srcs.classes.entity.breakable import Breakable
@@ -11,44 +11,7 @@ from collections import defaultdict
 from typing import Sequence
 
 
-def lazer_unit_collision(l: Lazer, p: GameParticle):
-    # print(f"before: {l.hp:.2f} {p.hp:.2f}")
-    intersect = algo.line_circle_first_intersect(l.x, l.y, l.end_x, l.end_y, p.x, p.y, p.rad)
-    if intersect is None:
-        intersect = [l.x, l.y]
-        distance = 0
-    else:
-        distance = math.hypot(intersect[0] - l.x, intersect[1] - l.y)
-    # dmg factor enough to kill either (or both survives)
-    dmg_factor = abs(l.hp - (distance / l.rad))
-    dmg_factor = min(dmg_factor, p.hp / max(0.1 ,l.dmg))
-
-    l.hp -= min(1.0, p.dmg) * dmg_factor
-    p.hp -= l.dmg * dmg_factor
-    l.update_length()
-    # print(f"after: ({intersect[0]:.2f}, {intersect[1]:.2f}) {distance=:.2f} {dmg_factor=:.2f}, {l.hp:.2f} {p.hp:.2f}")
-
-CollisionHandlerType = Callable[[GameParticle, GameParticle], None]
-
-def handle_collision(bullet: GameParticle, enemy: GameParticle):
-    if bullet.is_dead() or bullet.hp <= 0 or enemy.is_dead() or enemy.hp <= 0:
-        return
-    elif isinstance(bullet, Lazer) and not isinstance(enemy, Lazer):
-        lazer_unit_collision(bullet, enemy)
-    elif isinstance(enemy, Lazer) and not isinstance(bullet, Lazer):
-        lazer_unit_collision(enemy, bullet)
-    else:
-        enemy.hp -= bullet.dmg
-        bullet.hp -= enemy.dmg
-
-    if enemy.is_dead():
-        bullet.add_score(enemy.base_score)
-    if bullet.is_dead():
-        enemy.add_score(enemy.base_score)
-    if isinstance(enemy, Breakable):
-        enemy.handle_hit_by(bullet)
-    if isinstance(bullet, Breakable):
-        bullet.handle_hit_by(enemy)
+from srcs.classes.collision_handler import CollisionHandlerType, damaging_collision
 
 
 def is_colliding(a: GameParticle, b: GameParticle):
@@ -105,10 +68,10 @@ def check_collision_within_cells(bullets: Sequence[GameParticle], enemies: Seque
         for bullet in cell_bullets:
             for enemy in possible_enemies:
                 if is_colliding(bullet, enemy):
-                    handle_collision(bullet, enemy)
+                    damaging_collision(bullet, enemy)
 
 def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int,
-                              collision_handler:CollisionHandlerType = handle_collision):
+                                 collision_handler:CollisionHandlerType = damaging_collision):
     for enemy in enemies[start_idx:]:
         if enemy.x + enemy.get_collision_rad() < bullet.x - bullet.get_collision_rad():
             start_idx += 1
@@ -123,7 +86,7 @@ def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticl
 
 
 def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GameParticle],
-                              collision_handler:CollisionHandlerType = handle_collision):
+                                      collision_handler:CollisionHandlerType = damaging_collision):
     enemy_start_idx = 0
     for bullet in bullets:
         enemy_start_idx = check_collision_with_enemies(bullet, enemies, enemy_start_idx, collision_handler)
@@ -132,14 +95,14 @@ def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list
 
 
 def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle],
-                              collision_handler: CollisionHandlerType = handle_collision):
+                              collision_handler: CollisionHandlerType = damaging_collision):
     bullets = sorted(bullets, key=lambda b: b.x - b.get_collision_rad())
     enemies = sorted(enemies, key=lambda b: b.x - b.get_collision_rad())
     # sep
     GROUP = [(0, 10), (10, 20), (20, float('inf'))]
 
-    enemy_groups = [[p for p in enemies if left <= p.get_collision_rad() <= right] for left, right in GROUP]
-    bullet_groups = [[p for p in bullets if left <= p.get_collision_rad() <= right] for left, right in GROUP]
+    enemy_groups = [[p for p in enemies if left < p.get_collision_rad() <= right] for left, right in GROUP]
+    bullet_groups = [[p for p in bullets if left < p.get_collision_rad() <= right] for left, right in GROUP]
     for enemy_group in enemy_groups:
         for bullet_group in bullet_groups:
             _collide_sorted_enemy_and_bullets(bullet_group, enemy_group, collision_handler)

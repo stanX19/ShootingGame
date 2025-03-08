@@ -32,6 +32,7 @@ class Shield(FactionParticle):
     def move(self):
         if self.max_hp <= 0:
             return
+        self.hp = utils.clamp(self.hp, 0, self.max_hp)
         self.is_hit = self.hp < self.prev_hp
         self.show_timer = self.show_duration if self.is_hit else self.show_timer
 

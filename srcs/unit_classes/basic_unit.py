@@ -22,6 +22,12 @@ class BasicShootingUnit(Unit):
         super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun,
                          controller=controller, score=100, **kwargs)
 
+class BulletTurretUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = AIController(), **kwargs):
+        super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun,
+                         hp=10, radius=20, speed=0,
+                         controller=controller, score=100, **kwargs)
 
 class BasicLazerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
@@ -42,6 +48,16 @@ class FastLazerUnit(Unit):
                          controller=controller,
                          **kwargs)
 
+class LazerTurretUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = AIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=100, dmg=5, radius=60, score=500, speed=0,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         controller=controller,
+                         shoot_range=UNIT_SHOOT_RANGE * 2,
+                         **kwargs)
+
 
 class EliteUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
@@ -55,7 +71,7 @@ class EliteUnit(Unit):
                          **kwargs)
 
 
-class SuperShootingUnit(Unit):
+class LazerUnit(Unit):
     def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
                  controller: BaseController = SmartAIController(), **kwargs):
         super().__init__(faction, x, y, angle,

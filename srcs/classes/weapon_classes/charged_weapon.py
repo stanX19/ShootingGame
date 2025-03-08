@@ -13,7 +13,7 @@ from srcs.constants import PLAYER_RADIUS, OVERDRIVE_DURATION, OVERDRIVE_CD, EXPL
 
 
 class ChargeParticle(Effect):
-    def __init__(self, death_callback: Callable, game_data: GameData, x: int, y: int,
+    def __init__(self, unit: BaseUnit, death_callback: Callable, game_data: GameData, x: int, y: int,
                  radius: float = 50, charge_lifespan: int = 10, color=EXPLOSION_COLOR):
         super().__init__(game_data, x, y, 0, 0,
                          lifespan=charge_lifespan,
@@ -22,10 +22,15 @@ class ChargeParticle(Effect):
                          color=color,
                          fade_off=False,
                          fade_in=True)
+        self.holder = unit
         self.death_callback = death_callback
     
     def on_death(self, *args, **kwargs) -> None:
         self.death_callback()
+
+    def move(self):
+        self.holder.speed = 0
+        super().move()
 
 # TODO:
 #  make charged weapon a wrapper instead of a weapon itself
@@ -61,7 +66,8 @@ class ChargedWeapon(GeneralWeapon):
         )
         chargers = []
         for bullet in new_bullets:
-            charger = ChargeParticle(lambda : unit.faction.parent_list.append(bullet),
+            charger = ChargeParticle(unit,
+                                     lambda : unit.faction.parent_list.append(bullet),
                                      unit.faction.game_data,
                                      bullet.x,
                                      bullet.y,
