@@ -6,7 +6,6 @@ import subprocess
 import sys
 import traceback
 
-from srcs.classes.collision_handler import repel_collision
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
@@ -27,10 +26,11 @@ from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.controller import PlayerController, AIController, BotController, \
     BaseController, SmartAIController
 from srcs.classes.entity.unit import Unit
-from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, ResourceUnit, BasicShootingUnit, RammerUnit, \
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, BasicShootingUnit, RammerUnit, \
     LazerUnit
 from srcs.unit_classes.spawner_unit import UnitMothership, MiniMothershipUnit
 from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
+from srcs.classes.collision_handler import repel_collision
 from srcs.classes.collectible import *
 from srcs.classes.game_data import GameData
 from srcs.classes.entity.shield import Shield

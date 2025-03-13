@@ -12,11 +12,22 @@ from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
 from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS, UNIT_SCORE
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
-from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, LazerUnit, BasicShootingUnit, \
-    LazerTurretUnit, BulletTurretUnit
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, LazerUnit, BasicShootingUnit
+from srcs.unit_classes.turret_unit import BulletTurretUnit, LazerTurretUnit
 
 
-class SpawningTurretUnit(Unit):
+class _SpawningUnit(Unit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+        super().__init__(faction, x, y, angle, **kwargs)
+        self.score = 0
+
+    def move(self):
+        super().move()
+        self.score += 100 / FPS / SPAWN_CD
+
+
+
+class SpawningTurretUnit(_SpawningUnit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
 
         super().__init__(faction, x, y, angle,
@@ -25,13 +36,8 @@ class SpawningTurretUnit(Unit):
                          sub_weapons=AdvancedWeaponsEnum.basic_spawner,
                          controller=BotController(),
                          **kwargs)
-        self.score = 0
 
-    def move(self):
-        super().move()
-        self.score += 100 / FPS / SPAWN_CD
-
-class MiniMothershipUnit(Unit):
+class MiniMothershipUnit(_SpawningUnit):
     def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
         super().__init__(faction, x, y, angle,
                          hp=250, dmg=10, radius=100, score=3000, speed=UNIT_SPEED / 2,
@@ -41,23 +47,16 @@ class MiniMothershipUnit(Unit):
                          shoot_range=UNIT_SHOOT_RANGE,
                          controller=SmartAIController(),
                          **kwargs)
-        self.score = 0
 
 
-    def move(self):
-        super().move()
-        self.score += 100 / FPS / SPAWN_CD
-
-
-class UnitMothership(Unit):
+class UnitMothership(_SpawningUnit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
             Unit: 200,
             BasicShootingUnit: 10,
             BasicLazerUnit: 10,
             BulletTurretUnit: 40,
-            SpawningTurretUnit: 30,
-            LazerTurretUnit: 20,
+            LazerTurretUnit: 40,
             EliteUnit: 3,
             LazerUnit: 2,
             MiniMothershipUnit: 2,
@@ -83,12 +82,13 @@ class UnitMothership(Unit):
                          **kwargs)
         self.score = UNIT_SCORE
 
+    # TODO:
+    #  write this behavior into MothershipController
     def move(self):
         if isinstance(self.sub_weapon.weapon, SpawnerDictWeapon):
             self.sub_weapon.weapon.unit_dict = self.unit_dict
         self.controller.fire_sub = True
         self.controller.fire_main = self.hp < self.max_hp / 2
-        self.score += UNIT_SCORE / FPS / SPAWN_CD / 2
         if self.hp < self.max_hp / 4:
             self.sub_weapon.overdrive_start()
             self.main_weapon.overdrive_start()

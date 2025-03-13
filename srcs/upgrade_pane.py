@@ -1,3 +1,4 @@
+import math
 from collections.abc import Callable
 from random import shuffle, random, randint
 
@@ -11,8 +12,10 @@ from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
 from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
-from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit, BulletTurretUnit, LazerTurretUnit
+from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit
 from srcs.unit_classes.spawner_unit import SpawningTurretUnit, UnitMothership
+from srcs.unit_classes.turret_unit import BulletTurretUnit, LazerTurretUnit, AdvancedLazerTurretUnit, ShieldTurretUnit, \
+    MissileTurretUnit
 
 
 class BaseUpgrade:
@@ -197,9 +200,14 @@ class UpgradeNewUnit(BaseUpgrade):
     def on_click(self):
         player = self.data.player
         if isinstance(player, Unit):
+            mouse = self.data.get_mouse_pos_in_map()
+            angle = player.angle_with_cord(*mouse)
+            dis = min(player.rad + 300, player.distance_with_cord(*mouse))
+            x = player.x + math.cos(angle) * dis
+            y = player.y + math.sin(angle) * dis
             player.faction.parent_list.append(
-                self.args[0](player.faction, player.x, player.y,
-                                   color=player.get_greatest_parent().color, parent=player)
+                self.args[0](player.faction, x, y,
+                             color=player.get_greatest_parent().color, parent=player)
             )
 
 
@@ -274,7 +282,10 @@ class UpgradePane(VPane):
                 UpgradeNewUnit(self.data, 500, EliteUnit),
                 UpgradeNewUnit(self.data, 100, BulletTurretUnit),
                 UpgradeNewUnit(self.data, 500, SpawningTurretUnit),
-                UpgradeNewUnit(self.data, 500, LazerTurretUnit),
+                UpgradeNewUnit(self.data, 300, LazerTurretUnit),
+                UpgradeNewUnit(self.data, 500, AdvancedLazerTurretUnit),
+                UpgradeNewUnit(self.data, 500, ShieldTurretUnit),
+                UpgradeNewUnit(self.data, 500, MissileTurretUnit),
                 UpgradeNewUnit(self.data, 5000, UnitMothership),
                 # UpgradeOverdriveCD(self.data, 300, 0.1),
                 # UpgradeOverdriveCD(self.data, 10000, 1.0),

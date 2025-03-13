@@ -44,7 +44,6 @@ class ChargedWeapon(GeneralWeapon):
             spread: float = math.pi * 2,
             spawn_radius: float = 0,
             bullet_class: type[FactionParticle] = Bullet,
-            max_level: int = 1,
             min_count: int = 1,
             max_count: int = 1,
             growth_factor: int = 1,

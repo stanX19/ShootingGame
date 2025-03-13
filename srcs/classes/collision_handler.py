@@ -30,7 +30,7 @@ def lazer_unit_collision(l: Lazer, p: GameParticle):
 
 
 def damaging_collision(bullet: GameParticle, enemy: GameParticle):
-    if bullet.is_dead() or bullet.hp <= 0 or enemy.is_dead() or enemy.hp <= 0:
+    if bullet is enemy or bullet.is_dead() or bullet.hp <= 0 or enemy.is_dead() or enemy.hp <= 0:
         return
     elif isinstance(bullet, Lazer) and not isinstance(enemy, Lazer):
         lazer_unit_collision(bullet, enemy)
