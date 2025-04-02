@@ -53,7 +53,7 @@ class Breakable(FactionParticle):
         x = self.x + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.cos(angle)
         y = self.y + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.sin(angle)
         self._explode(angle, spread, (x, y), 0,
-                      max(1, other.speed / 5 / max(rad, 0.1)))
+                      max(1, other.speed / max(rad, 0.1) / 1000))
 
     def _explode(self, explode_angle: float, explode_spread: float, spawn_center:tuple, spawn_rad:float, velocity_k:float=1.0):
         explode_hp = (self._explode_prev_hp - max(0.0, self.hp)) * 0.25

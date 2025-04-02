@@ -92,10 +92,10 @@ class BaseUnit(Breakable):
         spd = self.speed
         if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
             self.xv = -self.xv
-            self.x = utils.clamp(self.x, self.rad, MAP_WIDTH - self.rad)
         if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
             self.yv = -self.yv
-            self.y = utils.clamp(self.y, self.rad, MAP_HEIGHT - self.rad)
+        self.x = utils.clamp(self.x, self.rad, MAP_WIDTH - self.rad)
+        self.y = utils.clamp(self.y, self.rad, MAP_HEIGHT - self.rad)
         self.speed = spd
         self.warn_target()
 

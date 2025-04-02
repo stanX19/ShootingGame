@@ -10,7 +10,7 @@ from srcs.classes.entity.unit import Unit
 from srcs.classes.game_data import GameData
 from srcs.classes.weapon_classes.base_weapon import BaseWeapon
 from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
-from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH, UNIT_RADIUS
 from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
 from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit
 from srcs.unit_classes.spawner_unit import SpawningTurretUnit, UnitMothership
@@ -41,39 +41,68 @@ class BaseUpgrade:
         return self.__str__()
 
 
-class UpgradeHP(BaseUpgrade):
+class UpgradeHull(BaseUpgrade):
     def get_description(self):
-        return f"HP {self.args[0]:+}"
+        return f"Hull Strength {self.args[0]:+}"
 
     def on_click(self):
         self.data.player.max_hp += self.args[0]
         self.data.player.hp += self.args[0]
+        self.data.player.dmg += self.args[0] * 0.05
+        self.data.player.speed -= self.args[0] * 0.01
+        self.data.player.max_rad += self.args[0] * 0.1
+        self.data.player.rad += self.args[0] * 0.1
+        if isinstance(self.data.player, Unit):
+            self.data.player.max_speed -= self.args[0] * 0.01
+            self.data.player.shield.max_rad = max(self.data.player.shield.max_rad, self.data.player.max_rad + 100)
 
-class UpgradeBodyDmg(BaseUpgrade):
+
+# class UpgradeHP(BaseUpgrade):
+#     def get_description(self):
+#         return f"HP {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.max_hp += self.args[0]
+#         self.data.player.hp += self.args[0]
+#
+# class UpgradeBodyDmg(BaseUpgrade):
+#     def get_description(self):
+#         return f"BODY DAMAGE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.dmg += self.args[0]
+
+class UpgradeAgility(BaseUpgrade):
     def get_description(self):
-        return f"BODY DAMAGE {self.args[0]:+}"
-
-    def on_click(self):
-        self.data.player.dmg += self.args[0]
-
-class UpgradeSpeed(BaseUpgrade):
-    def get_description(self):
-        return f"SPEED {self.args[0]:+}"
+        return f"Agility {self.args[0]:+}"
 
     def on_click(self):
         self.data.player.speed += self.args[0]
+        if self.data.player.max_rad - self.args[0] * 3 > UNIT_RADIUS:
+            self.data.player.max_rad -= self.args[0] * 3
+        if self.data.player.rad - self.args[0] > UNIT_RADIUS:
+            self.data.player.rad -= self.args[0] * 3
         if isinstance(self.data.player, Unit):
             self.data.player.max_speed += self.args[0]
 
-class UpgradeRad(BaseUpgrade):
-    def get_description(self):
-        return f"SIZE {self.args[0]:+}"
+# class UpgradeSpeed(BaseUpgrade):
+#     def get_description(self):
+#         return f"SPEED {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.speed += self.args[0]
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.max_speed += self.args[0]
 
-    def on_click(self):
-        self.data.player.max_rad += self.args[0]
-        self.data.player.rad += self.args[0]
-        if isinstance(self.data.player, Unit):
-            self.data.player.shield.max_rad = max(self.data.player.shield.max_rad, self.data.player.max_rad + 100)
+# class UpgradeRad(BaseUpgrade):
+#     def get_description(self):
+#         return f"SIZE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.max_rad += self.args[0]
+#         self.data.player.rad += self.args[0]
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.shield.max_rad = max(self.data.player.shield.max_rad, self.data.player.max_rad + 100)
 
 class UpgradeOverdriveCD(BaseUpgrade):
     def get_description(self):
@@ -183,15 +212,17 @@ class UpgradeShieldStrength(BaseUpgrade):
             self.data.player.shield.hp += self.args[0]
             self.data.player.shield.max_hp += self.args[0]
             self.data.player.shield.dmg = max(self.data.player.shield.dmg, self.data.player.shield.max_hp // 100)
-
-class UpgradeShieldRad(BaseUpgrade):
-    def get_description(self):
-        return f"SHIELD SIZE {self.args[0]:+}"
-
-    def on_click(self):
-        if isinstance(self.data.player, Unit):
-            self.data.player.shield.max_rad += self.args[0]
+            self.data.player.shield.max_rad += self.args[0] * 0.5
             self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
+
+# class UpgradeShieldRad(BaseUpgrade):
+#     def get_description(self):
+#         return f"SHIELD SIZE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.shield.max_rad += self.args[0]
+#             self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
 
 class UpgradeNewUnit(BaseUpgrade):
     def get_description(self):
@@ -200,11 +231,11 @@ class UpgradeNewUnit(BaseUpgrade):
     def on_click(self):
         player = self.data.player
         if isinstance(player, Unit):
-            mouse = self.data.get_mouse_pos_in_map()
-            angle = player.angle_with_cord(*mouse)
-            dis = min(player.rad + 300, player.distance_with_cord(*mouse))
-            x = player.x + math.cos(angle) * dis
-            y = player.y + math.sin(angle) * dis
+            # mouse = self.data.get_mouse_pos_in_map()
+            # angle = player.angle_with_cord(*mouse)
+            # dis = min(player.rad + 300, player.distance_with_cord(*mouse))
+            x = player.x #+ math.cos(angle) * dis
+            y = player.y #+ math.sin(angle) * dis
             player.faction.parent_list.append(
                 self.args[0](player.faction, x, y,
                              color=player.get_greatest_parent().color, parent=player)
@@ -222,25 +253,26 @@ class UpgradePane(VPane):
 
         self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 200, 1)
         self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 200, 1)
+        self.filler_upgrade = BaseUpgrade(self.data, 0)
         self.current_upgrades: list[BaseUpgrade] = []
         self.prev_upgrade_idx: int = 0
         self.upgrades: list[list[BaseUpgrade]] = [
             [
-                UpgradeHP(self.data, 50, 10, condition=lambda : self.data.player.max_hp < 100),
-                UpgradeHP(self.data, 1000, 100, condition=lambda : self.data.player.max_hp < 1000),
-                UpgradeHP(self.data, 20000, 1000, condition=lambda : self.data.player.max_hp < 3000),
-                UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
-                UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
+                UpgradeHull(self.data, 50, 10, condition=lambda : self.data.player.max_hp < 100),
+                UpgradeHull(self.data, 1000, 100, condition=lambda : self.data.player.max_hp < 1000),
+                UpgradeHull(self.data, 20000, 1000, condition=lambda : self.data.player.max_hp < 3000),
+                # UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
+                # UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
                 UpgradeShieldStrength(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_hp() < 100),
                 UpgradeShieldStrength(self.data, 1000, 100, condition=lambda : self.data.get_player_shield_max_hp() < 1000),
                 UpgradeShieldStrength(self.data, 20000, 1000, condition=lambda : self.data.get_player_shield_max_hp() < 3000),
             ], [
-                UpgradeSpeed(self.data, 50, 1, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 5),
-                UpgradeSpeed(self.data, 1000, 10, condition=lambda :  isinstance(self.data.player, Unit) and self.data.player.max_speed < 20),
-                UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.max_rad < 100),
-                UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 300),
-                UpgradeShieldRad(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_rad() < 100),
-                UpgradeShieldRad(self.data, 500, 100, condition=lambda : self.data.get_player_shield_max_rad() < 2000),
+                UpgradeAgility(self.data, 50, 1, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 5),
+                UpgradeAgility(self.data, 1000, 5, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 10),
+                # UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.max_rad < 100),
+                # UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 300),
+                # UpgradeShieldRad(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_rad() < 100),
+                # UpgradeShieldRad(self.data, 500, 100, condition=lambda : self.data.get_player_shield_max_rad() < 2000),
             ], [
                 self.upgrade_main_weapon,
                 *self.generate_weapon_series(ChangeMainWeapon, [
@@ -353,9 +385,8 @@ class UpgradePane(VPane):
             self.prev_upgrade = self.upgrade_sub_weapon
         for u_list in available_upgrades:
             shuffle(u_list)
-        filler_upgrades = [BaseUpgrade(self.data, 0)]
-        self.current_upgrades = [i for u_list in available_upgrades for i in (u_list + filler_upgrades)[:1]]
-        if self.prev_upgrade.is_available():
+        self.current_upgrades = [i for u_list in available_upgrades for i in (u_list + [self.filler_upgrade])[:1]]
+        if self.prev_upgrade.is_available() and not self.prev_upgrade is self.filler_upgrade:
             self.current_upgrades[self.prev_upgrade_idx] = self.prev_upgrade
         self.set_child(*[self.create_upgrade_button(upgrade) for upgrade in self.current_upgrades])
         self.show()
@@ -379,3 +410,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
