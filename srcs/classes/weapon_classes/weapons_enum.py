@@ -51,9 +51,10 @@ class MainWeaponEnum:
     shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 75), radius=3,
                             recoil=5, dmg=5, spread=math.pi * 0.4, lifespan=(5, 20),
                             min_count=100, max_count=250, growth_factor=75)
-    fireworks = GeneralWeapon("fireworks", reload=1000, speed=(1, 55), radius=(3, 6),
-                            recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(20, 40),
-                            min_count=100, max_count=250, growth_factor=50, spawn_radius=0)
+    fireworks = GeneralWeapon("fireworks", reload=2000, speed=(1, 55), radius=(3, 6),
+                            recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(40, 40),
+                            min_count=100, max_count=250, growth_factor=50, spawn_radius=0,
+                                bullet_class=Explosive)
     destroyer = GeneralWeapon("giant canon", reload=2000, speed=25, max_count=3, radius=100, recoil=1, hp=100, dmg=10,
                               offset_factor=0.0)
     simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
