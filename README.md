@@ -64,12 +64,7 @@ Build your army, evolve your firepower, and survive the onslaught!
 
 ## 🖼️ Snapshots
 
-Gameplay
 ![Spam Shooting](snapshots/img_2.png)
-
-|             Surviving             |            Eliminating            |             Creating armies             |
-|:---------------------------------:|:---------------------------------:|:---------------------------------------:|
-| ![Surviving](snapshots/img_4.png) | ![Explosion](snapshots/img_1.png) | ![Creating Armies](snapshots/img_3.png) |
 
 *(Tip: Create an `assets/screenshots/` folder and place your gameplay images or GIFs inside.)*
 
