@@ -10,3 +10,4 @@ pyvenv.cfg
 ./idea/*
 .venv
 test/
+unused
