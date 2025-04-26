@@ -52,7 +52,7 @@ class MainWeaponEnum:
                             recoil=5, dmg=5, spread=math.pi * 0.4, lifespan=(5, 20),
                             min_count=100, max_count=250, growth_factor=75)
     fireworks = GeneralWeapon("fireworks", reload=2000, speed=(1, 55), radius=(3, 6),
-                            recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(40, 40),
+                            recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(30, 40),
                             min_count=100, max_count=250, growth_factor=50, spawn_radius=0,
                                 bullet_class=Explosive)
     destroyer = GeneralWeapon("giant canon", reload=2000, speed=25, max_count=3, radius=100, recoil=1, hp=100, dmg=10,

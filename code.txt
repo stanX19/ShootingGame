@@ -1,0 +1,4709 @@
+from __future__ import annotations
+import math
+import random
+from srcs.classes.entity.game_particle import GameParticle
+
+
+def line_circle_first_intersect(line_start_x, line_start_y, line_end_x, line_end_y,
+                                circle_center_x, circle_center_y, circle_radius):
+    """
+    Find the first intersection point between a line segment and a circle.
+
+    Parameters:
+        line_start_x (float): X-coordinate of the start of the line.
+        line_start_y (float): Y-coordinate of the start of the line.
+        line_end_x (float): X-coordinate of the end of the line.
+        line_end_y (float): Y-coordinate of the end of the line.
+        circle_center_x (float): X-coordinate of the circle's center.
+        circle_center_y (float): Y-coordinate of the circle's center.
+        circle_radius (float): Radius of the circle.
+
+    Returns:
+        tuple or None: The (x, y) coordinates of the first intersection point, or None if there is no intersection.
+    """
+    # Vector representation of the line
+    dx = line_end_x - line_start_x
+    dy = line_end_y - line_start_y
+
+    # Vector from circle center to line start
+    fx = line_start_x - circle_center_x
+    fy = line_start_y - circle_center_y
+
+    # Quadratic coefficients
+    a = dx**2 + dy**2
+    b = 2 * (fx * dx + fy * dy)
+    c = fx**2 + fy**2 - circle_radius**2
+
+    # Discriminant
+    discriminant = b**2 - 4 * a * c
+
+    if discriminant < 0:
+        # No intersection
+        return None
+
+    # Find the two possible solutions (t-values for line equation)
+    if a == 0:
+        return None
+    discriminant_sqrt = math.sqrt(discriminant)
+    t1 = (-b - discriminant_sqrt) / (2 * a)
+    t2 = (-b + discriminant_sqrt) / (2 * a)
+
+    if t1 > t2:
+        t1, t2 = t2, t1
+    EPSILON = 1e-9  # Small tolerance for floating-point comparisons
+    if -EPSILON <= t1 <= 1 + EPSILON:
+        return line_start_x + t1 * dx, line_start_y + t1 * dy
+    # second intersect is when line starts inside circle, reject
+    # if -EPSILON <= t2 <= 1 + EPSILON:
+    #     return line_start_x + t2 * dx, line_start_y + t2 * dy
+    return None
+
+
+def compute_circle_circle_overlap(x1, y1, r1, x2, y2, r2):
+    d = math.hypot(x2 - x1, y2 - y1)
+    if d >= r1 + r2:
+        return 0
+    if d <= abs(r1 - r2):
+        return math.pi * min(r1, r2) ** 2
+
+    r1_sq, r2_sq = r1**2, r2**2
+    alpha1 = math.acos((d**2 + r1_sq - r2_sq) / (2 * d * r1))
+    alpha2 = math.acos((d**2 + r2_sq - r1_sq) / (2 * d * r2))
+    segment_area1 = r1_sq * alpha1 - 0.5 * r1_sq * math.sin(2 * alpha1)
+    segment_area2 = r2_sq * alpha2 - 0.5 * r2_sq * math.sin(2 * alpha2)
+    return segment_area1 + segment_area2
+
+
+def circle_line_overlap(cx, cy, radius, x1, y1, x2, y2):
+    import math
+
+    # Line segment equation: (x, y) = (x1, y1) + t * ((x2 - x1), (y2 - y1))
+    dx, dy = x2 - x1, y2 - y1
+    fx, fy = x1 - cx, y1 - cy
+
+    # Quadratic formula coefficients for intersection
+    a = dx * dx + dy * dy
+    b = 2 * (fx * dx + fy * dy)
+    c = fx * fx + fy * fy - radius * radius
+
+    if a == 0:
+        return 0
+    # Discriminant
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return 0  # No intersection
+
+    # Solve for t values (parametric intersection points)
+    discriminant_sqrt = math.sqrt(discriminant)
+    t1 = (-b - discriminant_sqrt) / (2 * a)
+    t2 = (-b + discriminant_sqrt) / (2 * a)
+
+    # Clamp t values to the range [0, 1] (segment endpoints)
+    t1 = max(0, min(1, t1))
+    t2 = max(0, min(1, t2))
+
+    if t1 == t2:
+        return 0  # No segment within the circle
+
+    # Intersection points
+    ix1, iy1 = x1 + t1 * dx, y1 + t1 * dy
+    ix2, iy2 = x1 + t2 * dx, y1 + t2 * dy
+
+    chord_length = math.hypot(ix2 - ix1, iy2 - iy1)
+    return chord_length
+
+
+def line_point_closest_point_on_line(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> tuple[float, float]:
+    if sx1 == sx2 and sy1 == sy2:
+        return sx1, sy1
+    segment_length_squared = (sx2 - sx1) ** 2 + (sy2 - sy1) ** 2
+    t = ((px - sx1) * (sx2 - sx1) + (py - sy1) * (sy2 - sy1)) / segment_length_squared
+    t = max(0.0, min(1.0, t))
+    closest_x = sx1 + t * (sx2 - sx1)
+    closest_y = sy1 + t * (sy2 - sy1)
+    return closest_x, closest_y
+
+def line_point_distance(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> float:
+    closest_x, closest_y = line_point_closest_point_on_line(sx1, sy1, sx2, sy2, px, py)
+    return math.hypot(px - closest_x, py - closest_y)
+
+
+def line_line_distance(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2):
+    distances = [
+        line_point_distance(bx1, by1, bx2, by2, ax1, ay1),
+        line_point_distance(bx1, by1, bx2, by2, ax2, ay2),
+        line_point_distance(ax1, ay1, ax2, ay2, bx1, by1),
+        line_point_distance(ax1, ay1, ax2, ay2, bx2, by2)
+    ]
+    return min(distances)
+
+
+def can_catch_up(self: GameParticle, target: GameParticle):
+    dx = target.x - self.x
+    dy = target.y - self.y
+    a = target.speed ** 2 - self.speed ** 2
+    b = 2 * (dx * target.xv + dy * target.yv)
+    c = dx ** 2 + dy ** 2
+    disc = b ** 2 - 4 * a * c
+    return disc >= 0
+
+
+def calculate_intercept_angle(self: GameParticle, target: GameParticle):
+    tx = target.x
+    ty = target.y
+    tvx = target.xv
+    tvy = target.yv
+    dx = tx - self.x
+    dy = ty - self.y
+    target_speed = math.hypot(tvx, tvy)
+    a = target_speed ** 2 - self.speed ** 2
+    b = 2 * (dx * tvx + dy * tvy)
+    c = dx ** 2 + dy ** 2
+    disc = b ** 2 - 4 * a * c
+
+    if disc < 0:
+        return math.atan2(dy, dx)
+    try:
+        t1 = (-b + math.sqrt(disc)) / (2 * a)
+        t2 = (-b - math.sqrt(disc)) / (2 * a)
+    except ZeroDivisionError:
+        return math.atan2(dy, dx)
+    t = min(t1, t2) if t1 > 0 and t2 > 0 else max(t1, t2, 0)
+    intercept_x = tx + tvx * t
+    intercept_y = ty + tvy * t
+    return math.atan2(intercept_y - self.y, intercept_x - self.x)
+
+
+def generate_random_point(rect_small: tuple[int, int, int, int], rect_big: tuple[int, int, int, int],
+                          padding=0):
+    small_x1, small_y1, small_x2, small_y2 = rect_small
+    small_x1 -= padding
+    small_x2 += padding
+    small_y1 -= padding
+    small_y2 += padding
+    big_x1, big_y1, big_x2, big_y2 = rect_big
+
+    # Check if rect_small completely contains rect_big
+    if small_x1 <= big_x1 and small_y1 <= big_y1 and small_x2 >= big_x2 and small_y2 >= big_y2:
+        raise ValueError("rect_small completely contains rect_big")
+
+    # Ensure small rectangle is within the boundaries of the big rectangle
+    small_x1 = max(small_x1, big_x1)
+    small_y1 = max(small_y1, big_y1)
+    small_x2 = min(small_x2, big_x2)
+    small_y2 = min(small_y2, big_y2)
+
+    # Calculate the areas outside the small rectangle but inside the big rectangle
+    # 1. Left side of the small rectangle, contains top-left and bot-left corner
+    left_area_width = max(small_x1 - big_x1, 0)
+    left_area_height = big_y2 - big_y1
+    left_area = left_area_width * left_area_height
+
+    # 2. Right side of the small rectangle, contains top-right and bot-right corner
+    right_area_width = max(big_x2 - small_x2, 0)
+    right_area_height = big_y2 - big_y1
+    right_area = right_area_width * right_area_height
+
+    # 3. Top side of the small rectangle, do not contain corner
+    top_area_width = small_x2 - small_x1
+    top_area_height = max(big_y2 - small_y2, 0)
+    top_area = top_area_width * top_area_height
+
+    # 4. Bottom side of the small rectangle, do not contain corner
+    bottom_area_width = small_x2 - small_x1
+    bottom_area_height = max(small_y1 - big_y1, 0)
+    bottom_area = bottom_area_width * bottom_area_height
+
+    # Cumulative areas
+    cumulative_areas = [left_area, left_area + right_area, left_area + right_area + top_area,
+                        left_area + right_area + top_area + bottom_area]
+
+    # Total valid area
+    total_valid_area = cumulative_areas[-1]
+
+    # Randomly select a region based on area proportion
+    random_area = random.uniform(0, total_valid_area)
+
+    # Binary search to find the selected region
+    if random_area < cumulative_areas[0]:
+        # In the left area
+        x = random.uniform(big_x1, small_x1)
+        y = random.uniform(big_y1, big_y2)
+    elif random_area < cumulative_areas[1]:
+        # In the right area
+        x = random.uniform(small_x2, big_x2)
+        y = random.uniform(big_y1, big_y2)
+    elif random_area < cumulative_areas[2]:
+        # In the top area
+        x = random.uniform(small_x1, small_x2)
+        y = random.uniform(small_y2, big_y2)
+    else:
+        # In the bottom area
+        x = random.uniform(small_x1, small_x2)
+        y = random.uniform(big_y1, small_y1)
+
+    return (x, y)
+
+
+def test(x, y, rad, rect, must_have: list[tuple[int, int, int, int]], must_error=False, iterations=10000):
+    rect_small = [x - rad, y - rad, x + rad, y + rad]
+    rect_big = rect
+
+    points = []
+    error_count = 0
+    for _ in range(iterations):
+        try:
+            point = generate_random_point(rect_small, rect_big)
+            points.append(point)
+        except ValueError as e:
+            error_count += 1
+
+    def rect_contains(rect, cord) -> bool:
+        x1, y1, x2, y2 = rect
+        cord_x, cord_y = cord
+        return x1 <= cord_x <= x2 and y1 <= cord_y <= y2
+
+    if not all(any(rect_contains(rect, c) for c in points) for rect in must_have):
+        return False
+    if must_error and error_count == 0:
+        return False
+    return True
+
+
+def main():
+    case1 = [5, 5, 4, [0, 0, 10, 10], [[0, 0, 1, 1], [9, 9, 10, 10], [0, 9, 1, 10], [9, 0, 10, 1]]]
+
+    print(test(*case1))
+
+# def main():
+#     import matplotlib.pyplot as plt
+#     rect_big = [0, 0, 10, 10]
+#
+#     # Generate random points
+#
+#
+#     # Unpack points
+#     x_points, y_points = zip(*points)
+#
+#     # Plotting the rectangles and points
+#     fig, ax = plt.subplots()
+#     ax.set_aspect('equal')
+#
+#     # Plot rect_big
+#     big_rect = plt.Rectangle((rect_big[0], rect_big[1]), rect_big[2] - rect_big[0], rect_big[3] - rect_big[1],
+#                              fill=None, edgecolor='blue', linewidth=2)
+#     ax.add_patch(big_rect)
+#
+#     # Plot rect_small
+#     small_rect = plt.Rectangle((rect_small[0], rect_small[1]), rect_small[2] - rect_small[0],
+#                                rect_small[3] - rect_small[1],
+#                                fill=None, edgecolor='red', linewidth=2)
+#     ax.add_patch(small_rect)
+#
+#     # Plot points
+#     ax.scatter(x_points, y_points, color='green', s=1)
+#
+#     # Set limits and labels
+#     ax.set_xlim(rect_big[0] - 1, rect_big[2] + 1)
+#     ax.set_ylim(rect_big[1] - 1, rect_big[3] + 1)
+#     ax.set_xlabel('X')
+#     ax.set_ylabel('Y')
+#     ax.set_title('Random Points Outside rect_small and Inside rect_big')
+#
+#     plt.show()
+
+
+if __name__ == "__main__":
+    main()
+
+from __future__ import annotations
+
+import math
+from typing import Callable, Any
+
+from srcs.classes import algo
+from srcs.classes.entity.breakable import Breakable
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.lazer import Lazer
+from collections import defaultdict
+from typing import Sequence
+
+
+from srcs.classes.collision_handler import CollisionHandlerType, damaging_collision
+
+
+def is_colliding(a: GameParticle, b: GameParticle):
+    if isinstance(a, Lazer) and isinstance(b, Lazer):
+        # return algo.line_line_distance(a.x, a.y, a.end_x, a.end_y, b.x, b.y, b.end_x,
+        #                                b.end_y) < a.rad + b.rad
+        return False
+    elif isinstance(a, Lazer):
+        return algo.line_point_distance(a.prev_x, a.prev_y, a.end_x, a.end_y, b.x, b.y) < a.rad + b.rad
+    elif isinstance(b, Lazer):
+        return algo.line_point_distance(b.prev_x, b.prev_y, b.end_x, b.end_y, a.x, a.y) < a.rad + b.rad
+    else:
+        return a.distance_with(b) < 0
+
+def assign_to_cells(particles: Sequence[GameParticle], cell_size: float) -> dict:
+    """
+    Assigns particles to grid cells based on their positions.
+    """
+    cells = defaultdict(list)
+    for particle in particles:
+        cell_x = int(particle.x // cell_size)
+        cell_y = int(particle.y // cell_size)
+        cells[(cell_x, cell_y)].append(particle)
+    return cells
+
+
+def get_neighboring_cells(cell_x: int, cell_y: int) -> list:
+    """
+    Returns the coordinates of a cell and its eight neighbors.
+    """
+    return [
+        (cell_x + dx, cell_y + dy)
+        for dx in range(-1, 2)
+        for dy in range(-1, 2)
+    ]
+
+
+def check_collision_within_cells(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle], cell_size: float):
+    """
+    Detects collisions between bullets and enemies using cell-based spatial partitioning.
+    """
+    # Step 1: Assign bullets and enemies to cells
+    bullet_cells = assign_to_cells(bullets, cell_size)
+    enemy_cells = assign_to_cells(enemies, cell_size)
+
+    # Step 2: Check collisions within the relevant cells
+    for (cell_x, cell_y), cell_bullets in bullet_cells.items():
+        # Get all enemies in this cell and neighboring cells
+        possible_enemies = []
+        for neighbor in get_neighboring_cells(cell_x, cell_y):
+            possible_enemies.extend(enemy_cells.get(neighbor, []))
+
+        # Check collisions between bullets and these enemies
+        for bullet in cell_bullets:
+            for enemy in possible_enemies:
+                if is_colliding(bullet, enemy):
+                    damaging_collision(bullet, enemy)
+
+def check_collision_with_enemies(bullet: GameParticle, enemies: list[GameParticle], start_idx: int,
+                                 collision_handler:CollisionHandlerType = damaging_collision):
+    for enemy in enemies[start_idx:]:
+        if enemy.x + enemy.get_collision_rad() < bullet.x - bullet.get_collision_rad():
+            start_idx += 1
+            continue
+        break
+    for enemy in enemies[start_idx:]:
+        if enemy.x - enemy.get_collision_rad() > bullet.x + bullet.get_collision_rad():
+            break
+        if is_colliding(bullet, enemy):
+            collision_handler(bullet, enemy)
+    return start_idx
+
+
+def _collide_sorted_enemy_and_bullets(bullets: list[GameParticle], enemies: list[GameParticle],
+                                      collision_handler:CollisionHandlerType = damaging_collision):
+    enemy_start_idx = 0
+    for bullet in bullets:
+        enemy_start_idx = check_collision_with_enemies(bullet, enemies, enemy_start_idx, collision_handler)
+        if enemy_start_idx >= len(enemies):
+            break
+
+
+def collide_enemy_and_bullets(bullets: Sequence[GameParticle], enemies: Sequence[GameParticle],
+                              collision_handler: CollisionHandlerType = damaging_collision):
+    bullets = sorted(bullets, key=lambda b: b.x - b.get_collision_rad())
+    enemies = sorted(enemies, key=lambda b: b.x - b.get_collision_rad())
+    # sep
+    GROUP = [(0, 10), (10, 20), (20, float('inf'))]
+
+    enemy_groups = [[p for p in enemies if left < p.get_collision_rad() <= right] for left, right in GROUP]
+    bullet_groups = [[p for p in bullets if left < p.get_collision_rad() <= right] for left, right in GROUP]
+    for enemy_group in enemy_groups:
+        for bullet_group in bullet_groups:
+            _collide_sorted_enemy_and_bullets(bullet_group, enemy_group, collision_handler)
+from __future__ import annotations
+
+import random
+import pygame
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.weapons_enum import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
+from srcs.classes.weapon_classes.weapon_handler import WeaponHandler
+from srcs import constants
+from srcs.classes import draw_utils
+from srcs.classes.game_data import GameData
+
+
+MAIN_WEAPON_THEME = ((255, 255, 0), (255, 155, 0))
+SUB_WEAPON_THEME = ((25, 255, 255), (0, 0, 255))
+
+
+class Collectible(GameParticle):
+    def __init__(self, x, y, game_data: GameData, color=(125, 125, 125), radius=constants.COLLECTIBLE_RADIUS, **kwargs):
+        super().__init__(x, y, dmg=0, hp=1, color=color, radius=radius, **kwargs)
+        self.game_data: GameData = game_data
+
+    def move(self):
+        pass
+
+    def on_collect(self):
+        pass
+
+
+class HealCollectible(Collectible):
+    def on_collect(self):
+        self.game_data.player.max_hp += constants.HEAL_HP  #  max(self.data.player.max_hp, self.data.player.hp + constants.HEAL_HP)
+        self.game_data.player.hp = min(self.game_data.player.max_hp, self.game_data.player.hp + constants.HEAL_HP)
+
+    def draw(self, surface: pygame.Surface):
+        COLOR1 = (0, 255, 0)
+        COLOR2 = (0, 155, 0)
+        draw_utils.draw_cross(surface, self.x, self.y, self.rad * 3 // 4, COLOR1, COLOR2)
+
+
+class MainWeaponCollectible(Collectible):
+    def __init__(self, x, y, game):
+        super().__init__(x, y, game)
+        self.weapon_handler: WeaponHandler = game.player.main_weapon
+
+    def _get_not_collected(self):
+        collected_names = [i.name for i in self.game_data.player.main_weapon.all_weapons]
+        not_collected = [i for i in ALL_MAIN_WEAPON_LIST if i.name not in collected_names]
+        return not_collected
+
+    def on_collect(self):
+        not_collected = self._get_not_collected()
+        if not not_collected:
+            return
+        weapon = random.choice(not_collected)
+        self.weapon_handler.change_weapon(weapon)
+
+    def draw(self, surface: pygame.Surface):
+        draw_utils.draw_star(surface, self.x, self.y, self.rad, *MAIN_WEAPON_THEME)
+
+    def is_dead(self):
+        return super().is_dead() or not self._get_not_collected()
+
+
+class SubWeaponCollectible(MainWeaponCollectible):
+    def __init__(self, x, y, game):
+        super().__init__(x, y, game)
+        self.weapon_handler: WeaponHandler = game.player.sub_weapon
+
+    def _get_not_collected(self):
+        collected_names = [i.name for i in self.game_data.player.sub_weapon.all_weapons]
+        not_collected = [i for i in ALL_SUB_WEAPON_LIST if i.name not in collected_names]
+        return not_collected
+
+    def draw(self, surface: pygame.Surface):
+        draw_utils.draw_star(surface, self.x, self.y, self.rad, *SUB_WEAPON_THEME)
+
+
+class WeaponUpgradeCollectible(Collectible):
+    def on_collect(self):
+        self.game_data.player.main_weapon.upgrade_weapon()
+
+    def draw(self, surface: pygame.Surface):
+        draw_utils.draw_up_arrow(surface, self.x, self.y, self.rad, *MAIN_WEAPON_THEME)
+
+
+class SubWeaponUpgradeCollectible(Collectible):
+    def on_collect(self):
+        self.game_data.player.sub_weapon.upgrade_weapon()
+
+    def draw(self, surface: pygame.Surface):
+        draw_utils.draw_up_arrow(surface, self.x, self.y, self.rad, *SUB_WEAPON_THEME)
+from __future__ import annotations
+
+import math
+from typing import Callable, Any
+import random
+
+from srcs.classes import algo
+from srcs.classes.entity.breakable import Breakable
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.lazer import Lazer
+
+CollisionHandlerType = Callable[[GameParticle, GameParticle], Any]
+
+def lazer_unit_collision(l: Lazer, p: GameParticle):
+    # print(f"before: {l.hp:.2f} {p.hp:.2f}")
+    intersect = algo.line_circle_first_intersect(l.x, l.y, l.end_x, l.end_y, p.x, p.y, p.rad)
+    if intersect is None:
+        intersect = [l.x, l.y]
+        distance = 0
+    else:
+        distance = math.hypot(intersect[0] - l.x, intersect[1] - l.y)
+    # dmg factor enough to kill either (or both survives)
+    dmg_factor = abs(l.hp - (distance / l.rad))
+    dmg_factor = min(dmg_factor, p.hp / max(0.1 ,l.dmg))
+
+    l.hp -= min(1.0, p.dmg) * dmg_factor
+    p.hp -= l.dmg * dmg_factor
+    l.update_length()
+    # print(f"after: ({intersect[0]:.2f}, {intersect[1]:.2f}) {distance=:.2f} {dmg_factor=:.2f}, {l.hp:.2f} {p.hp:.2f}")
+
+
+def damaging_collision(bullet: GameParticle, enemy: GameParticle):
+    if bullet is enemy or bullet.is_dead() or bullet.hp <= 0 or enemy.is_dead() or enemy.hp <= 0:
+        return
+    elif isinstance(bullet, Lazer) and not isinstance(enemy, Lazer):
+        lazer_unit_collision(bullet, enemy)
+    elif isinstance(enemy, Lazer) and not isinstance(bullet, Lazer):
+        lazer_unit_collision(enemy, bullet)
+    else:
+        enemy.hp -= bullet.dmg
+        bullet.hp -= enemy.dmg
+
+    if enemy.is_dead():
+        bullet.add_score(enemy.base_score)
+    if bullet.is_dead():
+        enemy.add_score(enemy.base_score)
+    if isinstance(enemy, Breakable):
+        enemy.handle_hit_by(bullet)
+    if isinstance(bullet, Breakable):
+        bullet.handle_hit_by(enemy)
+
+def repel_collision(a: GameParticle, b: GameParticle):
+    if (a is b) or a.is_dead() or a.hp <= 0 or b.is_dead() or b.hp <= 0:
+        return
+    elif isinstance(a, Lazer) or isinstance(b, Lazer):
+        return
+
+    if a.rad > b.rad:
+        a, b = b, a
+    dy = a.y - b.y
+    dx = a.x - b.x
+    dis = math.hypot(dy, dx)
+    if dis == 0:
+        dy = random.uniform(-0.1, 0.1)
+        dx = random.uniform(-0.1, 0.1)
+        dis = math.hypot(dy, dx)
+    # a is smaller than b, a gets repelled
+    overlap = a.rad + b.rad - dis
+    a.x += dx / dis * overlap
+    a.y += dy / dis * overlapfrom __future__ import annotations
+
+import math
+import random
+
+import pygame
+
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.constants import *
+
+
+class BaseController:
+    """
+    A class that alters its own value for reference.
+    It does not modify unit.
+    """
+
+    def __init__(self):
+        self._turn_direction = random.choice((-math.pi / 2, math.pi / 2))
+        self._prev_hp: int = 0
+        self._retreat: int = 0  # frames to retreat
+        self.is_moving: bool = True
+        self.move_angle: float = 0.0
+        self.aim_x: float = 0.0
+        self.aim_y: float = 0.0
+        self.fire_main: bool = False
+        self.fire_sub: bool = False
+
+    def update_based_on(self, unit: BaseUnit):
+        """Update decision values based on unit state or player input."""
+        pass
+
+    def copy(self):
+        return self.__class__()
+
+    def get_child(self):
+        return self.copy()
+
+
+class BotController(BaseController):
+    def update_based_on(self, unit: BaseUnit):
+        self.is_moving = False
+        self.fire_main = True
+        self.fire_sub = True
+
+class AIController(BaseController):
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        if unit.target is None or unit.target.is_dead():
+            unit.find_new_target()
+        if unit.target:
+            self.move_angle = unit.angle_with(unit.target)
+            self.fire_main = unit.distance_with(unit.target) <= unit.shoot_range
+            self.fire_sub = unit.distance_with(unit.target) <= unit.shoot_range
+            if self.fire_sub or self.fire_main:
+                self.aim_x, self.aim_y = AIController.calculate_shoot_coordinate(unit)
+
+    @staticmethod
+    def calculate_shoot_coordinate(unit: BaseUnit) -> tuple[float, float]:
+        target_x, target_y = unit.target.x, unit.target.y
+        target_xv, target_yv = unit.target.xv, unit.target.yv
+
+        bullet_speed = unit.bullet_speed
+
+        lead_time = 0.0
+        lead_x = target_x
+        lead_y = target_y
+
+        try:
+            for _ in range(10):
+                lead_x = target_x + target_xv * lead_time
+                lead_y = target_y + target_yv * lead_time
+                future_distance = math.hypot(lead_x - unit.x, lead_y - unit.y)
+                lead_time = future_distance / bullet_speed
+
+            return lead_x, lead_y
+        except ZeroDivisionError:
+            return target_x, target_y
+
+    @staticmethod
+    def calculate_shoot_angle(unit: BaseUnit):
+        aim_x, aim_y = AIController.calculate_shoot_coordinate(unit)
+        return unit.angle_with_cord(aim_x, aim_y)
+
+
+class SmartAIController(AIController):
+    """AI decision-making logic for automated units."""
+
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        if self._prev_hp > unit.hp:
+            self._retreat = 4 * FPS
+        if self._retreat > 0:
+            self._retreat -= 1
+            self.move_angle += math.pi
+            unit.find_new_target()
+            if unit.is_targeting_self(unit.target):
+                self.fire_sub = self.fire_main = True
+        elif unit.distance_with(unit.target) <= unit.shoot_range:
+            self.move_angle += self._turn_direction
+        self._prev_hp = unit.hp
+
+
+class PlayerDroneController(SmartAIController):
+    """non-player control for units that supports player"""
+
+    def update_based_on(self, unit: BaseUnit):
+        super().update_based_on(unit)
+        affected = unit.faction.game_data.in_screen(unit)
+        if not affected:
+            return
+        if unit.faction.game_data.left_mouse_down:
+            self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos_in_map()
+        self.move_angle = unit.angle_with_cord(self.aim_x, self.aim_y)
+        self.fire_main = unit.faction.game_data.left_mouse_down or self.fire_main
+        self.fire_sub = unit.faction.game_data.right_mouse_down or self.fire_main
+
+
+class PlayerController(AIController):
+    """Player control logic for player-controlled units."""
+
+    def update_based_on(self, unit: BaseUnit):
+        self._update_using_ai(unit)
+        self._update_movement(unit)
+        self.fire_main = unit.faction.game_data.left_mouse_down or unit.faction.game_data.autofire
+        self.fire_sub = unit.faction.game_data.right_mouse_down or unit.faction.game_data.autofire
+
+    def _update_movement(self, unit:BaseUnit):
+        keys = pygame.key.get_pressed()
+        dy, dx = 0, 0
+        if keys[pygame.K_w]:
+            dy -= 1
+        if keys[pygame.K_s]:
+            dy += 1
+        if keys[pygame.K_a]:
+            dx -= 1
+        if keys[pygame.K_d]:
+            dx += 1
+
+        self.is_moving = bool(dy or dx)
+        self.move_angle = math.atan2(dy, dx)
+
+    def _update_using_ai(self, unit: BaseUnit):
+        self.aim_x, self.aim_y = unit.faction.game_data.get_mouse_pos_in_map()
+        unit.target = None
+        closest_distance = float('inf')
+        is_unit = False
+        for target in unit.faction.target_list:
+            distance = target.distance_with_cord(self.aim_x, self.aim_y)
+            if distance > 25 / unit.faction.game_data.zoom:
+                continue
+            if is_unit and not isinstance(target, BaseUnit):
+                continue
+            if distance < closest_distance:
+                unit.target = target
+                closest_distance = distance
+                is_unit = isinstance(target, BaseUnit)
+        if unit.target:
+            super().update_based_on(unit)
+
+    def get_child(self):
+        return PlayerDroneController()
+
+class AIDroneController(SmartAIController):
+    def update_based_on(self, unit: BaseUnit):
+        if isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub and unit.parent.target:
+            unit.target = unit.parent.target
+        super().update_based_on(unit)
+        if (isinstance(unit.parent, BaseUnit) and not self.fire_main and not self.fire_sub
+                and unit.target is not unit.parent.target
+                and unit.distance_with_cord(unit.parent.x, unit.parent.y) - unit.rad > unit.parent.shoot_range):
+            self.move_angle = unit.angle_with(unit.parent) + math.pi / 4from __future__ import annotations
+import pygame
+import math
+
+t_cord = tuple[float, float]
+
+import pygame
+import math
+
+
+def draw_arrow(surface: pygame.Surface, start: tuple, end: tuple, color=(255, 255, 255), width=1):
+    pygame.draw.line(surface, color, start, end, width)
+
+    SIDE_LENGTH = 50
+    ARROW_ANGLE = math.radians(30)
+    theta = math.atan2(end[1] - start[1], end[0] - start[0])
+    s1 = (end[0] - SIDE_LENGTH * math.cos(theta + ARROW_ANGLE),
+          end[1] - SIDE_LENGTH * math.sin(theta + ARROW_ANGLE))
+    s2 = (end[0] - SIDE_LENGTH * math.cos(theta - ARROW_ANGLE),
+          end[1] - SIDE_LENGTH * math.sin(theta - ARROW_ANGLE))
+    pygame.draw.line(surface, color, s1, end, width)
+    pygame.draw.line(surface, color, s2, end, width)
+
+
+def draw_cross(surface, x, y, rad, color1, color2):
+    WIDTH = rad
+    LENGTH = rad
+    WIDTH -= WIDTH % 2   # ensure even
+    LENGTH -= LENGTH % 2
+    # pygame.draw.circle(surface, color1, (x, y), rad)
+    pygame.draw.rect(surface, color1, (x - WIDTH // 2, y - LENGTH, WIDTH, 2 * LENGTH))
+    pygame.draw.rect(surface, color1, (x - LENGTH, y - WIDTH // 2, 2 * LENGTH, WIDTH))
+
+
+def draw_star(surface, x, y, rad, color1, color2):
+    h1 = rad  # height of vertical and horizontal edge
+    h2 = rad // 2  # height of diagonal edge
+    w1 = h1 // 10  # width of vertical edge
+    w2 = h2 // 4  # width of diagonal edge
+
+    # comment follows cartesian
+    draw_points = [
+        (x, y + h1),  # Top
+        (x + w1, y + w1 + w2),
+        (x + h2, y + h2),
+        (x + w1 + w2, y + w1),
+        (x + h1, y),  # Right
+        (x + w1 + w2, y - w1),
+        (x + h2, y - h2),
+        (x + w1, y - w1 - w2),
+        (x, y - h1),  # Bot
+        (x - w1, y - w1 - w2),
+        (x - h2, y - h2),
+        (x - w1 - w2, y - w1),
+        (x - h1, y),  # Left
+        (x - w1 - w2, y + w1),
+        (x - h2, y + h2),
+        (x - w1, y + w1 + w2),
+    ]
+    pygame.draw.circle(surface, color2, (x, y), radius=rad // 2)
+    pygame.draw.polygon(surface, color1, draw_points)
+
+
+def draw_up_arrow(surface, x, y, rad, color1, color2):
+    w = rad
+    h = rad
+    pygame.draw.polygon(surface, color2, (
+        (x, y - h),        # Top point
+        (x - w, y),        # Bottom-left point
+        (x - w // 2, y),        # Left inner point
+        (x - w // 2, y + h), # Left inner bottom point
+        (x + w // 2, y + h), # Right inner bottom point
+        (x + w // 2, y),        # Right inner point
+        (x + w, y)         # Bottom-right point
+    ))
+    w -= 3
+    h -= 3
+    pygame.draw.polygon(surface, color1, (
+        (x, y - h),  # Top point
+        (x - w, y),  # Bottom-left point
+        (x - w // 2, y),  # Left inner point
+        (x - w // 2, y + h),  # Left inner bottom point
+        (x + w // 2, y + h),  # Right inner bottom point
+        (x + w // 2, y),  # Right inner point
+        (x + w, y)  # Bottom-right point
+    ))
+from __future__ import annotations
+import random
+from multiprocessing.managers import Value
+
+import pygame
+from srcs.constants import *
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.game_data import GameData
+
+
+DEATH_OPACITY = 0.025
+
+
+class Effect(GameParticle):
+    def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=1,
+                 color=(255, 255, 255), hp=1.0, dmg=1.0, lifespan=None,
+                 fade_off=False, fade_in=False, target_rad=None, **kwargs):
+        super().__init__(x, y, angle, speed, rad, color, hp, dmg, **kwargs)
+
+        if fade_off and fade_in:
+            raise ValueError("Cannot fade in and fade out at the same time")
+
+        self.lifespan = lifespan if lifespan is not None else 60 * 2
+        self.game_data: GameData = game_data
+        self.fade = fade_off or fade_in
+        self.target_rad = target_rad if target_rad is not None else rad * 2
+
+        # Calculate the expansion rate and fade-off rate
+        self.rad_increase_rate = (self.target_rad - self.rad) / self.lifespan
+
+        # fade off rate
+        self.opacity = 1.0
+        self.opacity_increase_rate = (DEATH_OPACITY - self.opacity) / self.lifespan
+        if fade_in:
+            self.opacity = DEATH_OPACITY + 0.01
+            self.opacity_increase_rate = (1.0 - self.opacity) / self.lifespan
+
+    def apply_fade(self):
+        self.opacity += self.opacity_increase_rate
+
+    def move(self):
+        super().move()
+        self.lifespan -= 1
+        self.rad += self.rad_increase_rate
+        if self.fade:
+            self.apply_fade()
+
+    def draw(self, surface: pygame.Surface):
+        if self.is_dead() or self.rad <= 0:
+            return
+        temp_surface = pygame.Surface((self.rad * 2, self.rad * 2), pygame.SRCALPHA)
+        pygame.draw.circle(temp_surface, self.color, (self.rad, self.rad), self.rad)
+        temp_surface.set_alpha(int(self.opacity * 255))
+        surface.blit(temp_surface, (self.x - self.rad, self.y - self.rad))
+
+    def is_dead(self):
+        return super().is_dead() or self.x + self.rad < 0 or self.x - self.rad > MAP_WIDTH or\
+            self.y + self.rad < 0 or self.y - self.rad > MAP_HEIGHT or self.lifespan <= 0
+from __future__ import annotations
+
+import math
+from ctypes import wstring_at
+from typing import Optional
+
+import pygame
+import random
+
+from srcs import utils
+from srcs.classes import algo
+from srcs.classes.entity.breakable import Breakable, Debris
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.effect import Effect
+from srcs.classes.entity.shield import Shield
+from srcs.classes.faction_data import FactionData
+from srcs.classes.game_data import GameData
+from srcs.constants import *
+from srcs.utils import color_mix
+
+
+class BaseUnit(Breakable):
+    def __init__(self, faction: FactionData,
+                 x: float = 0.0, y: float = 0.0,
+                 angle=0.0, speed=UNIT_SPEED, radius=UNIT_RADIUS, color=ENEMY_COLOR,
+                 hp=1, dmg=1, score=10, variable_shape=True, variable_color=True,
+                 shoot_range: float=UNIT_SHOOT_RANGE, bullet_speed: float=BULLET_SPEED,
+                 # importance:int=0,
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
+        self.max_speed: float = speed
+        self.target: Optional[GameParticle] = None
+        self.warned_target: bool = False
+        self.variable_shape: bool = variable_shape
+        self.variable_color: bool = variable_color
+        self.original_color: tuple = color
+        self.shoot_range: float = shoot_range
+        self.bullet_speed: float = bullet_speed
+        self.max_rad: float = radius
+        # self.importance: int = importance
+
+        self.update_appearance_based_on_hp()
+
+    def find_new_target(self):
+        """Find the closest target from the list of target_list."""
+        return self.find_new_target_at(self.x, self.y)
+
+    def find_new_target_at(self, x, y, distance_limit=float('inf')):
+        # Find the closest target
+        targets: list[GameParticle] = [i for i in self.faction.target_list if self.faction.game_data.in_map(i)]
+        closest_target = None
+        min_distance = float('inf')
+
+        K = MAP_WIDTH + MAP_HEIGHT
+        for target in targets:
+            dis = target.distance_with_cord(x, y)
+            if dis > distance_limit:
+                continue
+            if isinstance(target, (Bullet, Debris)) and not algo.can_catch_up(self, target):
+                continue
+            distance = (
+               dis
+               # - K * utils.sigmoid(target.score + target.base_score, 30000) # 30000 will reach 0.9
+               - (isinstance(target, BaseUnit) or isinstance(target, Shield)) * 2 * K
+               - self.is_targeting_self(target) * 3 * K
+               - (isinstance(self.parent, BaseUnit) and self.parent.is_targeting_self(target)) * 4 * K
+               - (dis < self.shoot_range) * 5 * K
+            )
+            if distance < min_distance:
+                min_distance = distance
+                closest_target = target
+
+        self.target = closest_target
+        self.warned_target = False
+
+    def is_targeting_self(self, other: GameParticle):
+        return isinstance(other, BaseUnit) and other.target is self
+
+    def turn_to(self, new_angle, lerp=0.1):
+        turn_angle = new_angle - self.angle
+        turn_angle = (turn_angle + math.pi) % (2 * math.pi) - math.pi
+        self.angle += turn_angle * lerp
+        self.angle = (self.angle + math.pi) % (2 * math.pi) - math.pi
+
+    def move(self):
+        super().move()
+        while isinstance(self.parent, GameParticle) and self.parent.is_dead():
+            self.parent = self.parent.parent
+        self.update_appearance_based_on_hp()
+        spd = self.speed
+        if (self.x - self.rad < 0 and self.xv < 0) or (self.x + self.rad > MAP_WIDTH and self.xv > 0):
+            self.xv = -self.xv
+        if (self.y - self.rad < 0 and self.yv < 0) or (self.y + self.rad > MAP_HEIGHT and self.yv > 0):
+            self.yv = -self.yv
+        self.x = utils.clamp(self.x, self.rad, MAP_WIDTH - self.rad)
+        self.y = utils.clamp(self.y, self.rad, MAP_HEIGHT - self.rad)
+        self.speed = spd
+        self.warn_target()
+
+    def warn_target(self):
+        if self.target and not self.warned_target and isinstance(self.target, BaseUnit) \
+            and self.distance_with(self.target) < self.shoot_range:
+            self.target.find_new_target()
+            self.warned_target = True
+
+    def update_rad(self):
+        self.rad = BaseUnit.get_rad(self.hp, self.max_hp, self.max_rad)
+
+    def update_color(self):
+        self.color = BaseUnit.get_color(self.hp, self.speed, self.original_color)
+
+    def update_appearance_based_on_hp(self):
+        if self.variable_shape:
+            self.update_rad()
+        if self.variable_color:
+            self.update_color()
+
+    @staticmethod
+    def get_rad(hp: float, max_hp: float, max_rad: Optional[float] = None):
+        max_rad = max_rad or UNIT_RADIUS + max_hp - 1
+        return int(UNIT_RADIUS + (hp / max_hp) * max(0, max_rad - UNIT_RADIUS))
+
+    @staticmethod
+    def get_color(hp: float, speed: float, base_color: tuple):
+        r, g, b = base_color
+
+        max_change = 100
+        hp_factor = min(1.0, hp / 100)
+        speed_factor = min((speed - UNIT_SPEED) / (PLAYER_SPEED - UNIT_SPEED), 1)
+        b = b + max_change * speed_factor
+        g = g - max_change * hp_factor
+
+        return utils.color_norm((r, g, b))
+
+    def on_death(self):
+        self.faction.game_data.effects.append(Effect(self.faction.game_data, self.x, self.y, self.angle,
+                                              speed=self.speed, rad=self.rad, lifespan=3,
+                                              color=self.color, fade_off=True))
+        return super().on_death()
+
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y))
+
+    def regen_hp(self, regen_amount: float):
+        super().regen_hp(regen_amount)
+from __future__ import annotations
+
+import math
+import random
+
+import pygame
+
+from srcs import utils
+from srcs.classes.effect import Effect
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.lazer import Lazer
+from srcs.classes.faction_data import FactionData
+from srcs.classes.game_data import GameData
+from srcs.constants import *
+from srcs.utils import color_mix
+
+
+class Debris(Effect):
+    def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=1.0,
+                 color=(255, 255, 255), hp=1.0, dmg=1.0, **kwargs):
+        super().__init__(game_data, x, y, angle, speed, rad, color, hp, dmg,
+                         lifespan=300, target_rad=0.1, fade_off=True, **kwargs)
+
+
+class Breakable(FactionParticle):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0, speed=0.0, radius=1.0,
+                 color=(255, 255, 255), hp=1, dmg=1,
+                 score=0, **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
+        self._explode_prev_hp: float = self.hp
+
+    def move(self):
+        super().move()
+        if self.hp < self._explode_prev_hp:
+            self.explode()
+        self._explode_prev_hp = self.hp
+
+    def on_death(self):
+        self.explode()
+        return super().on_death()
+
+    def handle_hit_by(self, other: GameParticle):
+        angle = self.angle_with(other)
+        rad = other.rad
+        spread = math.pi / 2
+        if isinstance(other, Lazer):
+            rad = other.rad
+            angle = utils.angle_add(other.angle_with_cord(self.x, self.y), math.pi)
+        if self.hp <= 0:
+            # angle = utils.angle_add(angle, math.pi)
+            spread = math.pi * 2
+        x = self.x + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.cos(angle)
+        y = self.y + max(self.rad * 0.9, self.rad - UNIT_RADIUS) * math.sin(angle)
+        self._explode(angle, spread, (x, y), 0,
+                      max(1, other.speed / max(rad, 0.1) / 1000))
+
+    def _explode(self, explode_angle: float, explode_spread: float, spawn_center:tuple, spawn_rad:float, velocity_k:float=1.0):
+        explode_hp = (self._explode_prev_hp - max(0.0, self.hp)) * 0.25
+        self._explode_prev_hp = self.hp
+        # n = particle count, k = maximum size
+        cap = MAX_ENEMY_COUNT - len(self.faction.parent_list)
+        k = 1.0
+        color = color_mix(self.color, (255, 255, 255), weight2=2)
+        for j in range(cap):
+            if explode_hp <= 0:
+                return
+            particle_angle = explode_angle + random.uniform(-explode_spread / 2, explode_spread / 2)
+            radius = random.uniform(0.1, min(UNIT_RADIUS * k, self.max_rad / 3))
+            hp = radius / 10
+            carried_hp = self.max_hp * (radius / self.rad) ** 2
+            explode_hp -= carried_hp
+            speed = (random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (10 + j / 4)) / radius * k
+                    * velocity_k)
+            offset_x = math.cos(particle_angle) * (radius + spawn_rad)
+            offset_y = math.sin(particle_angle) * (radius + spawn_rad)
+            particle_x = spawn_center[0] + offset_x
+            particle_y = spawn_center[1] + offset_y
+            particle = Debris(self.faction.game_data, particle_x, particle_y, particle_angle, speed, radius,
+                              color, hp, speed * hp, parent=self)
+            particle.xv += self.xv
+            particle.yv += self.yv
+            self.faction.parent_list.append(particle)
+
+    # def _explode0(self, explode_angle: float, explode_spread: float, spawn_center:tuple, spawn_rad:float, velocity_k:float=1.0):
+    #     explode_hp = self._explode_prev_hp - max(0.0, self.hp)
+    #     self._explode_prev_hp = self.hp
+    #
+    #     if explode_hp == 0:
+    #         return
+    #
+    #     # n = particle count, k = maximum size
+    #     cap = MAX_ENEMY_COUNT - len(self.faction.parent_list)
+    #     k = 0.5
+    #     n = min(cap, random.randint(max(3, math.ceil(explode_hp / 2)),
+    #                                 max(3, math.ceil(explode_hp))))  # math.ceil(explode_hp / 2 + 1)
+    #
+    #     color = color_mix(self.color, (255, 255, 255), weight2=2)
+    #     offset_angle = random.uniform(-explode_spread / 10, explode_spread / 10)
+    #     for i in range(n):
+    #         particle_angle = explode_angle + (explode_spread / n) * (i - n / 2) + offset_angle
+    #
+    #         radius = random.uniform(0.1, min(UNIT_RADIUS * k, self.max_rad / 3))
+    #         hp = radius / 10
+    #         speed = (random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (2 + n / 4)) / radius * k
+    #                 * velocity_k)
+    #         offset_x = math.cos(particle_angle) * (radius + spawn_rad)
+    #         offset_y = math.sin(particle_angle) * (radius + spawn_rad)
+    #         particle_x = spawn_center[0] + offset_x
+    #         particle_y = spawn_center[1] + offset_y
+    #         particle = Debris(self.faction.game_data, particle_x, particle_y, particle_angle, speed, radius,
+    #                           color, hp, speed * hp, parent=self)
+    #         particle.xv += self.xv
+    #         particle.yv += self.yv
+    #         self.faction.parent_list.append(particle)
+
+    def explode(self):
+        self._explode(self.angle, math.pi * 2, (self.x, self.y), self.rad)
+
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y))
+from __future__ import annotations
+import random
+
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.faction_data import FactionData
+from srcs.constants import *
+
+
+# Bullet class
+class Bullet(FactionParticle):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, speed=BULLET_SPEED, radius=BULLET_RADIUS,
+                 color=BULLET_COLOR, hp=1.0, dmg=1.0, lifespan=float('inf'), **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, **kwargs)
+        assert not isinstance(lifespan, tuple)
+        self.lifespan = lifespan
+
+    def move(self):
+        super().move()
+        self.lifespan -= 1
+
+    def is_dead(self):
+        return super().is_dead() or self.x < 0 or self.x > MAP_WIDTH or\
+            self.y < 0 or self.y > MAP_HEIGHT or self.lifespan <= 0from __future__ import annotations
+
+from srcs.classes.effect import Effect
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.faction_data import FactionData
+from srcs.constants import *
+
+
+class Explosive(Bullet):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 speed=BULLET_SPEED, radius=BULLET_RADIUS,
+                 color=BULLET_COLOR, hp=1.0, dmg=1.0, lifespan=float('inf'),
+                 explosion_color=EXPLOSION_COLOR, projectile_dmg=1,
+                 explosion_rad: float=None, explosion_lifespan: int=10,
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
+        self.explosion_color = explosion_color
+        self.explosion_dmg = dmg
+        self.dmg = projectile_dmg
+        self.explosion_rad = explosion_rad if explosion_rad is not None else self.rad * 5
+        self.explosion_lifespan = explosion_lifespan
+
+    def on_death(self):
+        self.faction.parent_list.append(Effect(self.faction.game_data, self.x, self.y, self.angle, 0,
+                                               rad=self.rad,
+                                               hp=10000000,
+                                               dmg=self.explosion_dmg,
+                                               lifespan=self.explosion_lifespan,
+                                               color=self.explosion_color,
+                                               fade_off=True,
+                                               target_rad=self.explosion_rad,
+                                               parent=self))
+        # self.game_data.bullets.append(Bullet(self.game_data, self.x, self.y, self.angle, 0, self.rad * 10, (0, 0, 0),
+        #                                      100000000, self.dmg / 10, lifespan=10))
+        return super().on_death()
+from __future__ import annotations
+
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.faction_data import FactionData
+
+
+class FactionParticle(GameParticle):
+    def __init__(self, faction_data: FactionData,
+                 x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
+                 score=0, **kwargs):
+        super().__init__(x, y, angle, speed, radius, color, hp, dmg, score, **kwargs)
+        self.faction: FactionData = faction_data
+from __future__ import annotations
+
+import math
+
+import pygame
+
+from srcs.constants import FPS
+
+
+class Particle:
+    def __init__(self, x: float, y: float, angle=0.0, speed=0.0, rad=1.0, color=(255, 255, 255), *wargs, **kwargs):
+        self.prev_x = x
+        self.prev_y = y
+        self.x: float = x
+        self.y: float = y
+        self.xv: float = speed * math.cos(angle)
+        self.yv: float = speed * math.sin(angle)
+        self.rad: float = rad
+        self.color: tuple[int, int, int] = color
+
+    @property
+    def speed(self):
+        return math.hypot(self.xv, self.yv)
+
+    @speed.setter
+    def speed(self, new_speed: float):
+        angle = self.angle
+        self.xv = new_speed * math.cos(angle)
+        self.yv = new_speed * math.sin(angle)
+
+    @property
+    def angle(self):
+        return math.atan2(self.yv, self.xv)
+
+    @angle.setter
+    def angle(self, new_angle: float):
+        speed = self.speed
+        self.xv = speed * math.cos(new_angle)
+        self.yv = speed * math.sin(new_angle)
+
+    def distance_with(self, other) -> float:
+        if not isinstance(other, Particle):
+            return float('inf')
+        return math.hypot(self.x - other.x, self.y - other.y) - self.rad - other.rad
+
+    def distance_with_cord(self, x, y) -> float:
+        return math.hypot(self.x - x, self.y - y) - self.rad
+
+    def draw(self, surface: pygame.Surface):
+        pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.rad)
+
+    def move(self):
+        self.prev_x = self.x
+        self.prev_y = self.y
+        self.x += self.xv
+        self.y += self.yv
+
+    def get_collision_rad(self):
+        return self.rad
+
+
+class GameParticle(Particle):
+    def __init__(self, x: float=0.0, y: float=0.0, angle: float=0.0, speed=0.0, radius=1.0, color=(255, 255, 255), hp=1, dmg=1,
+                 score=0, parent: GameParticle | None = None, regen_rate: float=0):
+        super().__init__(x, y, angle, speed, radius, color)
+        self.hp: float = hp
+        self.max_hp: float = hp
+        self.max_rad: float = radius
+        self.dmg: float = dmg
+        self.base_score: int = score
+        self.score: int = 500
+        self.parent: GameParticle | None = parent
+        self.regen_rate = regen_rate
+
+    def use_score(self, amount: int) -> bool:
+        """
+
+        :return: True if success, False otherwise
+        """
+        if amount > self.score:
+            return False
+        self.score -= amount
+        # self.base_score += amount
+        return True
+
+    def kill(self):
+        self.hp = - self.max_hp - self.regen_rate
+
+    def set_hp(self, hp):
+        self.hp = min(self.max_hp, hp)
+
+    def increase_max_hp(self, amount):
+        self.hp += amount
+        self.max_hp += amount
+
+    def add_score(self, amount):
+        self.score += amount
+        if isinstance(self.parent, GameParticle):
+            self.parent.add_score(amount)
+
+    def get_greatest_parent(self) -> GameParticle:
+        current: GameParticle = self
+        while isinstance(current.parent, GameParticle):
+            current = current.parent
+        return current
+
+    def regen_hp(self, regen_amount: float):
+        self.hp = min(self.hp + regen_amount, self.max_hp)
+
+    def on_death(self, *args, **kwargs) -> None:
+        return
+
+    def is_dead(self) -> bool:
+        return self.hp <= 0.0
+
+    def angle_with(self, other: Particle) -> float:
+        try:
+            return self.angle_with_cord(other.x, other.y)
+        except AttributeError:
+            return 0.0
+
+    def angle_with_cord(self, x, y):
+        y_dis = y - self.y
+        x_dis = x - self.x
+        return math.atan2(y_dis, x_dis)
+
+    def move(self):
+        super().move()
+        self.score += 1 / FPS
+        self.hp = min(self.max_hp, self.hp + self.regen_rate)
+
+    def __repr__(self):
+        return f"{type(self).__name__}<{self.hp:.0f}/{self.max_hp:.0f}>"# Lazer class
+import math
+
+import pygame
+
+from srcs.classes import algo
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.faction_data import FactionData
+from srcs.classes.game_data import GameData
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.constants import BULLET_SPEED, BULLET_RADIUS, BULLET_COLOR
+
+
+class Lazer(Bullet):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, speed=BULLET_SPEED, radius=BULLET_RADIUS,
+                 color=BULLET_COLOR, hp=10.0, dmg=1.0, lifespan=float('inf'),
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius,
+                         color, hp, dmg, lifespan, **kwargs)
+        self._length = 0
+        self.end_x = self.x
+        self.end_y = self.y
+        self.update_length()
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, val):
+        self.hp = val / self.rad
+        self.max_hp = val / self.rad
+        self.update_length()
+
+    def get_collision_rad(self):
+        return self._length
+
+    def update_length(self):
+        self._length = (self.hp - 1) * self.rad
+        angle = self.angle
+        self.end_x = self.x + self._length * math.cos(angle)
+        self.end_y = self.y + self._length * math.sin(angle)
+
+    def draw(self, surface: pygame.Surface):
+        """Draw the lazer as a line extending in its direction."""
+        self.update_length()
+        pygame.draw.line(surface, self.color,
+                         (int(self.x), int(self.y)),
+                         (int(self.end_x), int(self.end_y)),
+                         int(self.rad) * 2 - 1)
+        pygame.draw.circle(surface, self.color, (self.x, self.y), radius=self.rad - 3)
+        pygame.draw.circle(surface, self.color, (self.end_x, self.end_y), radius=self.rad - 3)
+
+    def angle_with_cord(self, x, y):
+        nx, ny = algo.line_point_closest_point_on_line(self.prev_x, self.prev_y, self.end_x, self.end_y, x, y)
+        return math.atan2(y - ny, x - nx)
+
+    def move(self):
+        super().move()
+        self.update_length()
+
+    def is_dead(self):
+        """Check if the lazer is out of bounds, has no HP, or has expired."""
+        return super().is_dead()
+from __future__ import annotations
+import math
+from srcs import utils
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.explosive import Explosive
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.algo import calculate_intercept_angle
+from srcs.classes.faction_data import FactionData
+from srcs.constants import *
+
+
+class Missile(Explosive):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0,
+                 speed=MISSILE_SPEED,
+                 radius=MISSILE_RADIUS,
+                 color=MISSILE_COLOR,
+                 hp=1, dmg=10, lifespan=360 * 2,
+                 target: [GameParticle, None] = None,
+                 **kwargs):
+        super().__init__(faction, x, y, angle, speed, radius, color, hp, dmg, lifespan, **kwargs)
+        self.target: [GameParticle, None] = target
+        self.reached_target: bool = False
+        self._warned_target = False
+
+    def find_target(self):
+        search_radius = 200
+        hypot = math.hypot(self.xv, self.yv)
+        dy = self.yv * search_radius / hypot
+        dx = self.xv * search_radius / hypot
+        self.target = Missile.find_target_at(self.x + dx, self.y + dy, self.faction.target_list, search_radius)
+
+    @staticmethod
+    def find_target_at(x: float, y: float, target_list: list[GameParticle], search_radius=100.0):
+        lowest_distance = search_radius
+        target = None
+        for enemy in target_list:
+            y_dis = enemy.y - y
+            x_dis = enemy.x - x
+            distance = math.hypot(x_dis, y_dis) - 2000 * isinstance(enemy, BaseUnit) - enemy.rad
+            if distance < lowest_distance:
+                lowest_distance = distance
+                target = enemy
+        return target
+
+    def update(self):
+        if self.distance_with(self.target) < 0:
+            self.kill()
+        if self.target not in self.faction.target_list:
+            self.find_target()
+            self._warned_target = False
+        if isinstance(self.target, GameParticle):
+            target_angle = calculate_intercept_angle(self, self.target)
+            angle_diff = utils.angle_diff(target_angle, self.angle)
+            angle_diff = utils.clamp(angle_diff, -math.pi / 24, math.pi / 24)
+            self.angle += angle_diff
+
+        if (not self._warned_target and isinstance(self.target, BaseUnit)
+                and self.distance_with(self.target) + self.target.rad < self.target.shoot_range):
+            self.target.find_new_target()
+            self._warned_target = True
+
+    def move(self):
+        self.update()
+        super().move()
+
+from __future__ import annotations
+from typing import Optional
+
+import pygame
+
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle, Particle
+from srcs.classes.faction_data import FactionData
+from srcs import utils
+
+
+class Shield(FactionParticle):
+    default_color = (0, 255, 255)
+
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, rad=100,
+                 color=default_color, hp=100, dmg=1.0,
+                 parent: Optional[GameParticle] = None,
+                 regen_rate: float=0.25, **kwargs):
+        super().__init__(faction, x, y, angle, 0, rad, color, hp, dmg, parent=parent,
+                         regen_rate=regen_rate, **kwargs)
+        self._default_regen_rate = regen_rate
+        self.prev_hp = self.hp
+        self.is_hit = False
+        self.show_timer = 0
+        self.width = 3
+        self.show_duration = 30
+        self.tick = 0
+        self.down_cd = 180
+        self.down_timer = 0
+        self.inner_rad = self.parent.max_rad + 20
+
+    def move(self):
+        if self.max_hp <= 0:
+            return
+        self.hp = utils.clamp(self.hp, 0, self.max_hp)
+        self.is_hit = self.hp < self.prev_hp
+        self.show_timer = self.show_duration if self.is_hit else self.show_timer
+
+        # need to happen before prev_hp and down_timer is overwritten
+        if self.down_timer > 0:
+            self.rad = 0
+        else:
+            self.inner_rad = self.parent.max_rad + 20
+            self.rad = self.inner_rad + (self.max_rad - self.inner_rad) * (self.prev_hp / self.max_hp)
+
+        if self.hp <= 0 and self.down_timer <= 0:
+            self.down_timer = self.down_cd
+        else:
+            self.down_timer -= 1
+
+        self.regen_rate = self._default_regen_rate if self.show_timer <= 0 else self._default_regen_rate / 10
+        self.prev_hp = self.hp
+
+        if isinstance(self.parent, Particle):
+            self.x = self.parent.x + self.parent.xv
+            self.y = self.parent.y + self.parent.yv
+        super().move()
+
+    def draw(self, surface: pygame.Surface):
+        if self.rad <= 0:
+            return
+        self.tick = (self.tick + self.is_hit) % 3
+        if not self.is_hit:
+            self.tick = 2
+        if self.show_timer <= 0:
+            return
+        if self.tick < 1:
+            color = utils.color_intensity_shift(self.color, 0.5 * self.show_timer / self.show_duration)
+        else:
+            color = utils.color_intensity_shift(self.color, 2 * self.show_timer / self.show_duration)
+        pygame.draw.circle(surface,
+                           color, (int(self.x), int(self.y)),
+                           self.rad - self.width, width=self.width)
+        self.show_timer -= 1
+
+    def is_dead(self):
+        if isinstance(self.parent, GameParticle):
+            return self.parent.is_dead()
+        else:
+            return super().is_dead()from __future__ import annotations
+
+from typing import Optional
+
+import pygame
+
+from srcs import utils
+from srcs.classes.controller import BaseController, AIController, SmartAIController
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.shield import Shield
+from srcs.classes.faction_data import FactionData
+from srcs.classes.weapon_classes.general_weapon import BaseWeapon
+from srcs.classes.weapon_classes.weapon_handler import WeaponHandler
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
+from srcs.constants import *
+
+
+class Unit(BaseUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: Optional[BaseController] = None, radius=10, speed=UNIT_SPEED * 2.5, hp=1,
+                 weapons: list[BaseWeapon] | BaseWeapon | None = None,
+                 sub_weapons: list[BaseWeapon] | BaseWeapon | None = None,
+                 shield_hp: float = 0, shield_rad: float = 0, score:int=UNIT_SCORE,**kwargs):
+        super().__init__(faction, x, y, angle, radius=radius, speed=speed, hp=hp, score=score, **kwargs)
+        self.controller: BaseController = AIController() if controller is None else controller.copy()
+        self.update_appearance_based_on_hp()
+        self.main_weapon: WeaponHandler = WeaponHandler(self, weapons)
+        self.sub_weapon: WeaponHandler = WeaponHandler(self, sub_weapons)
+        self.shield: Shield | None = None
+
+        # Shield
+        if shield_hp != 0 and shield_rad == 0:
+            shield_rad = self.rad + shield_hp
+            print("Warning: Undefined shield_rad when shield_hp is non-zero")
+        if shield_hp == 0:
+            shield_hp = 1
+            shield_rad = 0
+        self._spawn_shield(shield_hp, shield_rad)
+
+    def _spawn_shield(self, shield_hp, shield_rad):
+        self.shield = Shield(self.faction, self.x, self.y, rad=shield_rad, color=utils.color_mix(self.color, Shield.default_color),
+                             hp=shield_hp, parent=self, regen_rate=shield_hp / 50)
+        self.faction.parent_list.append(self.shield)
+
+    def move(self):
+        super().move()
+        if not self.controller.is_moving:
+            self.speed = 0
+        else:
+            self.speed = self.max_speed
+        self.turn_to(self.controller.move_angle)
+
+        if self.main_weapon.weapon is not None:
+            self.bullet_speed = self.main_weapon.weapon.get_speed(self)
+        if self.hp and self.controller.fire_main:
+            self.main_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+        if self.hp and self.controller.fire_sub:
+            self.sub_weapon.fire(self.controller.aim_x, self.controller.aim_y)
+        self.controller.update_based_on(self)
+
+    def draw(self, surface: pygame.Surface):
+        super().draw(surface)
+        # pygame.draw.circle(surface, (0, 255, 0), (int(self.x), int(self.y)), self.shoot_range, width=2)
+        # draw_arrow(surface, (self.x, self.y), (self.target.x, self.target.y), (255, 255, 255), 3)
+
+    # def __str__(self):
+    #     return super().__str__() + f" {self.controller.__class__.__name__}"
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.game_data import GameData
+
+
+class FactionData:
+    def __init__(self, game_data: GameData, target_list: list[GameParticle], parent_list: list[GameParticle],):
+        self.game_data: GameData = game_data
+        self.target_list: list[GameParticle] = target_list
+        self.parent_list: list[GameParticle] = parent_listimport math
+from srcs.classes.entity.game_particle import GameParticle
+# from srcs.classes.player import Player
+# from srcs.classes.water_particle_handler import WaterParticleHandler
+from srcs import constants
+import pygame
+
+
+class GameData:
+    def __init__(self):
+        self.effects: list[GameParticle] = []
+        self.player: GameParticle = None  # : Player = Player(constants.MAP_WIDTH // 2, constants.MAP_HEIGHT // 2)
+        self.allies: list[GameParticle] = []
+        self.enemies: list[GameParticle] = []
+        self.collectibles: list[GameParticle] = []
+        self.water_particle_handler: 'WaterParticleHandler' = None
+        self.score: int = 0
+        self.collectible_spawn_score: int = 0
+        self.kills: int = 0
+        self.start_ticks = pygame.time.get_ticks()
+        self.left_mouse_down = False
+        self.right_mouse_down = False
+        self.autofire = False
+        self.pressed_keys: dict[int, bool] = {k: False for k in range(1000)}
+        self.running: bool = True
+        self.quit: bool = False
+        self.clock: pygame.time.Clock = pygame.time.Clock()
+        self.current_time = pygame.time.get_ticks()
+        self.screen_x = 0  # screen's left position in original map
+        self.screen_y = 0  # screen's top position in original map
+        self.zoom = 1.0
+        self.spawn_ally_timer = 0
+        self.spawn_enemy_timer = 0
+
+    def get_mouse_angle(self, unit: GameParticle):
+        mx, my = self.get_mouse_pos_in_map()
+        px, py = unit.x, unit.y
+        return math.atan2(my - py, mx - px)
+
+    def get_mouse_pos_in_map(self):
+        mx, my = pygame.mouse.get_pos()
+        mx /= self.zoom
+        my /= self.zoom
+        mx += self.screen_x
+        my += self.screen_y
+
+        return mx, my
+
+    def in_screen(self, particle):
+        min_x = self.screen_x - particle.rad
+        max_x = self.screen_x + constants.SCREEN_WIDTH / self.zoom + particle.rad
+        min_y = self.screen_y - particle.rad
+        max_y = self.screen_y + constants.SCREEN_HEIGHT / self.zoom + particle.rad
+        return min_x < particle.x < max_x and min_y < particle.y < max_y
+
+    def in_map(self, particle):
+        min_x = 0 - particle.rad
+        max_x = constants.MAP_WIDTH + particle.rad
+        min_y = 0 - particle.rad
+        max_y = constants.MAP_HEIGHT + particle.rad
+        return min_x < particle.x < max_x and min_y < particle.y < max_y
+
+    def get_time_passed(self):
+        return self.current_time - self.start_ticks
+
+    def get_player_shield_max_hp(self):
+        try:
+            return self.player.shield.max_hp
+        except AttributeError:
+            return 0
+
+    def get_player_shield_max_rad(self):
+        try:
+            return self.player.shield.max_rad
+        except AttributeError:
+            return 0from typing import Callable
+
+import pygame
+
+from srcs.classes.UI.ui_element import UIElement
+
+
+class RoundedButton(UIElement):
+    def __init__(self, text: str, on_click: Callable, x1: int = -1, y1: int = -1, x2: int = -1, y2: int = -1,
+                 font_size: int = 28):
+        super().__init__(x1, y1, x2, y2, 10, 0)
+        self.color = (109, 93, 110)
+        self.margin = 0
+        self.text: str = text
+        self.on_click: Callable = on_click
+        self.font = pygame.font.Font(None, font_size)
+
+    def _draw_text_wrapped(self, surface, text, font, color, rect):
+        paragraphs = text.split('\n')
+        lines = []
+        max_width = rect.width
+
+        for paragraph in paragraphs:
+            words = paragraph.split(' ')
+            current_line = []
+            for word in words:
+                test_line = ' '.join(current_line + [word])
+                width, _ = font.size(test_line)
+                if width <= max_width:
+                    current_line.append(word)
+                else:
+                    lines.append(' '.join(current_line))
+                    current_line = [word]
+            if current_line:
+                lines.append(' '.join(current_line))
+
+        total_text_height = len(lines) * font.get_height()
+        y_offset = rect.top + (rect.height - total_text_height) // 2  # Center vertically
+
+        for line in lines:
+            text_surface = font.render(line, True, color)
+            text_rect = text_surface.get_rect(
+                topleft=(rect.left + self.margin, y_offset))  # Center horizontally
+            surface.blit(text_surface, text_rect)
+            y_offset += font.get_height()
+
+    def _draw(self, surface):
+        self.color = (109, 93, 110) if not self.is_hover() else (125, 133, 151)
+        pygame.draw.rect(surface, self.color, self)
+        pygame.draw.circle(surface, self.color, self.midleft, self.height // 2)
+        pygame.draw.circle(surface, self.color, self.midright, self.height // 2)
+        text_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self._draw_text_wrapped(surface, self.text, self.font, (0xF4, 0xEE, 0xE0), text_rect)
+
+    def _handle_click_on_self(self):
+        self.on_click()
+import pygame
+
+from srcs.classes.UI.button import RoundedButton
+from srcs.classes.UI.ui_element import UIElement
+
+
+class Pane(UIElement):
+    def __init__(self, x1: int, y1: int, x2: int, y2: int, margin: int = 10, spacing: int = 10):
+        super().__init__(x1, y1, x2, y2, margin, spacing)
+        self.child_list: list[UIElement] = []
+
+    def get_all_child(self, class_type: type[object] = object):
+        ret = []
+        for child in self.child_list:
+            if isinstance(child, class_type):
+                ret.append(child)
+            if isinstance(child, Pane):
+                ret += child.get_all_child(class_type)
+        return ret
+
+    def set_child(self, *children: list[UIElement]):
+        self.child_list = children
+        self._arrange_child()
+
+    def add_child(self, *children):
+        self.child_list.extend(children)
+        self._arrange_child()
+
+    def _arrange_child(self):
+        n = len(self.child_list)
+        if not n:
+            return
+        width = (self.width - 2 * self.margin - (n - 1) * self.spacing) / n
+        height = self.height - 2 * self.margin
+        current_x = self.x + self.margin
+        for child in self.child_list:
+            x_padding = height // 2 if isinstance(child, RoundedButton) else 0
+            child.x = current_x + x_padding
+            child.y = self.top + self.margin
+            child.width = width - 2 * x_padding
+            child.height = height
+            current_x += self.spacing + width
+
+    def _draw(self, surface):
+        # pygame.draw.rect(surface, (79,69,87), self)
+        for child in self.child_list:
+            child.draw(surface)
+
+    def _handle_click_on_self(self):
+        for child in self.child_list:
+            child.handle_click()
+
+
+class VPane(Pane):
+    def _arrange_child(self):
+        n = len(self.child_list)
+        if not n:
+            return
+        width = self.width - 2 * self.margin
+        height = (self.height - 2 * self.margin - (n - 1) * self.spacing) / n
+        current_y = self.y + self.margin
+        for child in self.child_list:
+            x_padding = height // 2 if isinstance(child, RoundedButton) else 0
+            child.x = self.x + self.margin + x_padding
+            child.y = current_y
+            child.width = width - 2 * x_padding
+            child.height = height
+            current_y += self.spacing + heightimport pygame
+
+from srcs.classes.game_data import GameData
+
+
+class UIElement(pygame.Rect):
+    def __init__(self, x1: int, y1: int, x2: int, y2: int, margin: int, spacing: int):
+        super().__init__(x1, y1, x2 - x1, y2 - y1)
+        self.margin: int = margin
+        self.spacing: int = spacing
+        self._active: bool = True
+
+    def draw(self, surface):
+        if self._active:
+            self._draw(surface)
+
+    def _draw(self, surface: pygame.Surface):
+        raise NotImplementedError(f"_draw() not implemented in {self.__class__.__name__}")
+
+    def is_hover(self):
+        mx, my = pygame.mouse.get_pos()
+        return self.left <= mx <= self.right and self.top <= my <= self.bottom
+
+    def handle_click(self):
+        if not self._active or not self.is_hover():
+            return False
+        self._handle_click_on_self()
+        return True
+
+    def _handle_click_on_self(self):
+        raise NotImplementedError(f"_handle_click() not implemented in {self.__class__.__name__}")
+
+    def is_active(self):
+        return self._active
+
+    def hide(self):
+        self._active = False
+
+    def show(self):
+        self._active = True
+
+
+from __future__ import annotations
+import math
+from srcs.constants import *
+from srcs.classes.entity.bullet import Bullet
+
+
+class WaterParticle(Bullet):
+    def __init__(self, x: float, y: float, angle, speed=3, radius=3,
+                 hp=1, dmg=0, lifespan=60 * 4):
+        super().__init__(None, x, y, angle, speed, radius, hp=hp, dmg=dmg,
+                         lifespan=lifespan)
+        self.collide_rad: float = radius / 5
+        self.mass: float = 10
+
+    def move(self):
+        super().move()
+        self.dmg = self.speed / MAX_PARTICLE_COUNT * 25
+
+    def distance_with(self, other):
+        return math.hypot(self.x - other.x, self.y - other.y)
+from __future__ import annotations
+import math
+import random
+from srcs.classes.water_particle import WaterParticle
+
+
+def repel_particle(p1: WaterParticle, p2: WaterParticle):
+    # Vector from p1 to p2
+    dx = p2.x - p1.x
+    dy = p2.y - p1.y
+    distance = math.hypot(dy, dx)
+
+    if distance == 0:
+        dx = random.uniform(-1, 1)
+        dy = random.uniform(-1, 1)
+        distance = math.hypot(dy, dx)
+    # Calculate the overlap distance
+    overlap = p1.collide_rad + p2.collide_rad - distance
+
+    if overlap > 0:
+        # Normal vector (unit vector)
+        nx = dx / distance
+        ny = dy / distance
+
+        # Displace each particle along the normal vector by half the overlap distance
+        p1.x -= nx * overlap / 2
+        p1.y -= ny * overlap / 2
+        p2.x += nx * overlap / 2
+        p2.y += ny * overlap / 2
+
+
+def adhesive_particle(p1: WaterParticle, p2: WaterParticle, adhesive_strength=0.01, adhesion_distance=10):
+    # Calculate the difference in position
+    dx = p2.x - p1.x
+    dy = p2.y - p1.y
+
+    # Calculate the distance between the particles
+    distance = math.hypot(dx, dy)
+
+    if distance == 0:
+        return
+
+    nx = dx / distance
+    ny = dy / distance
+
+    adhesion_distance += p1.rad + p2.rad
+    if distance < adhesion_distance:
+        # Calculate the adhesive force magnitude
+        force_magnitude = adhesive_strength * (adhesion_distance - distance)
+
+        # Apply adhesive force to both particles
+        p1_force_x = force_magnitude * nx / p1.mass
+        p1_force_y = force_magnitude * ny / p1.mass
+        p2_force_x = -force_magnitude * nx / p2.mass
+        p2_force_y = -force_magnitude * ny / p2.mass
+
+        p1.xv += p1_force_x
+        p1.yv += p1_force_y
+        p2.xv += p2_force_x
+        p2.yv += p2_force_y
+
+
+def collide_particle(p1: WaterParticle, p2: WaterParticle):
+    # Calculate the difference in position and velocity
+    dx = p2.x - p1.x
+    dy = p2.y - p1.y
+    dvx = p2.xv - p1.xv
+    dvy = p2.yv - p1.yv
+
+    # Calculate the distance between the particles
+    distance = math.sqrt(dx ** 2 + dy ** 2)
+
+    if distance == 0:
+        return
+
+    # Calculate the normal vector (normalized)
+    nx = dx / distance
+    ny = dy / distance
+
+    # Calculate the relative velocity in terms of the normal direction
+    dv_dot_n = dvx * nx + dvy * ny
+
+    # Calculate the mass ratio
+    m1 = p1.mass
+    m2 = p2.mass
+
+    # Calculate the new velocities along the normal direction
+    if dv_dot_n > 0:  # They are moving away from each other, no need to collide
+        return
+
+    # Conservation of momentum and energy along the normal direction
+    # Formulae derived from the 1D elastic collision equations
+    new_v1n = (p1.xv * nx + p1.yv * ny * (m1 - m2) + 2 * m2 * (p2.xv * nx + p2.yv * ny)) / (m1 + m2)
+    new_v2n = (p2.xv * nx + p2.yv * ny * (m2 - m1) + 2 * m1 * (p1.xv * nx + p1.yv * ny)) / (m1 + m2)
+
+    # Update velocities in the normal direction
+    p1.xv += (new_v1n - (p1.xv * nx + p1.yv * ny)) * nx
+    p1.yv += (new_v1n - (p1.xv * nx + p1.yv * ny)) * ny
+    p2.xv += (new_v2n - (p2.xv * nx + p2.yv * ny)) * nx
+    p2.yv += (new_v2n - (p2.xv * nx + p2.yv * ny)) * ny
+from __future__ import annotations
+import math
+import random
+import pygame
+import numpy as np
+from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
+from srcs.classes.water_particle import WaterParticle
+from srcs.classes import water_particle_collider
+from srcs import constants
+
+
+class WaterParticleHandler:
+    def __init__(self, particles=None):
+        if particles is None:
+            particles = []
+        self.particles: list[WaterParticle] = particles
+        self.orbit_max_speed: float = 0.0
+        self.orbit_acceleration: float = 0.0
+        self.orbited_particle: [WaterParticle, None] = None
+
+    def _draw_good_graphics(self, surface: pygame.Surface, focus: tuple[int, int]):
+        draw_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
+        draw_surface.fill((0, 0, 0, 0))  # white background
+
+        for particle in self.particles:
+            particle_surface = pygame.Surface((particle.rad * 10, particle.rad * 10), pygame.SRCALPHA)
+            particle_surface.fill((0, 0, 0, 0))
+            color = (0, 255, 255, 25)
+            pygame.draw.circle(particle_surface, color, (particle.rad, particle.rad), particle.rad)
+            draw_surface.blit(
+                particle_surface,
+                (int(particle.x - focus[0] - particle.rad), int(particle.y - focus[1] - particle.rad))
+            )
+        # overlap = black
+        alpha_array = pygame.surfarray.pixels_alpha(draw_surface)
+        # if alpha is 0, alpha = 0, else alpha = ......
+        alpha_array[:] = np.where(alpha_array == 0, 0, (355 - alpha_array) / 255 * 128)
+        del alpha_array
+
+        surface.blit(draw_surface, (focus[0], focus[1]))
+
+    def draw_everything(self, surface: pygame.Surface, focus: tuple[int, int]):
+        if constants.GOOD_GRAPHICS:
+            return self._draw_good_graphics(surface, focus)
+        k = min(1, max(0, self.particles.__len__() / constants.MAX_PARTICLE_COUNT - 1))
+        color = (25 * (1 - k), 5 + 20 * k, 50 * k, 25)
+        # color = (50 * k, 5 + 20 * (1 - k), 25 * (1 - k), 25)
+        prev_rad = None
+        particle_surface = None
+        for particle in self.particles:
+            if particle.rad != prev_rad:
+                prev_rad = particle.rad
+                particle_surface = pygame.Surface((particle.rad * 2, particle.rad * 2), pygame.SRCALPHA)
+                particle_surface.fill((0, 0, 0, 0))
+                pygame.draw.circle(particle_surface, color, (particle.rad, particle.rad), particle.rad)
+            surface.blit(particle_surface, (particle.x - particle.rad, particle.y - particle.rad),
+                         special_flags=pygame.BLEND_RGBA_ADD)
+        # if self.orbited_particle:
+        #     pygame.draw.circle(surface, (255, 255, 255),
+        #                        (self.orbited_particle.x, self.orbited_particle.y), 10)
+
+    def _collide_with_all_other(self, p1: WaterParticle, idx: int):
+        for p2 in self.particles[idx + 1:]:
+            if p2.x - p2.collide_rad > p1.x + p1.collide_rad:
+                return
+            distance = p1.distance_with(p2)
+            water_particle_collider.adhesive_particle(p1, p2)
+            if distance < p1.collide_rad + p2.collide_rad:
+                water_particle_collider.collide_particle(p1, p2)
+                water_particle_collider.repel_particle(p1, p2)
+
+    def _collide_everything(self):
+        self.particles.sort(key=lambda p: p.x - p.collide_rad)
+        for idx, p1 in enumerate(self.particles):
+            self._collide_with_all_other(p1, idx)
+
+    def _spawn_at(self, x, y):
+        random_angle = random.uniform(-math.pi, math.pi)
+        self.particles.append(WaterParticle(x, y, random_angle, radius=15, lifespan=random.randint(10, 60)))
+
+    def spawn_at(self, x, y):
+        if len(self.particles) > constants.MAX_PARTICLE_COUNT:
+            return
+        self._spawn_at(x, y)
+
+    def _move(self):
+        if self.orbited_particle and self.orbited_particle.lifespan < 0:
+            self.orbited_particle = None
+        if self.orbited_particle:
+            power = self.orbited_particle.lifespan / 480
+            radius = power * 300 + 200
+            orbit_strength = 1
+            self._attract_to(self.orbited_particle.x, self.orbited_particle.y,
+                             radius, orbit_strength)
+            ACCELERATION = 1.0
+            if self.orbited_particle.speed < self.orbit_max_speed:
+                self.orbited_particle.speed += ACCELERATION
+            for p in self.particles:
+                p.x += self.orbited_particle.xv
+                p.y += self.orbited_particle.yv
+            self.orbited_particle.move()
+        for p in self.particles:
+            p.move()
+
+    def _attract_to(self, x, y, radius, factor):
+        for p in self.particles:
+            dy = y - p.y
+            dx = x - p.x
+            dis = math.hypot(dy, dx)
+            if dis > radius or dis == 0:
+                continue
+            dy /= dis
+            dx /= dis
+            if self.orbited_particle and self.orbit_acceleration:
+                p.speed += self.orbit_acceleration
+            p.xv += dx * factor
+            p.yv += dy * factor
+            p.lifespan = random.randint(10, 30)
+
+    def attract_to(self, x, y, radius=300, factor=1):
+        self.orbited_particle = None
+        self._attract_to(x, y, radius, factor)
+
+    def collide_with_enemies(self, enemies):
+        collide_enemy_and_bullets(self.particles, enemies)
+
+    def remove_out_of_bounds(self, x_min, y_min, x_max, y_max):
+        self.particles = list(filter(
+            lambda p: x_min < p.x < x_max and y_min < p.y < y_max,
+            self.particles
+        ))
+
+    def remove_zero_lifespan(self):
+        self.particles = list(filter(
+            lambda p: p.lifespan > 0,
+            self.particles
+        ))
+
+    def remove_zero_hp(self):
+        self.particles = list(filter(
+            lambda p: not p.is_dead(),
+            self.particles
+        ))
+
+    def clear(self):
+        self.particles = []
+
+    def update(self):
+        self._move()
+        self._collide_everything()
+        if not self.particles:
+            self.orbited_particle = None
+
+        if isinstance(self.orbited_particle, WaterParticle) and self.orbited_particle.speed == 0\
+                and self.orbit_acceleration and self.particles.__len__() < constants.MAX_PARTICLE_COUNT * 2:
+            for _ in range(15):
+                self._spawn_at(self.orbited_particle.x, self.orbited_particle.y)
+
+    def release(self, mx, my, angle, speed, player):
+        if not self.particles:
+            return
+        px = sum(p.x for p in self.particles) / len(self.particles)
+        py = sum(p.y for p in self.particles) / len(self.particles)
+        particle_mouse_dis = math.hypot(mx - px, my - py)
+        mouse_player_dis = math.hypot(player.x - mx, player.y - my)
+        pxv = sum(p.xv for p in self.particles) / len(self.particles) - player.xv
+        pyv = sum(p.yv for p in self.particles) / len(self.particles) - player.yv
+        particle_velocity = math.hypot(pxv, pyv)
+        particle_speed = sum(p.speed for p in self.particles) / len(self.particles)
+        directed_constant = particle_mouse_dis + particle_velocity * 10 - len(self.particles) / 100
+        lifespan = 480
+        self.orbit_max_speed = min(particle_mouse_dis * 0.1, max(p.speed for p in self.particles) * 2)
+        # if particle_speed > 5:
+        #     self.orbit_acceleration = particle_speed / 10
+        # else:
+        self.orbit_acceleration = 0.0
+        if directed_constant > 50.0:
+            particle_velocity = particle_mouse_dis * 0.005
+            angle = math.atan2(my - py, mx - px)
+        else:
+            particle_velocity = 0
+            self.orbit_max_speed = 0
+            if particle_speed > 5:
+                self.orbit_acceleration = particle_speed / 10
+        self.orbited_particle = WaterParticle(px, py, angle, particle_velocity, lifespan=lifespan)
+
+
+def main():
+    particles = [
+        WaterParticle(0, 0, 0, radius=30),  # --->
+        WaterParticle(50, 0, math.pi, radius=30),  # <---
+        WaterParticle(1000, 0, -math.pi / 2, radius=30),  # down
+        WaterParticle(1000, 50, math.pi / 2, radius=30)  # up
+    ]
+    handler = WaterParticleHandler(particles)
+    handler._collide_everything()
+
+    for p in particles:
+        print(f'Particle at ({p.x}, {p.y}) with velocity ({p.xv}, {p.yv})')
+
+
+if __name__ == '__main__':
+    main()
+import copy
+from typing import final, Any
+
+from srcs import utils
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.bullet_spawner import BulletKwargsHandler
+from srcs.classes.weapon_classes.level_handler import LevelHandler
+from srcs.classes.weapon_classes.reload_counter import CooldownTimer
+from srcs.constants import BULLET_SPEED, BULLET_COLOR, OVERDRIVE_DURATION, OVERDRIVE_CD
+
+
+class BaseWeapon:
+    def __init__(self, name: str,
+                 min_count: int = 1,
+                 max_count: int = 1,
+                 growth_factor: float = 1,
+                 reload: int = 200,
+                 overdrive_duration: float = OVERDRIVE_DURATION,
+                 overdrive_cooldown: float = OVERDRIVE_CD,
+                 **bullet_kwargs: dict[str: Any]):
+        self.name: str = name
+        self.level: LevelHandler = LevelHandler(min_count, max_count, growth_factor)
+
+        # general handlers
+        self._bullet_kwargs = BulletKwargsHandler(bullet_kwargs)
+        self._shoot_cd = CooldownTimer(reload)
+        self._overdrive_cd_timer = CooldownTimer(overdrive_cooldown)
+        self._overdrive_active_timer = CooldownTimer(overdrive_duration)
+        self._overdrive_is_active = False
+
+    # ======================= MUST IMPLEMENT =======================
+
+    def update_bullet(self, **kwargs):
+        raise NotImplementedError(f"update_bullet() is not implemented in {type(self)}")
+
+    def get_speed(self, unit: BaseUnit) -> float:
+        raise NotImplementedError(f"get_speed() is not implemented in {type(self)}")
+
+    def mix_bullet_color_with(self, color):
+        raise NotImplementedError(f"mix_bullet_color_with() is not implemented in {type(self)}")
+
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        raise NotImplementedError(f"change_bullet_class() is not implemented in {type(self)}")
+
+    # ==========================OPTIONAL==========================
+
+    def get_overdrive_cd(self, current_time: float):
+        return self._overdrive_cd_timer.get_remaining_time(current_time)
+
+    def set_overdrive_cd(self, current_time: float, new_cd: float):
+        self._overdrive_cd_timer.set_remaining_time(current_time, new_cd)
+
+    def get_overdrive_reload_percentage(self, current_time: float):
+        return self._overdrive_cd_timer.get_reload_percentage(current_time)
+
+    def set_overdrive_reload_percentage(self, current_time: float, val: float):
+        return self._overdrive_cd_timer.set_reload_percentage(current_time, val)
+
+    def start_overdrive_try(self, current_time: float) -> bool:
+        if not self._overdrive_cd_timer.is_ended(current_time, auto_restart=True):
+            return False
+        if self._overdrive_is_active:
+            self._end_overdrive()
+        self._overdrive_active_timer.start_timer(current_time)
+        self._start_overdrive()
+        self._overdrive_is_active = True
+        return True
+
+    @final
+    def check_overdrive_end(self, current_time: float):
+        if not self._overdrive_is_active:
+            return
+        if not self._overdrive_active_timer.is_ended(current_time):
+            return
+        self._end_overdrive()
+        self._overdrive_is_active = False
+
+
+    def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[FactionParticle]:
+        """
+        Fire with cd, calls _fire() if cd is zero
+        :return: list of spawned particles
+        """
+        if not self._shoot_cd.is_ended(unit.faction.game_data.current_time, auto_restart=True):
+            return []
+        self.check_overdrive_end(unit.faction.game_data.current_time)
+        return self._shoot(unit, target_x, target_y)
+
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[FactionParticle]:
+        raise NotImplementedError("_fire() must be implemented in derived classes.")
+
+    def _start_overdrive(self):
+        pass
+
+    def _end_overdrive(self):
+        pass
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def __eq__(self, other):
+        if not isinstance(other, BaseWeapon):
+            return False
+        return self.name == other.name
+
+    def __str__(self):
+        return f"{self.name} {self.level}"
+
+    def __repr__(self):
+        return f"{type(self).__name__}<{self.name}>"from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+
+
+class BoosterWeapon(GeneralWeapon):
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        new_bullets: list[GameParticle] = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, 1, unit
+        )
+
+        unit.faction.parent_list.extend(new_bullets)
+        try:
+            self._apply_recoil(unit, new_bullets[0].angle, self._recoil * self.level.bullet_count)
+        except IndexError:
+            pass
+        return new_bullets
+
+    def _start_overdrive(self):
+        self._recoil *= 3
+
+    def _end_overdrive(self):
+        self._recoil /= 3import random
+from typing import Any
+
+
+def is_tuple_of_two_numbers(val):
+    return isinstance(val, tuple) and len(val) == 2 and all(isinstance(i, (int, float)) for i in val)
+
+class BulletKwargsHandler:
+    def __init__(self, bullet_kwargs: dict[str, Any]):
+        self._original_kwargs: dict[str, Any] = bullet_kwargs
+        self._static_kwargs: dict[str, Any] = {}
+        self._random_kwargs: dict[str, Any] = {}
+        self._set_static_and_random_kwargs()
+
+    def _set_static_and_random_kwargs(self):
+        self._static_kwargs = {k: v for k, v in self._original_kwargs.items() if not is_tuple_of_two_numbers(v)}
+        self._random_kwargs = {k: v for k, v in self._original_kwargs.items() if is_tuple_of_two_numbers(v)}
+
+    def _get_generated_random_kwargs(self) -> dict[str, int | float]:
+        return {key: random.uniform(*val) for key, val in self._random_kwargs.items()}
+
+    def get_processed_kwargs(self) -> dict[str, Any]:
+        return {**self._static_kwargs, **self._get_generated_random_kwargs()}
+
+    def get_raw_kwargs(self):
+        return self._original_kwargs.copy()
+
+    def update_kwargs(self, **new_items: dict[str, Any]):
+        self._original_kwargs.update(new_items)
+        self._set_static_and_random_kwargs()
+
+    def getattr(self, name: str, default: Any = None) -> Any:
+        return self._original_kwargs.get(name, default)
+
+    def __str__(self):
+        return str(self.get_processed_kwargs())
+
+from __future__ import annotations
+import math
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.bullet_kwargs_handler import BulletKwargsHandler
+
+
+class BulletSpawner:
+    def __init__(self,
+                 bullet_kwargs: BulletKwargsHandler,
+                 bullet_class: type[FactionParticle] = Bullet,
+                 spread: float = math.pi * 0.8,
+                 spawn_radius: float = 0,
+                 offset_factor: float = 1.0,
+                 angle_offset: float = 0.0):
+        self.bullet_kwargs: BulletKwargsHandler = bullet_kwargs
+        self.bullet_class: type[FactionParticle] = bullet_class
+        self.spread: float = spread
+        self.spawn_radius: float = spawn_radius
+        self.offset_factor: float = offset_factor
+        self.angle_offset: float = angle_offset
+
+    def get_sample(self):
+        return self.bullet_class(None, 0, 0, 0,
+                                 **self.bullet_kwargs.get_processed_kwargs())
+
+    def spawn_bullet(self, x, y, angle, parent: BaseUnit) -> GameParticle:
+        bullet = self.bullet_class(
+            parent.faction,
+            **self.bullet_kwargs.get_processed_kwargs(),
+            parent=parent
+        )
+        bullet.x = x
+        bullet.y = y
+        bullet.angle = angle
+        return bullet
+
+    def circular_spawn(self, x, y, angle: float, count: int, parent: BaseUnit) -> list:
+        if count == 0:
+            return []
+        angle_offset = self.spread / count
+        spawned_bullets = []
+
+        for i in range(count):
+            offset = (i - (count - 1) / 2) * angle_offset
+            shoot_angle = angle + self.angle_offset + offset
+            bullet_angle = angle + self.angle_offset + offset * self.offset_factor
+            dy, dx = math.sin(shoot_angle) * self.spawn_radius, math.cos(shoot_angle) * self.spawn_radius
+
+            spawned_bullets.append(
+                self.spawn_bullet(x + dx, y + dy, bullet_angle, parent)
+            )
+
+        return spawned_bulletsimport math
+from collections.abc import Callable
+
+from srcs.classes.effect import Effect
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.game_data import GameData
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.classes.weapon_classes.reload_counter import CooldownTimer
+from srcs.constants import PLAYER_RADIUS, OVERDRIVE_DURATION, OVERDRIVE_CD, EXPLOSION_COLOR
+
+
+class ChargeParticle(Effect):
+    def __init__(self, unit: BaseUnit, death_callback: Callable, game_data: GameData, x: int, y: int,
+                 radius: float = 50, charge_lifespan: int = 10, color=EXPLOSION_COLOR):
+        super().__init__(game_data, x, y, 0, 0,
+                         lifespan=charge_lifespan,
+                         rad=radius,
+                         target_rad=0,
+                         color=color,
+                         fade_off=False,
+                         fade_in=True)
+        self.holder = unit
+        self.death_callback = death_callback
+    
+    def on_death(self, *args, **kwargs) -> None:
+        self.death_callback()
+
+    def move(self):
+        self.holder.speed = 0
+        super().move()
+
+# TODO:
+#  make charged weapon a wrapper instead of a weapon itself
+class ChargedWeapon(GeneralWeapon):
+    def __init__(
+            self,
+            name: str,
+            reload: int = 200,
+            recoil: float = 0,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = 0,
+            bullet_class: type[FactionParticle] = Bullet,
+            min_count: int = 1,
+            max_count: int = 1,
+            growth_factor: int = 1,
+            overdrive_duration: float = OVERDRIVE_DURATION,
+            overdrive_cooldown: float = OVERDRIVE_CD,
+            charge_lifespan: int = 3,
+            **bullet_kwargs,
+    ):
+        super().__init__(name, reload, recoil, offset_factor, spread, spawn_radius, bullet_class,
+                         min_count, max_count, growth_factor,
+                         overdrive_duration, overdrive_cooldown, **bullet_kwargs)
+        self._charge_lifespan = charge_lifespan
+
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        self._spawner.spawn_radius = unit.rad
+        new_bullets = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
+        )
+        chargers = []
+        for bullet in new_bullets:
+            charger = ChargeParticle(unit,
+                                     lambda : unit.faction.parent_list.append(bullet),
+                                     unit.faction.game_data,
+                                     bullet.x,
+                                     bullet.y,
+                                     radius=unit.rad * 2,
+                                     color=bullet.color,
+                                     charge_lifespan=self._charge_lifespan)
+            chargers.append(charger)
+        unit.faction.game_data.effects.extend(chargers)
+        return chargersimport copy
+from typing import override
+
+from pygame.gfxdraw import pixel
+
+from srcs import utils
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.level_handler import LevelHandler
+from srcs.classes.weapon_classes.reload_counter import CooldownTimer
+
+
+class CompositeLevelHandler(LevelHandler):
+    def __init__(self, weapons: list[BaseWeapon]):
+        super().__init__(1, 1, 1)
+        self._levels: list[LevelHandler] = [i.level for i in weapons]
+        self.max_level = max(l.max_level for l in self._levels)
+        self.min_count = sum(l.min_count for l in self._levels)
+        self.max_count = sum(l.max_count for l in self._levels)
+        self.growth_factor = sum(l.growth_factor for l in self._levels)
+
+    @property
+    def current_level(self):
+        return max(l.current_level for l in self._levels)
+
+    @current_level.setter
+    def current_level(self, val):
+        for l in self._levels:
+            l.current_level = val
+
+    @property
+    def bullet_count(self) -> int:
+        return sum(l.bullet_count for l in self._levels)
+
+
+class CompositeWeapon(BaseWeapon):
+    def __init__(
+            self,
+            name: str,
+            weapons: list[BaseWeapon],
+            shoot_interval: int = 0,
+    ):
+        super().__init__(name)
+        self._weapons = [copy.deepcopy(w) for w in weapons]
+        self._interval_cd = CooldownTimer(shoot_interval)
+        self._unlocked_index = 0
+
+        # override
+        self.level = CompositeLevelHandler(self._weapons)
+
+    @override
+    def fire(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
+        current_time = unit.faction.game_data.current_time
+
+        if self._unlocked_index == len(self._weapons):
+            if self._interval_cd.is_ended(current_time):
+                self._unlocked_index = 1
+            self._interval_cd.start_timer(current_time)
+
+        if self._interval_cd.is_ended(current_time, auto_restart=True):
+            self._unlocked_index += 1
+        ret = sum([w.fire(unit, target_x, target_y, **kwargs) for w in self._weapons[:self._unlocked_index]], [])
+        return ret
+
+    @override
+    def get_speed(self, unit: BaseUnit) -> float:
+        return max(w.get_speed(unit) for w in self._weapons)
+
+    @override
+    def mix_bullet_color_with(self, color):
+        for w in self._weapons:
+            w.mix_bullet_color_with(color)
+
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        for w in self._weapons:
+            w.change_bullet_class(new_bullet_class)
+
+    @override
+    def start_overdrive_try(self, current_time: float):
+        activated = any([w.start_overdrive_try(current_time) for w in self._weapons])
+        if activated:
+            self._unlocked_index = 1
+        return activated
+
+    @override
+    def get_overdrive_cd(self, current_time: float):
+        return min(w.get_overdrive_cd(current_time) for w in self._weapons)
+
+    @override
+    def set_overdrive_cd(self, current_time: float, new_cd: float):
+        for w in self._weapons:
+            w.set_overdrive_cd(current_time, new_cd)
+
+    @override
+    def get_overdrive_reload_percentage(self, current_time: float):
+        return max(w.get_overdrive_reload_percentage(current_time) for w in self._weapons)
+
+    @override
+    def set_overdrive_reload_percentage(self, current_time: float, val: float):
+        for w in self._weapons:
+            w.set_overdrive_reload_percentage(current_time, val)
+
+    @override
+    def update_bullet(self, **kwargs):
+        for w in self._weapons:
+            w.update_bullet(**kwargs)
+
+import math
+from typing import override
+
+from srcs import utils
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.bullet_spawner import BulletSpawner
+from srcs.constants import PLAYER_RADIUS, OVERDRIVE_DURATION, OVERDRIVE_CD
+
+
+class GeneralWeapon(BaseWeapon):
+    def __init__(
+            self,
+            name: str,
+            reload: int = 200,
+            recoil: float = 0,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = 0,
+            bullet_class: type[FactionParticle] = Bullet,
+            min_count: int = 1,
+            max_count: int = 1,
+            growth_factor: float = 1,
+            overdrive_duration: float = OVERDRIVE_DURATION,
+            overdrive_cooldown: float = OVERDRIVE_CD,
+            angle_offset: float = 0.0,
+            **bullet_kwargs,
+    ):
+        super().__init__(name, min_count, max_count, growth_factor,
+                         reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
+        self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
+                                      offset_factor=offset_factor, spawn_radius=spawn_radius,
+                                      angle_offset=angle_offset)
+        sample = self._spawner.get_sample()
+        self._bullet_color = sample.color
+        self._bullet_speed = sample.speed
+        self._recoil = recoil
+
+    @override
+    def get_speed(self, unit: BaseUnit) -> float:
+        return max(unit.speed - self._recoil, self._bullet_speed)
+
+    @override
+    def mix_bullet_color_with(self, color):
+        self.update_bullet(
+            color=utils.color_mix(color, self._bullet_color, 1.0, 0.5)
+        )
+
+    @override
+    def update_bullet(self, **kwargs):
+        self._bullet_kwargs.update_kwargs(**kwargs)
+
+    @override
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        self._spawner.bullet_class = new_bullet_class
+
+    @override
+    def _start_overdrive(self):
+        self._shoot_cd.shoot_cd *= 0.1  # Drastically reduce shooting cooldown during overdrive
+
+    @override
+    def _end_overdrive(self):
+        self._shoot_cd.shoot_cd /= 0.1
+
+    @override
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        new_bullets = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
+        )
+
+        unit.faction.parent_list.extend(new_bullets)
+        for b in new_bullets:
+            self._apply_recoil(unit, b.angle, self._recoil / len(new_bullets))
+        return new_bullets
+
+    def _apply_recoil(self, unit: BaseUnit, shoot_angle: float, magnitude: float) -> None:
+        """Applies recoil to the unit."""
+        unit.xv -= math.cos(shoot_angle) * magnitude
+        unit.yv -= math.sin(shoot_angle) * magnitude
+import math
+
+from srcs import utils
+
+
+class LevelHandler:
+    def __init__(self, min_count: int, max_count: int, growth_factor: float):
+        """
+        Handles level progression and bullet count calculations for weapons.
+
+        :param min_count: The minimum bullet count at the initial level.
+        :param max_count: The maximum bullet count at the highest level.
+        :param growth_factor: The number of bullets added per level.
+        """
+        if growth_factor < 0:
+            raise ValueError("growth_factor cannot be negative.")
+        if max_count < min_count:
+            max_count = min_count
+
+        self.max_level = math.ceil((max_count - min_count) / growth_factor) + 1
+        self.min_count = min_count
+        self.max_count = max_count
+        self.growth_factor = growth_factor
+        self._current_level = 1
+
+    @property
+    def current_level(self):
+        return self._current_level
+
+    @current_level.setter
+    def current_level(self, val):
+        self._current_level = utils.clamp(val, 1, self.max_level)
+
+    @property
+    def bullet_count(self) -> int:
+        count = self.min_count + (self.current_level - 1) * self.growth_factor
+        return utils.clamp(int(count), 0, self.max_count)
+
+    def level_up(self, amount):
+        self.current_level += amount
+
+    def is_max(self):
+        return self.current_level >= self.max_level
+
+    def __str__(self):
+        return f"Lvl {self.current_level}{self.is_max() * " (Max)"}"
+
+    def __repr__(self):
+        return f"LevelHandler(level={self.current_level}, max_level={self.max_level}, bullet_count={self.bullet_count})"
+import math
+
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.missile import Missile
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.constants import PLAYER_RADIUS, UNIT_RADIUS
+
+
+class MissileWeapon(GeneralWeapon):
+    def __init__(
+            self,
+            name: str,
+            reload: int = 200,
+            recoil: float = 0,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = UNIT_RADIUS,
+            bullet_class: type[FactionParticle]=Missile,
+            max_count: int = 1,
+            growth_factor: float = 1,
+            **missile_kwargs,
+    ):
+        """
+        Initializes the MissileWeapon with specific settings for missiles.
+        """
+        super().__init__(
+            name=name,
+            reload=reload,
+            recoil=recoil,
+            offset_factor=offset_factor,
+            spread=spread,
+            spawn_radius=spawn_radius,
+            bullet_class=bullet_class,
+            max_count=max_count,
+            growth_factor=growth_factor,
+            **missile_kwargs,
+        )
+
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        target = unit.target or Missile.find_target_at(target_x, target_y, unit.faction.target_list)
+
+        spawned_missiles: list[GameParticle] = super()._shoot(unit, target_x, target_y)
+
+        for missile in spawned_missiles:
+            missile.target = target
+
+        return spawned_missilesimport math
+import random
+from typing import override
+
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
+
+
+class RandomSpawnerWeapon(SpawnerWeapon):
+    @override
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
+        self._spawner.angle_offset = random.uniform(-math.pi, math.pi)
+        return super()._shoot(unit, target_x, target_y)class CooldownTimer:
+    def __init__(self, shoot_cd: float):
+        self.shoot_cd: float = shoot_cd
+        self.last_shot_time: float = -float('inf')  # Initial value indicates no shot fired yet.
+
+    def clear(self):
+        self.last_shot_time = -float('inf')
+
+    def is_ended(self, current_time: float, auto_restart=False) -> bool:
+        if current_time - self.last_shot_time >= self.shoot_cd:
+            if auto_restart:
+                self.start_timer(current_time)
+            return True
+        return False
+
+    def start_timer(self, current_time: float):
+        self.last_shot_time = current_time
+
+    def get_remaining_time(self, current_time: float) -> float:
+        time_since_last_shot = current_time - self.last_shot_time
+        return max(0.0, self.shoot_cd - time_since_last_shot)
+
+    def set_remaining_time(self, current_time: float, new_cd: float):
+        self.last_shot_time = current_time - (self.shoot_cd - new_cd)
+
+    def get_reload_percentage(self, current_time: float) -> float:
+        time_since_last_shot = current_time - self.last_shot_time
+        return min(1.0, max(0.0, time_since_last_shot / self.shoot_cd))
+
+    def set_reload_percentage(self, current_time: float, val: float):
+        self.last_shot_time = current_time - (val * self.shoot_cd)
+
+    def add_to_timer(self, val):
+        self.last_shot_time += val
+import random
+from typing import override
+
+from srcs.classes.controller import SmartAIController, BaseController, AIController
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.random_spawner_weapon import RandomSpawnerWeapon
+
+
+class SpawnerDictWeapon(RandomSpawnerWeapon):
+    def __init__(self, name: str, unit_dict: dict[type[BaseUnit], int]=None,
+                 *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        # directly editing unit_dict will work
+        self.unit_dict: dict[type[BaseUnit], int] = unit_dict if unit_dict is not None else {}
+
+    @override
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
+        items = list(self.unit_dict.items())
+        # items.reverse()
+        random.shuffle(items)
+        for unit_type, cap in items:
+            count = sum(isinstance(i, unit_type) for i in unit.faction.parent_list)
+            if count >= cap:
+                continue
+            sample = unit_type(unit.faction, -100000, -100000)
+            sample.kill()
+            if sample.base_score > unit.score:
+                continue
+            self.change_bullet_class(unit_type)
+            return super()._shoot(unit, target_x, target_y)
+        return []import math
+from typing import override
+
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.bullet import Bullet
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.bullet_spawner import BulletSpawner
+from srcs.constants import PLAYER_RADIUS, OVERDRIVE_DURATION, OVERDRIVE_CD
+
+
+class SpawnerWeapon(BaseWeapon):
+    def __init__(
+            self,
+            name: str,
+            reload: int = 200,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = 0,
+            bullet_class: type[FactionParticle] = Bullet,
+            min_count: int = 1,
+            max_count: int = 1,
+            growth_factor: int = 1,
+            overdrive_duration: float = OVERDRIVE_DURATION,
+            overdrive_cooldown: float = OVERDRIVE_CD,
+            angle_offset: float = 0.0,
+            **bullet_kwargs,
+    ):
+        super().__init__(name, min_count, max_count, growth_factor,
+                         reload, overdrive_duration, overdrive_cooldown, **bullet_kwargs)
+        self._spawner = BulletSpawner(self._bullet_kwargs, bullet_class=bullet_class, spread=spread,
+                                      offset_factor=offset_factor, spawn_radius=spawn_radius,
+                                      angle_offset=angle_offset)
+
+    @override
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float, **kwargs) -> list[GameParticle]:
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        self._spawner.spawn_radius = unit.rad - 10
+        new_bullets: list[BaseUnit] = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, self.level.bullet_count, unit
+        )
+
+        actual_spawned = []
+
+        for b in new_bullets:
+            if not unit.use_score(b.base_score):
+                b.kill()
+                continue
+            b.target = unit.target
+            actual_spawned.append(b)
+
+        unit.faction.parent_list.extend(actual_spawned)
+        return actual_spawned
+
+    @override
+    def update_bullet(self, **kwargs):
+        self._bullet_kwargs.update_kwargs(**kwargs)
+
+    @override
+    def get_speed(self, unit: BaseUnit) -> float:
+        return 0
+
+    @override
+    def mix_bullet_color_with(self, color):
+        self.update_bullet(color=color)
+
+    @override
+    def change_bullet_class(self, new_bullet_class: type[GameParticle]):
+        self._spawner.bullet_class = new_bullet_class
+
+    @override
+    def _start_overdrive(self):
+        self._shoot_cd.shoot_cd *= 0.1
+
+    @override
+    def _end_overdrive(self):
+        self._shoot_cd.shoot_cd /= 0.1
+
+import math
+
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.faction_particle import FactionParticle
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.lazer import Lazer
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.constants import UNIT_RADIUS, BULLET_RADIUS
+
+
+class TeleportWeapon(GeneralWeapon):
+    def __init__(
+            self,
+            name: str,
+            reload: int = 200,
+            recoil: float = 0,
+            offset_factor: float = 1.0,
+            spread: float = math.pi * 2,
+            spawn_radius: float = UNIT_RADIUS,
+            bullet_class: type[Lazer]=Lazer,
+            max_count: int = 1,
+            growth_factor: float = 1,
+            **lazer_kwargs,
+    ):
+        """
+        Initializes the MissileWeapon with specific settings for missiles.
+        """
+        super().__init__(
+            name=name,
+            reload=reload,
+            recoil=recoil,
+            offset_factor=offset_factor,
+            spread=spread,
+            spawn_radius=spawn_radius,
+            bullet_class=bullet_class,
+            max_count=max_count,
+            growth_factor=growth_factor,
+            **lazer_kwargs,
+        )
+
+    def _shoot(self, unit: BaseUnit, target_x: float, target_y: float) -> list[GameParticle]:
+        shoot_angle = unit.angle_with_cord(target_x, target_y)
+        bullet_count = self.level.bullet_count
+        recoil = self._recoil * bullet_count
+
+        new_bullets: list[Lazer] = self._spawner.circular_spawn(
+            unit.x, unit.y, shoot_angle, 1, unit
+        )
+
+        unit.faction.parent_list.extend(new_bullets)
+        try:
+            self._apply_recoil(unit, new_bullets[0].angle, recoil)
+            new_bullets[0].length = abs(recoil)
+        except IndexError:
+            pass
+        return new_bullets
+from __future__ import annotations
+
+import math
+
+from srcs.classes.entity.explosive import Explosive
+from srcs.classes.entity.lazer import Lazer
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.booster_weapon import BoosterWeapon
+from srcs.classes.weapon_classes.charged_weapon import ChargedWeapon
+from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.classes.weapon_classes.missile_weapon import MissileWeapon
+from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
+from srcs.classes.weapon_classes.teleport_weapon import TeleportWeapon
+from srcs.constants import *
+
+
+class MainWeaponEnum:
+    machine_gun = GeneralWeapon("machine gun", reload=200, speed=15, max_count=5, radius=3, growth_factor=2,
+                                offset_factor=0.1, dmg=1, hp=1, recoil=0, spread=math.pi, spawn_radius=UNIT_RADIUS * 3)
+    piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=300, speed=25, radius=5,
+                                         growth_factor=2,  min_count=1, max_count=5,
+                                         spread=math.pi, spawn_radius=UNIT_RADIUS * 3, offset_factor=0.1,
+                                         dmg=5, hp=10, recoil=3)
+    beam = GeneralWeapon("beam", reload=0, speed=1, radius=10, bullet_class=Lazer, lifespan=2, dmg=0.1,
+                         hp=200)
+    beam.get_speed = lambda unit: unit.distance_with(unit.target)
+
+    lazer_mini = CompositeWeapon("Mini Lazer", [
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=1),
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=0),
+        GeneralWeapon("lazer mini", reload=200, speed=50, radius=2, bullet_class=Lazer, lifespan=120, dmg=0.25,
+                      hp=25, offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8, min_count=-1),
+    ], 200 // 3)
+    lazer = lazer_mini.copy()
+    lazer.update_bullet(speed=100, hp=100, radius=2)
+    lazer.name = "lazer"
+    # lazer = GeneralWeapon("lazer", reload=200, speed=100, min_count=1, max_count=3, radius=2,
+    #                       growth_factor=1, bullet_class=Lazer, lifespan=120, dmg=1, hp=100,
+    #                       offset_factor=0.0, spawn_radius=UNIT_RADIUS, spread=math.pi * 0.8)
+    giant_canon = GeneralWeapon("giant canon", reload=200, speed=25, max_count=5, radius=20, recoil=1, hp=10, dmg=15,
+                          offset_factor=0.0)
+    charged_lazer = ChargedWeapon("charged lazer", reload=2000, speed=200, max_count=1, radius=10,
+                                  bullet_class=Lazer, lifespan=120, dmg=3.5, hp=200, charge_lifespan=10)
+    deleter = ChargedWeapon("deleter", reload=5000, speed=400, max_count=1, radius=10,
+                                  bullet_class=Lazer, lifespan=120, dmg=5, hp=2500, charge_lifespan=2 * FPS)
+    # lazer_mini = machine_gun
+    # lazer = machine_gun
+    shotgun = GeneralWeapon("shotgun", reload=600, speed=(25, 75), radius=3,
+                            recoil=5, dmg=5, spread=math.pi * 0.4, lifespan=(5, 20),
+                            min_count=100, max_count=250, growth_factor=75)
+    fireworks = GeneralWeapon("fireworks", reload=2000, speed=(1, 55), radius=(3, 6),
+                            recoil=0, dmg=(5, 100), spread=math.pi * 2, lifespan=(40, 40),
+                            min_count=100, max_count=250, growth_factor=50, spawn_radius=0,
+                                bullet_class=Explosive)
+    destroyer = GeneralWeapon("giant canon", reload=2000, speed=25, max_count=3, radius=100, recoil=1, hp=100, dmg=10,
+                              offset_factor=0.0)
+    simple_missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=1, dmg=10, hp=1,
+                                   radius=MISSILE_RADIUS, speed=MISSILE_SPEED, spread=math.pi * 2)
+    missile = MissileWeapon("missile", 2000, max_count=8, min_count=2, growth_factor=3,
+                      dmg=10, hp=1, offset_factor=1, spread=math.pi * 2)
+    swarm = CompositeWeapon("Swarm", [
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
+                      dmg=10, hp=1, offset_factor=1, spread=math.pi),
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
+                      dmg=10, hp=1, offset_factor=1, spread=math.pi * 2),
+        MissileWeapon("s1", 9000, max_count=8, min_count=2, growth_factor=1,
+                      dmg=10, hp=1, offset_factor=1, spread=math.pi * 3),
+    ] * 2, 100)
+    spike = MissileWeapon("Spike", 200, max_count=4, min_count=1, growth_factor=1,
+                          dmg=1, hp=1, offset_factor=1, spread=math.pi, radius=2,
+                          color=(255, 255, 255), speed=MISSILE_SPEED*2)
+    torpedo = MissileWeapon("torpedo", 4000, dmg=200, hp=50, radius=20, spread=math.pi*2,
+                            speed=MISSILE_SPEED/2, explosion_rad=400, explosion_lifespan=10)
+
+    spawner = CompositeWeapon("Spawner", [
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2),
+        SpawnerWeapon("Spawner 1", reload=10000, min_count=1, max_count=8, spawn_radius=UNIT_RADIUS * 2, angle_offset=math.pi * 0.25),
+    ] * 2, shoot_interval=200)
+    # shield = GeneralWeapon("shield", reload=2500, speed=1, max_count=100, hp=25, radius=1,
+    #                     dmg=2.5 / ENEMY_RADIUS * ENEMY_SPEED, spread=2 * math.pi,
+    #                     min_count=30, growth_factor=5)
+    # nova = GeneralWeapon("nova", reload=0, min_count=1, max_count=3, speed=1000,
+    #                   bullet_class=NOVA_CLASS, growth_factor=0.2)
+    # piercing_machine_gun = GeneralWeapon("piercing machine gun", reload=250, speed=25, max_count=5, radius=3,
+    #                                   growth_factor=1, offset_factor=0.1, dmg=2, hp=5, recoil=3)
+    dancer = BoosterWeapon("Dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.1, hp=10,
+                           spread=math.pi, recoil=-5, lifespan=(1, 3), min_count=4, max_count=7)
+    flash = TeleportWeapon("Flash", reload=500, speed=1, radius=5, dmg=0.0, hp=100,
+                           spread=math.pi * 2, lifespan=3,
+                           recoil=-100, min_count=4, max_count=7)
+    warp = TeleportWeapon("Warp", reload=5000, speed=1, radius=25, dmg=0.0, hp=100,
+                          spread=math.pi * 2,lifespan=3,
+                          recoil=-500, min_count=5, max_count=8)
+
+
+class SubWeaponEnum:
+    sub_missile = MissileWeapon("sub missile", 2000, MISSILE_SPEED, 8, min_count=2,
+                                dmg=MainWeaponEnum.swarm._bullet_kwargs.getattr('dmg'),
+                                growth_factor=1, radius=MISSILE_RADIUS)
+
+    sub_shield = GeneralWeapon("sub shield", reload=7500, speed=1, max_count=100, hp=10, radius=1,
+                               dmg=2.5 / UNIT_RADIUS * UNIT_SPEED, spread=2 * math.pi,
+                               min_count=30, growth_factor=5)
+
+    sub_dancer = BoosterWeapon("sub dancer", reload=0, speed=(-5, 0), radius=2, dmg=0.0, hp=1,
+                               min_count=1, max_count=5, growth_factor=1, spread=math.pi,
+                               recoil=-10, lifespan=(1, 60), bullet_class=Lazer)
+    sub_inverted_dancer = BoosterWeapon("sub inverted dancer", reload=0, speed=(0, 5), radius=2, dmg=0.0, hp=1,
+                                        min_count=1, max_count=5, growth_factor=1, spread=math.pi,
+                                        recoil=10, lifespan=(1, 60), bullet_class=Lazer)
+
+
+ALL_MAIN_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(MainWeaponEnum).values() if isinstance(w, BaseWeapon)]
+ALL_SUB_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(SubWeaponEnum).values() if isinstance(w, BaseWeapon)]
+#
+# if __name__ == '__main__':
+#     print(f"{' ':20}{'min dmg':>20}{'max dmg':>20}{'max lvl':>20}")
+#     for w in ALL_MAIN_WEAPON_LIST:
+#         print(f"{w.name:20}{w.get_min_dmg_constant():20.2f}{w.get_max_dmg_constant():20.2f}{w.max_lvl:20}")
+import copy
+from ast import Index
+from typing import Optional
+
+
+from srcs import constants, utils
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.weapon_classes.general_weapon import BaseWeapon
+
+
+class WeaponHandler:
+    def __init__(self, unit: BaseUnit, weapons: Optional[list[BaseWeapon]] = None):
+        self.unit: BaseUnit = unit
+        self.weapon: Optional[BaseWeapon] = None
+        self.all_weapons: list[BaseWeapon] = []
+        self.reinit_weapons(weapons)
+        self.change_cd = 2000  # ms
+        self.is_first_shot = True
+        self.weapon_change_energy = 10000
+        self.last_charge_time = 0
+
+    def reinit_weapons(self, weapons: list[BaseWeapon] | BaseWeapon | None = None):
+        if isinstance(weapons, list):
+            weapons = [weapon for weapon in weapons if isinstance(weapon, BaseWeapon)]
+        elif isinstance(weapons, BaseWeapon):
+            weapons = [weapons]
+        else:
+            weapons = []
+
+        self.all_weapons = []
+        for w in weapons:
+            self.add_weapon(w)
+        self.weapon: Optional[BaseWeapon] = self.all_weapons[0] if self.all_weapons else None
+
+    def has_weapon(self, weapon: BaseWeapon):
+        return weapon is not self.get_weapon(weapon)
+
+    def add_weapon(self, weapon: BaseWeapon):
+        weapon = weapon.copy()
+        weapon.mix_bullet_color_with(self.unit.get_greatest_parent().color)
+        self.all_weapons.append(weapon)
+
+    def is_max(self):
+        return not isinstance(self.weapon, BaseWeapon) or self.weapon.level.is_max()
+
+    @property
+    def current_time(self):
+        return self.unit.faction.game_data.current_time
+
+    @property
+    def level_str(self):
+        if not isinstance(self.weapon, BaseWeapon):
+            return
+        return self.weapon.level.__str__()
+
+    @property
+    def index(self):
+        try:
+            return self.all_weapons.index(self.weapon)
+        except ValueError:
+            return -1
+
+    @property
+    def name(self):
+        return self.weapon.name if self.weapon else "None"
+
+    @property
+    def overdrive_percentage(self):
+        if isinstance(self.weapon, BaseWeapon):
+            return self.weapon.get_overdrive_reload_percentage(self.current_time)
+        return 0.0
+
+    @overdrive_percentage.setter
+    def overdrive_percentage(self, val):
+        self.weapon.set_overdrive_reload_percentage(self.current_time, val)
+
+    @property
+    def overdrive_cd(self):
+        return self.weapon.get_overdrive_cd(self.current_time)
+
+    @overdrive_cd.setter
+    def overdrive_cd(self, val):
+        if val < 0.0:
+            val = 0.0
+        self.weapon.set_overdrive_cd(self.current_time, self.overdrive_cd + val)
+
+    def overdrive_start(self):
+        if not self.weapon:
+            return
+        self.weapon.start_overdrive_try(self.current_time)
+
+    def upgrade_weapon(self, amount=1):
+        if not isinstance(self.weapon, BaseWeapon):
+            return
+        if self.weapon.level.is_max():
+            self.overdrive_cd -= constants.OVERDRIVE_CD * 0.25
+        else:
+            self.weapon.level.level_up(amount)
+
+    def get_weapon(self, weapon: BaseWeapon):
+        found_weapons = [w for w in self.all_weapons if w.name == weapon.name]
+        if found_weapons:
+            return found_weapons[0]
+        return weapon
+
+    def change_weapon(self, weapon=None):
+        if weapon is None:
+            self.cycle_weapon()
+        elif isinstance(weapon, BaseWeapon):
+            self._set_weapon(weapon)
+        elif isinstance(weapon, int):
+            self.set_weapon_by_index(weapon)
+        else:
+            raise TypeError("Invalid weapon type")
+
+    def cycle_weapon(self, change: int = 1):
+        idx = (self.index + change) % len(self.all_weapons)
+        self._set_weapon(self.all_weapons[idx])
+
+    def set_weapon_by_index(self, index: int):
+        if 0 <= index < len(self.all_weapons):
+            self._set_weapon(self.all_weapons[index])
+
+    def _set_weapon(self, weapon: BaseWeapon):
+        if self.weapon == weapon:
+            return
+        if self._change_in_cooldown():
+            return
+        if self.has_weapon(weapon):
+            self.weapon = self.get_weapon(weapon)
+        else:
+            self.add_weapon(weapon)
+            self.weapon = self.all_weapons[-1]
+        self.is_first_shot = True
+
+    def _change_in_cooldown(self):
+        max_consecutive_change = 1
+        self.weapon_change_energy += self.current_time - self.last_charge_time
+        self.last_charge_time = self.current_time
+        self.weapon_change_energy = utils.clamp(self.weapon_change_energy, 0,
+                                                max_consecutive_change * self.change_cd)
+        return self.weapon_change_energy < self.change_cd
+
+    def fire(self, target_x: float, target_y: float, **kwargs):
+        if not self.weapon:
+            return
+        self.weapon.fire(self.unit, target_x, target_y, **kwargs)
+
+    def __str__(self):
+        return f"{self.name:15} {self.level_str}"# Constants
+SCREEN_WIDTH = 1520
+SCREEN_HEIGHT = 800
+MAP_WIDTH = 6000
+MAP_HEIGHT = 6000
+PLAYER_RADIUS = 5
+BULLET_RADIUS = 2
+MISSILE_RADIUS = 7
+UNIT_RADIUS = 10
+COLLECTIBLE_RADIUS = 15
+
+# color
+PLAYER_COLOR = (255, 255, 0)  # Yellow
+BULLET_COLOR = (255, 255, 255)  # White
+MISSILE_COLOR = (0, 255, 0)  # Green
+ENEMY_COLOR = (255, 102, 204)  # Pink
+ENEMY_BULLET_COLOR = (255, 100, 255)
+BACKGROUND_COLOR = (0, 0, 0)  # Black
+EXPLOSION_COLOR = (255, 105, 0)
+
+UNIT_SCORE = 10
+UNIT_SHOOT_RANGE = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 100
+UNIT_BULLET_RAD = 4
+MAX_ENEMY_COUNT = 250
+PLAYER_HP = 50
+HEAL_HP = 5
+PLAYER_SPEED = 20
+BULLET_SPEED = 15.0
+MISSILE_SPEED = BULLET_SPEED
+UNIT_SPEED = 2
+MAX_PARTICLE_COUNT = 200
+OVERDRIVE_DURATION = 5000.0  # miliseconds
+OVERDRIVE_CD = 65000.0
+GOOD_GRAPHICS = False
+FPS = 30
+SPAWN_CAP = 200
+SPAWN_CD = 4  # secondsfrom __future__ import annotations
+
+import math
+import os
+import subprocess
+import sys
+import traceback
+
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
+try:
+    import pygame
+    import numpy
+except ImportError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pygame'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+    import pygame
+    import numpy
+from srcs.constants import MAP_WIDTH, MAP_HEIGHT, PLAYER_COLOR, PLAYER_SPEED, \
+    ENEMY_COLOR, UNIT_RADIUS, SCREEN_WIDTH, SCREEN_HEIGHT
+from srcs.classes.faction_data import FactionData
+from srcs.unit_classes.advanced_weapons import ALL_ADVANCED_WEAPON_LIST
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.controller import PlayerController, AIController, BotController, \
+    BaseController, SmartAIController
+from srcs.classes.entity.unit import Unit
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, BasicShootingUnit, RammerUnit, \
+    LazerUnit
+from srcs.unit_classes.spawner_unit import UnitMothership, MiniMothershipUnit
+from srcs.classes.bullet_enemy_collider import collide_enemy_and_bullets
+from srcs.classes.collision_handler import repel_collision
+from srcs.classes.collectible import *
+from srcs.classes.game_data import GameData
+from srcs.classes.entity.shield import Shield
+from srcs.classes.water_particle_handler import WaterParticleHandler
+from srcs.upgrade_pane import UpgradePane
+
+dev_mode = 0
+test_mode = 0
+god_mode: bool = False
+
+if dev_mode:
+    # god_mode = True
+    constants.OVERDRIVE_CD = constants.OVERDRIVE_DURATION - 1
+    for w in ALL_MAIN_WEAPON_LIST + ALL_SUB_WEAPON_LIST + ALL_ADVANCED_WEAPON_LIST:
+        w.level.current_level = w.level.max_level
+    # default_weapons = (ALL_MAIN_WEAPON_LIST, ALL_SUB_WEAPON_LIST)
+# Initialize Pygame
+pygame.init()
+
+# Set up the display
+MAP_SURFACE = pygame.Surface((constants.MAP_WIDTH, constants.MAP_HEIGHT), pygame.SRCALPHA)
+SCREEN = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.RESIZABLE)
+pygame.display.set_caption("Space Shooting Game")
+
+font = pygame.font.Font(None, 36)
+big_font = pygame.font.Font(None, 180)
+consolas = pygame.font.SysFont("consolas", 16, bold=True, italic=False)
+
+# TODO:
+#  add buttons (testing) [Done]
+#  remove mothership [Done]
+#  add initial enemy spawning mother ships [Done]
+#  implement buttons to upgrade player [Done]
+#  player can choose three paths: [spawner, turret spawner, attacker]
+#  spawner and turret's child will have options to use [weapon, hp, dmg, speed] series upgrade
+class Game:
+    def __init__(self):
+        self.data: GameData = GameData()
+        self.throttled_refresh_timer = 0
+        self.prev_max_speed = PLAYER_SPEED
+        self.prev_controller = SmartAIController()
+        self.ally_faction = FactionData(self.data, self.data.allies, self.data.enemies)
+        self.enemy_faction = FactionData(self.data, self.data.enemies, self.data.allies)
+        self.upgrade_pane = UpgradePane(self.data)
+        self.init_game()
+
+
+    def self_destruct(self):
+        self.data.player.kill()
+
+    def init_game(self):
+        self.data.zoom = 1.0
+        self.data.running = True
+        self.data.allies = []
+        self.data.enemies = []
+        self.data.collectibles = []
+        self.ally_faction = FactionData(self.data, self.data.enemies, self.data.allies)
+        self.enemy_faction = FactionData(self.data, self.data.allies, self.data.enemies)
+        self.data.water_particle_handler = WaterParticleHandler()
+        ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        self.data.player = Unit(self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 4,
+                                     color=PLAYER_COLOR, hp=5, shield_hp=2, shield_rad=UNIT_RADIUS * 3, parent=ghost)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.machine_gun)
+        self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.missile)
+        if dev_mode:
+            self.data.player.score = 10000000
+        self.prev_max_speed = self.data.player.speed
+        self.prev_controller = self.data.player.controller
+        self.data.player.controller = PlayerController()
+        self.data.allies.append(self.data.player)
+
+        DISTANCE_FROM_BOUND = 300
+        # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        ghost = Unit(self.enemy_faction, color=ENEMY_COLOR)
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH // 2, DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH // 2, MAP_HEIGHT - DISTANCE_FROM_BOUND,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, DISTANCE_FROM_BOUND, MAP_HEIGHT // 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        self.data.enemies.append(UnitMothership(
+            self.enemy_faction, MAP_WIDTH - DISTANCE_FROM_BOUND, MAP_HEIGHT // 2,
+            color=ENEMY_COLOR, parent=ghost
+        ))
+        # ghost = Unit(self.ally_faction, color=PLAYER_COLOR)
+        # mothership = UnitMothership(
+        #     self.ally_faction, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        #     color=PLAYER_COLOR, parent=ghost
+        # )
+        # mothership.unit_dict = {
+        #     BasicShootingUnit: 30,
+        #     BasicLazerUnit: 10,
+        #     EliteUnit: 3,
+        #     RammerUnit: 3,
+        # }
+        # self.data.allies.append(mothership)
+
+        # self.data.player = UnitMothership(self.data, MAP_WIDTH // 2, MAP_HEIGHT // 2,
+        #                                   targets=self.data.enemies, parent_list=self.data.bullets,
+        #                                   hp=200, radius=100, dmg=10, color=PLAYER_COLOR, speed=PLAYER_SPEED,
+        #                                   child_class=Unit, child_spawn_cd=100,
+        #                                   child_kwargs={"hp": 0.01, "dmg": 10, "controller": PlayerDroneController()})
+
+        # self.data.player.main_weapon.reinit_weapons(default_weapons[0])
+        # self.data.player.sub_weapon.reinit_weapons(default_weapons[1])
+        self.center_focus(lerp_const=1.0)
+        self.data.kills = 0
+        self.data.autofire = False
+        # self.data.player.main_weapon.overdrive_cd = 0.0
+        # self.data.player.main_weapon.set_weapon_by_index(0)
+        self.data.collectible_spawn_score = 10000
+        self.spawn_starter_pack()
+        # self.background_update()
+
+    def spawn_starter_pack(self):
+        if not test_mode:
+            return
+        self.data.player.score += 1000000
+        self.data.enemies[:] = []
+        self.data.allies[:] = []
+        # self.data.player = UnitMothership(
+        #     self.ally_faction, self.data.player.x - SCREEN_WIDTH // 2 - 300, MAP_HEIGHT // 2,
+        #     color=PLAYER_COLOR
+        # )
+        # self.data.player.unit_dict = {
+        #     BasicShootingUnit: 30,
+        #     BasicLazerUnit: 10,
+        #     EliteUnit: 3,
+        #     RammerUnit: 3,
+        # }
+        self.data.player.score = 100000000000000
+        # self.data.player.sub_weapon.reinit_weapons(MainWeaponEnum.swarm)
+        self.data.player.main_weapon.reinit_weapons(MainWeaponEnum.fireworks)
+        self.data.allies.append(self.data.player)
+
+        # self.data.allies[:] = [self.data.player]
+        # self.data.allies.append(
+        #     Shield(self.ally_faction, 0, 0, 100, hp=10000000, parent=self.data.player, regen_rate=10000000000))
+        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x + 500, self.data.player.y,
+                                              hp=200, dmg=0, weapons=MainWeaponEnum.lazer_mini,
+                                              controller=BotController(), variable_shape=True
+                                              ))
+        self.data.enemies.append(Unit(self.enemy_faction, self.data.player.x - 800, self.data.player.y,
+                                      weapons=[],
+                                      hp=100000000, dmg=10, radius=300,
+                                      # shield_hp=200, shield_rad=300,
+                                      controller=BotController(), variable_shape=True
+                                      ))
+        # self.data.bullets.append(Shield(self.data, self.data.player.x, self.data.player.y, hp=50, dmg=1,
+        #                                 rad=self.data.player.rad + 50, parent=self.data.player, regen_rate=10))
+        # self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y - 40)
+        # self.spawn_collectible_at(self.data.player.x - 100, self.data.player.y)
+        # self.spawn_collectible_at(self.data.player.x - 90, self.data.player.y + 40)
+
+    def background_update(self):
+        threshold = min(constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT)
+        while not any(e.distance_with(self.data.player) <= threshold for e in self.data.enemies):
+            self.update()
+
+    def handle_events(self):
+        pygame.event.pump()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.data.quit = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.data.quit = True
+                if event.key == pygame.K_q and isinstance(self.data.player, Unit):
+                    self.data.player.main_weapon.overdrive_start()
+                    self.data.player.sub_weapon.overdrive_start()
+                if event.key == pygame.K_TAB:
+                    self.change_player_unit()
+                if event.key == pygame.K_e:
+                    self.data.autofire = not self.data.autofire
+                if event.key == pygame.K_DELETE:
+                    self.self_destruct()
+                if event.key == pygame.K_m:
+                    if self.upgrade_pane.is_active():
+                        self.upgrade_pane.hide()
+                    else:
+                        self.upgrade_pane.show()
+                self.data.pressed_keys[event.key] = True
+            elif event.type == pygame.KEYUP:
+                self.data.pressed_keys[event.key] = False
+            # if event.type == pygame.MOUSEWHEEL:
+            #     if event.y > 0:
+            #         self.data.zoom *= 1.1
+            #     elif event.y < 0 and self.data.player.max_rad * self.data.zoom >= UNIT_RADIUS * 0.75 and self.data.zoom > 0.35:
+            #         self.data.zoom /= 1.1
+            #     self.center_focus(1.0)
+                # if self.data.pressed_keys[pygame.K_TAB]:
+                #     self.data.player.sub_weapon.cycle_weapon(- event.y)
+                # else:
+                #     self.data.player.main_weapon.cycle_weapon(- event.y)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if not self.data.running:
+                    self.init_game()
+                    self.data.running = True
+                if event.button == 1:  # Left mouse button
+                    if not self.upgrade_pane.handle_click():
+                        self.data.left_mouse_down = True
+
+                elif event.button == 3:  # Right mouse button
+                    self.data.right_mouse_down = True
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:  # Left mouse button
+                    self.data.left_mouse_down = False
+                    # self.data.player.main_weapon.on_mouse_up()
+                elif event.button == 3:  # Right mouse button
+                    self.data.right_mouse_down = False
+
+    def _spawn_new_unit(self, faction: FactionData,
+                        _constructor: type[Unit],
+                        side='top',
+                        parent: BaseUnit | None = None,
+                        **kwargs):
+        unit = _constructor(faction, 0, 0, parent=parent, **kwargs)
+        spawn_rad = unit.rad + 300
+
+        # side = random.choice(['left', 'right', 'top', 'bottom'])
+        if 'left' in side:
+            unit.x = -spawn_rad
+        elif 'right' in side:
+            unit.x = constants.MAP_WIDTH + spawn_rad
+        else:
+            unit.x = random.randint(spawn_rad, constants.MAP_WIDTH - spawn_rad)
+        if 'top' in side:
+            unit.y = -spawn_rad
+        elif 'bot' in side:
+            unit.y = constants.MAP_HEIGHT + spawn_rad
+        else:
+            unit.y = random.randint(spawn_rad, constants.MAP_HEIGHT - spawn_rad)
+
+        faction.parent_list.append(unit)
+
+    def _spawn_units(self, faction: FactionData, color,
+                     side='',
+                     controller_class: type[BaseController] = AIController,
+                     units_dict: dict[type[BaseUnit], int] | None = None,
+                     parent: BaseUnit | None = None):
+        if test_mode:
+            return
+        if units_dict is None:
+            units_dict = {
+                BasicLazerUnit: constants.SPAWN_CAP
+            }
+        for unit_type, cap in units_dict.items():
+            count = len([i for i in faction.parent_list if isinstance(i, unit_type)])
+            if count >= cap:
+                continue
+            self._spawn_new_unit(faction, unit_type, side,
+                                 controller=controller_class(),
+                                 color=color,
+                                 parent=parent)
+            break
+
+    def get_view_rect(self) -> tuple[int, int, int, int]:
+        return self.data.screen_x, self.data.screen_y, self.data.screen_x + constants.SCREEN_WIDTH, self.data.screen_y + constants.SCREEN_HEIGHT
+
+    #
+    # def spawn_collectible_at(self, x: Optional[float] = None, y: Optional[float] = None):
+    #     # MIN_ON_MAP = 10
+    #     # MAX_ON_MAP = 50
+    #     # if len(self.data.collectibles) > MIN_ON_MAP and random.random() > 0.0002 * (MAX_ON_MAP - len(self.data.collectibles)):
+    #     #     return
+    #     all_main_weapon = len(ALL_MAIN_WEAPON_LIST)
+    #     all_sub_weapon = len(ALL_SUB_WEAPON_LIST)
+    #     main_weapon_obtained = len(self.data.player.main_weapon.all_weapons)
+    #     sub_weapon_obtained = len(self.data.player.sub_weapon.all_weapons)
+    #     not_obtained_main_weapons = all_main_weapon - main_weapon_obtained
+    #     not_obtained_sub_weapons = all_sub_weapon - sub_weapon_obtained
+    #     maxed_main_weapons = len([i for i in self.data.player.main_weapon.all_weapons if i.is_max_lvl()])
+    #     maxed_sub_weapons = len([i for i in self.data.player.sub_weapon.all_weapons if i.is_max_lvl()])
+    #     missing_hp = self.data.player.max_hp - self.data.player.hp
+    #     collectibles = [
+    #                         HealCollectible,
+    #                         MainWeaponCollectible,
+    #                         SubWeaponCollectible,
+    #                         WeaponUpgradeCollectible,
+    #                         SubWeaponUpgradeCollectible,
+    #                    ]
+    #     probabilities = [max(0, i) for i in [
+    #                         missing_hp + 3,
+    #                         not_obtained_main_weapons,
+    #                         not_obtained_sub_weapons,
+    #                         (all_main_weapon - maxed_main_weapons) * 2 + 2,
+    #                         (all_sub_weapon - maxed_sub_weapons) * 2,
+    #                     ]]
+    #     _class = random.choices(collectibles, probabilities)[0]
+    #     if x is None or y is None:
+    #         x, y = generate_random_point(
+    #             rect_small=self.get_view_rect(),
+    #             rect_big=(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT),
+    #             padding=constants.COLLECTIBLE_RADIUS
+    #         )
+    #     self.data.collectibles.append(_class(x, y, self.data))
+
+    def collide_everything(self):
+        collide_enemy_and_bullets(self.data.allies, self.data.enemies)
+        allies = [i for i in self.data.allies if isinstance(i, Unit)]
+        collide_enemy_and_bullets(allies, allies, repel_collision)
+        enemies = [i for i in self.data.enemies if isinstance(i, Unit)]
+        collide_enemy_and_bullets(enemies, enemies, repel_collision)
+        # collide_enemy_and_bullets([self.data.player], self.data.collectibles)
+        self.data.water_particle_handler.collide_with_enemies(self.data.enemies)
+        self.data.water_particle_handler.collide_with_enemies(self.data.allies)
+
+
+    def remove_dead_particles(self):
+        dead_enemies = [p for p in self.data.enemies if (p.is_dead() and (p.on_death() or True))]
+        dead_allies = [p for p in self.data.allies if (p.is_dead() and (p.on_death() or True))]
+        dead_effects = [p for p in self.data.effects if (p.is_dead() and (p.on_death() or True))]
+        self.data.enemies[:] = [p for p in self.data.enemies if not p.is_dead()]
+        self.data.allies[:] = [p for p in self.data.allies if not p.is_dead()]
+        self.data.effects[:] = [p for p in self.data.effects if not p.is_dead()]
+        #
+        # if sum(i for i in self.ally_unit_dict.values()) < constants.SPAWN_CAP:
+        #     for p in [p for p in dead_enemies if isinstance(p, BaseUnit)]:
+        #         self.ally_unit_dict[type(p)] = 1 + self.ally_unit_dict.get(type(p), 0)
+        #         self.enemy_unit_dict[type(p)] = -1 + self.enemy_unit_dict.get(type(p), 0)
+        # if sum(i for i in self.enemy_unit_dict.values()) < constants.SPAWN_CAP:
+        #     for p in [p for p in dead_allies if isinstance(p, BaseUnit)]:
+        #         self.enemy_unit_dict[type(p)] = 1 + self.enemy_unit_dict.get(type(p), 0)
+        #         self.ally_unit_dict[type(p)] = -1 + self.ally_unit_dict.get(type(p), 0)
+
+        for collectible in self.data.collectibles:
+            if collectible.is_dead() and isinstance(collectible, Collectible):
+                collectible.on_collect()
+        self.data.collectibles[:] = [c for c in self.data.collectibles if not c.is_dead()]
+
+    def move_everything(self):
+        for effect in self.data.effects:
+            effect.move()
+        for ally in self.data.allies:
+            ally.move()
+        for enemy in self.data.enemies:
+            enemy.move()
+
+        self.data.water_particle_handler.update()
+        self.data.water_particle_handler.remove_out_of_bounds(0, 0, constants.MAP_WIDTH, constants.MAP_HEIGHT)
+        self.data.water_particle_handler.remove_zero_lifespan()
+        self.data.water_particle_handler.remove_zero_hp()
+        # self.move_player()
+
+    def change_player_unit(self):
+        original_unit = self.data.player
+        candidates: list[BaseUnit] = [i for i in self.data.allies if
+                                      (isinstance(i, BaseUnit)
+                                       and i is not original_unit
+                                       and self.data.in_map(i))
+                                      ]
+        candidates.sort(key=lambda x: - x.distance_with(self.data.player) * 0.9)
+        try:
+            self.data.player = candidates[-1]
+        except IndexError:
+            return
+        if isinstance(original_unit, Unit):
+            original_unit.controller = self.prev_controller
+        original_unit.max_speed = self.prev_max_speed
+        if isinstance(self.data.player, Unit):
+            self.prev_controller = self.data.player.controller
+        self.prev_max_speed = self.data.player.max_speed
+        self.data.player.controller = PlayerController()
+        self.data.player.max_speed *= 2
+
+
+    def check_player_death(self):
+        self.data.player.hp = max(0.0, min(self.data.player.max_hp, self.data.player.hp))
+        if not self.data.player.is_dead():
+            return
+        if god_mode:
+            self.data.player.hp = max(0.01, self.data.player.hp)
+            if self.data.player not in self.data.allies:
+                self.data.allies.append(self.data.player)
+        if self.data.player.is_dead():
+            self.change_player_unit()
+
+    def is_victory(self):
+        return not any(isinstance(i, BaseUnit) for i in self.data.enemies)
+
+    def check_game_over(self):
+        if (any(isinstance(i, BaseUnit) for i in self.data.allies)
+                and any(isinstance(i, BaseUnit) for i in self.data.enemies)):
+            return
+        self.data.running = False
+
+    def center_focus(self, lerp_const=0.1):
+        target_screen_x = self.data.player.x - (constants.SCREEN_WIDTH / 2) / self.data.zoom
+        target_screen_y = self.data.player.y - (constants.SCREEN_HEIGHT / 2) / self.data.zoom
+        self.data.screen_x += (target_screen_x - self.data.screen_x) * lerp_const
+        self.data.screen_y += (target_screen_y - self.data.screen_y) * lerp_const
+
+    def refocus_zoom(self, lerp_const=0.05):
+        target_zoom = max(0.1, math.sqrt(UNIT_RADIUS / self.data.player.max_rad))
+        old_zoom = self.data.zoom
+        self.data.zoom += (target_zoom - self.data.zoom) * lerp_const
+        x_diff = (constants.SCREEN_WIDTH / old_zoom - constants.SCREEN_WIDTH / self.data.zoom) / 2
+        y_diff = (constants.SCREEN_HEIGHT / old_zoom - constants.SCREEN_HEIGHT / self.data.zoom) / 2
+        self.data.screen_x += x_diff
+        self.data.screen_y += y_diff
+
+    def increment_constants(self):
+        TIME_PASSED = self.data.current_time - self.data.start_ticks
+        self.data.collectible_spawn_score += TIME_PASSED
+        # recover to 100% in 30 secs
+        self.data.player.regen_hp(TIME_PASSED / 30000 * self.data.player.max_hp)
+        self.data.start_ticks = self.data.current_time
+        self.throttled_refresh_timer += 1
+
+    def throttled_refresh(self):
+        lst = self.data.enemies + self.data.allies
+        if self.throttled_refresh_timer >= len(lst):
+            self.throttled_refresh_timer = 0
+        # count = 0 | while count < 3 and ...
+        while self.throttled_refresh_timer < len(lst):
+            e = lst[self.throttled_refresh_timer]
+            if isinstance(e, Unit) and e is not self.data.player:
+                e.find_new_target()
+                return
+            self.throttled_refresh_timer += 1
+
+    def update(self):
+        self.data.current_time = pygame.time.get_ticks()
+        self.increment_constants()
+        self.center_focus()
+        self.refocus_zoom()
+        self.move_everything()
+        self.collide_everything()
+        self.remove_dead_particles()
+        self.throttled_refresh()
+        if not self.data.running:
+            return
+        self.check_player_death()
+        self.check_game_over()
+        self.upgrade_pane.update_status()
+
+    def add_text_to_screen(self):
+        info_str = f"""Score: {self.data.player.score:.0f}
+  {int(self.data.player.hp)} / {int(self.data.player.max_hp)} hp
+  """.strip()
+        # particle count: {len(self.data.water_particle_handler.particles)}
+        # buff count: {len(self.data.collectibles)}
+        debug_str = f"""\
+  fps             : {self.data.clock.get_fps():.0f}
+  main weapon     : {self.data.player.main_weapon}
+  sub weapon      : {self.data.player.sub_weapon}
+  zoom            : {self.data.zoom:.2f}
+  enemy count     : {len(self.data.enemies)}
+  ally count      : {len(self.data.allies)}
+  target          : {self.data.player.target}
+  auto fire       : {'on' if self.data.autofire else 'off':4}(E)
+  overdrive       : {(self.data.player.main_weapon.overdrive_percentage if isinstance(self.data.player, Unit) else 0) * 100:.0f}% (Q)""".title()
+        y = 10
+        for line in info_str.split("\n"):
+            text = font.render(line, True, (255, 255, 255))
+            SCREEN.blit(text, (10, y))
+            y += text.get_height() + 10
+        for line in debug_str.split("\n"):
+            text = consolas.render(line, True, (255, 255, 255))
+            SCREEN.blit(text, (10, y))
+            y += text.get_height()
+
+        if self.data.running:
+            return
+        text = "Victory" if self.is_victory() else "Defeat"
+        game_over_text = big_font.render(text, True, (255, 255, 255))
+        SCREEN.blit(game_over_text, (
+            (constants.SCREEN_WIDTH - game_over_text.get_width()) // 2,
+            (constants.SCREEN_HEIGHT - game_over_text.get_height()) // 2
+        ))
+
+    def draw_everything(self):
+        MAP_SURFACE.fill(constants.BACKGROUND_COLOR)
+
+        # Particles
+        def draw_particles(particles: [GameParticle]):
+            for particle in sorted(particles, key=lambda p: p.rad):
+                if not self.data.in_screen(particle):
+                    continue
+                particle.draw(MAP_SURFACE)
+
+        draw_particles(self.data.collectibles)
+        draw_particles(self.data.allies)
+        draw_particles(self.data.enemies)
+        draw_particles(self.data.effects)
+
+        self.data.water_particle_handler.draw_everything(MAP_SURFACE, (self.data.screen_x, self.data.screen_y))
+
+        if self.data.zoom < 0.5:
+            scaled_map = pygame.transform.scale(
+                MAP_SURFACE,
+                (int(MAP_WIDTH * self.data.zoom), int(MAP_HEIGHT * self.data.zoom))
+            )
+            SCREEN.fill((100, 100, 100))
+            SCREEN.blit(scaled_map, (-self.data.screen_x * self.data.zoom, -self.data.screen_y * self.data.zoom))
+        else:
+            visible_rect = pygame.Rect(
+                self.data.screen_x,
+                self.data.screen_y,
+                SCREEN.get_width() / self.data.zoom,
+                SCREEN.get_height() / self.data.zoom,
+            )
+
+            # Create a new surface for the visible area
+            cropped_map = pygame.Surface((visible_rect.width, visible_rect.height))
+            cropped_map.fill((100, 100, 100))  # Fill with the background color
+
+            # Determine the area of MAP_SURFACE to blit onto the new surface
+            map_rect = MAP_SURFACE.get_rect()
+            intersect_rect = visible_rect.clip(map_rect)
+            if intersect_rect.width > 0 and intersect_rect.height > 0:
+                cropped_map.blit(
+                    MAP_SURFACE,
+                    (intersect_rect.x - visible_rect.x, intersect_rect.y - visible_rect.y),
+                    intersect_rect
+                )
+            scaled_cropped_map = pygame.transform.scale(cropped_map, (SCREEN.get_width(), SCREEN.get_height()))
+            SCREEN.fill((100, 100, 100))
+            SCREEN.blit(scaled_cropped_map, (0, 0))
+
+        self.add_text_to_screen()
+        self.draw_ui()
+        pygame.display.flip()
+
+    def draw_ui(self):
+        self.upgrade_pane.draw(SCREEN)
+
+    def run(self):
+        while not self.data.quit:
+            self.handle_events()
+            self.update()
+            self.draw_everything()
+            self.data.clock.tick(constants.FPS)
+        pygame.quit()
+
+
+def main():
+    # try:
+        game = Game()
+        game.run()
+    # except BaseException:
+    #     print(traceback.format_exc())
+    #     input("\nPress enter to quit")
+
+
+if __name__ == '__main__':
+    main()
+import pygame
+
+print(pygame.font.get_fonts())
+from srcs.classes.controller import AIDroneController, BotController, AIController, SmartAIController
+from srcs.classes.entity.unit import Unit
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.general_weapon import GeneralWeapon
+from srcs.classes.weapon_classes.spawner_dict_weapon import SpawnerDictWeapon
+from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
+from srcs.constants import UNIT_RADIUS
+from srcs.unit_classes.basic_unit import FastLazerUnit, RammerUnit, EliteUnit, BasicShootingUnit, BasicLazerUnit, \
+    LazerUnit, ActivatedRammerUnit
+
+
+class AdvancedWeaponsEnum:
+    basic_spawner = SpawnerWeapon("Basic Spawner", reload=5000, min_count=1, max_count=3,
+                                  bullet_class=BasicShootingUnit, controller=SmartAIController())
+
+    mini_spawner = MainWeaponEnum.spawner.copy()
+    mini_spawner.name = "Fast Shooter Spawner"
+    mini_spawner.change_bullet_class(FastLazerUnit)
+    mini_spawner.update_bullet(controller=AIDroneController())
+
+    rammer_spawner = SpawnerWeapon("Rammer Spawner", reload=10000, min_count=1, max_count=8,
+                                   spawn_radius=UNIT_RADIUS * 2, bullet_class=ActivatedRammerUnit,
+                                   controller=AIDroneController())
+
+    elite_spawner = SpawnerWeapon("Elite Spawner", reload=15000, min_count=1, max_count=8,
+                                  spawn_radius=UNIT_RADIUS * 2, bullet_class=EliteUnit,
+                                  controller=AIDroneController())
+
+    dict_spawner = SpawnerDictWeapon("Mixed Spawner", {
+        BasicLazerUnit: 10,
+        EliteUnit: 3,
+        LazerUnit: 3,
+        RammerUnit: 3,
+    })
+
+ALL_ADVANCED_WEAPON_LIST: list[BaseWeapon] = [w for w in vars(AdvancedWeaponsEnum).values() if isinstance(w, BaseWeapon)]
+from srcs.classes.controller import BotController
+from srcs.classes.entity.unit import *
+
+
+class BasicShootingUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun,
+                         controller=controller, score=100, **kwargs)
+
+
+
+class BasicLazerUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=10, dmg=1, score=150, speed=UNIT_SPEED, radius=15,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         controller=controller,
+                         **kwargs)
+
+
+class FastLazerUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=3, dmg=1, score=50, speed=UNIT_SPEED * 5, radius=5,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         controller=controller,
+                         **kwargs)
+
+
+
+
+class EliteUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=50, dmg=1, score=500, speed=UNIT_SPEED * 1.5, radius=20,
+                         shield_hp=100, shield_rad=100,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         sub_weapons=MainWeaponEnum.swarm,
+                         controller=controller,
+                         **kwargs)
+
+
+class LazerUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=100, dmg=5, radius=40, score=1000, speed=UNIT_SPEED,
+                         weapons=MainWeaponEnum.lazer,
+                         controller=controller,
+                         **kwargs)
+
+
+class RammerUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = AIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=250, dmg=50, radius=30, score=1500, speed=UNIT_SPEED * 2,
+                         variable_shape=True, variable_color=True,
+                         weapons=MainWeaponEnum.dancer,
+                         shoot_range=UNIT_SHOOT_RANGE / 2,
+                         controller=controller,
+                         **kwargs)
+
+class ActivatedRammerUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = AIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=250, dmg=50, radius=30, score=1500, speed=UNIT_SPEED,
+                         variable_shape=True, variable_color=True,
+                         weapons=MainWeaponEnum.dancer,
+                         shoot_range=UNIT_SHOOT_RANGE,
+                         controller=controller,
+                         **kwargs)
+    def move(self):
+        self.controller.fire_main = True
+        super().move()
+
+class SniperUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=250, dmg=10, radius=50, score=1000, speed=UNIT_SPEED / 2,
+                         shield_rad=100, shield_hp=500,
+                         weapons=MainWeaponEnum.charged_lazer,
+                         # sub_weapons=MainWeaponEnum.lazer_mini,
+                         shoot_range=UNIT_SHOOT_RANGE,
+                         controller=controller,
+                         **kwargs)
+import math
+
+from srcs.classes.controller import AIDroneController, SmartAIController, BaseController, BotController
+from srcs.classes.entity.base_unit import BaseUnit
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.entity.unit import Unit
+from srcs.classes.faction_data import FactionData
+from srcs.classes.weapon_classes.composite_weapon import CompositeWeapon
+from srcs.classes.weapon_classes.random_spawner_weapon import RandomSpawnerWeapon
+from srcs.classes.weapon_classes.spawner_dict_weapon import SpawnerDictWeapon
+from srcs.classes.weapon_classes.spawner_weapon import SpawnerWeapon
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum
+from srcs.constants import UNIT_SHOOT_RANGE, UNIT_SPEED, SPAWN_CD, FPS, UNIT_SCORE
+from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
+from srcs.unit_classes.basic_unit import BasicLazerUnit, EliteUnit, RammerUnit, LazerUnit, BasicShootingUnit
+from srcs.unit_classes.turret_unit import BulletTurretUnit, LazerTurretUnit
+
+
+class _SpawningUnit(Unit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+        super().__init__(faction, x, y, angle, **kwargs)
+        self.score = 0
+
+    def move(self):
+        super().move()
+        self.score += 100 / FPS / SPAWN_CD
+
+
+
+class SpawningTurretUnit(_SpawningUnit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+
+        super().__init__(faction, x, y, angle,
+                         hp=50, dmg=5, radius=30, score=200, speed=0,
+                         shield_rad=0, shield_hp=0,
+                         sub_weapons=AdvancedWeaponsEnum.basic_spawner,
+                         controller=BotController(),
+                         **kwargs)
+
+class MiniMothershipUnit(_SpawningUnit):
+    def __init__(self, faction: FactionData, x: float=0.0, y: float=0.0, angle: float=0.0, **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=250, dmg=10, radius=100, score=3000, speed=UNIT_SPEED / 2,
+                         shield_rad=200, shield_hp=500,
+                         weapons=MainWeaponEnum.charged_lazer,
+                         sub_weapons=AdvancedWeaponsEnum.mini_spawner,
+                         shoot_range=UNIT_SHOOT_RANGE,
+                         controller=SmartAIController(),
+                         **kwargs)
+
+
+class UnitMothership(_SpawningUnit):
+    def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
+        self.unit_dict = {
+            Unit: 200,
+            BasicShootingUnit: 10,
+            BasicLazerUnit: 10,
+            BulletTurretUnit: 40,
+            LazerTurretUnit: 40,
+            EliteUnit: 3,
+            LazerUnit: 2,
+            MiniMothershipUnit: 2,
+            RammerUnit: 3,
+        }
+        spawner = SpawnerDictWeapon("mothership spawner", reload=SPAWN_CD * 1000)
+
+        emergency = CompositeWeapon("Emergency", [
+            SpawnerWeapon("1", reload=60 * 1000, min_count=12, bullet_class=BasicLazerUnit),
+            SpawnerWeapon("1", reload=60 * 1000, min_count=12, bullet_class=Unit, angle_offset=math.pi/12)
+        ] * 3, 400)
+
+        super().__init__(faction, x, y,
+                         hp=20000, dmg=125, speed=0,
+                         variable_shape=True, variable_color=True,
+                         radius=200, score=5000,
+                         shield_hp=500, shield_rad=300,
+                         controller=SmartAIController(),
+                         weapons=emergency,
+                         sub_weapons=spawner,
+                         shoot_range=1500,
+                         regen_rate=1/60/FPS*2000,  # recover in 60 seconds
+                         **kwargs)
+        self.score = UNIT_SCORE
+
+    # TODO:
+    #  write this behavior into MothershipController
+    def move(self):
+        if isinstance(self.sub_weapon.weapon, SpawnerDictWeapon):
+            self.sub_weapon.weapon.unit_dict = self.unit_dict
+        self.controller.fire_sub = True
+        self.controller.fire_main = self.hp < self.max_hp / 2
+        if self.hp < self.max_hp / 4:
+            self.sub_weapon.overdrive_start()
+            self.main_weapon.overdrive_start()
+        super().move()
+
+from srcs.classes.controller import BotController
+from srcs.classes.entity.unit import *
+
+class _TurretUnit(Unit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 speed: float = 0.0,
+                 controller: BaseController = SmartAIController(), **kwargs):
+        super().__init__(faction, x, y, angle, speed=speed,
+                         controller=controller, **kwargs)
+
+    def move(self):
+        super().move()
+
+class ResourceUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 **kwargs):
+        self._resource_size = 10000
+        super().__init__(faction, x, y, angle, hp=self._resource_size,
+                         radius=self._resource_size // 50, score=500, **kwargs)
+
+    def move(self):
+        super().move()
+        self.add_score(1 / FPS)
+
+class BulletTurretUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 **kwargs):
+        super().__init__(faction, x, y, angle, weapons=MainWeaponEnum.machine_gun,
+                         hp=10, radius=20, score=100, **kwargs)
+
+class LazerTurretUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=30, dmg=5, radius=30, score=300,
+                         weapons=MainWeaponEnum.lazer_mini,
+                         shoot_range=UNIT_SHOOT_RANGE * 2,
+                         **kwargs)
+
+class AdvancedLazerTurretUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=100, dmg=5, radius=60, score=500,
+                         weapons=MainWeaponEnum.lazer,
+                         shoot_range=UNIT_SHOOT_RANGE * 3,
+                         **kwargs)
+
+class ShieldTurretUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 controller: BaseController = AIController(), **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=10, dmg=5, radius=40, score=500,
+                         shield_hp=500, shield_rad=300,
+                         controller=controller,
+                         **kwargs)
+
+class MissileTurretUnit(_TurretUnit):
+    def __init__(self, faction: FactionData, x: float = 0.0, y: float = 0.0, angle: float = 0.0,
+                 **kwargs):
+        super().__init__(faction, x, y, angle,
+                         hp=30, dmg=5, radius=30, score=500,
+                         weapons=MainWeaponEnum.swarm,
+                         shoot_range=UNIT_SHOOT_RANGE * 2,
+                         **kwargs)import math
+from collections.abc import Callable
+from random import shuffle, random, randint
+
+from PIL.ImageCms import isIntentSupported
+
+from srcs.classes.UI.button import RoundedButton
+from srcs.classes.UI.pane import Pane, VPane
+from srcs.classes.entity.unit import Unit
+from srcs.classes.game_data import GameData
+from srcs.classes.weapon_classes.base_weapon import BaseWeapon
+from srcs.classes.weapon_classes.weapons_enum import MainWeaponEnum, SubWeaponEnum
+from srcs.constants import SCREEN_HEIGHT, SCREEN_WIDTH, UNIT_RADIUS
+from srcs.unit_classes.advanced_weapons import AdvancedWeaponsEnum
+from srcs.unit_classes.basic_unit import BasicShootingUnit, BasicLazerUnit, EliteUnit
+from srcs.unit_classes.spawner_unit import SpawningTurretUnit, UnitMothership
+from srcs.unit_classes.turret_unit import BulletTurretUnit, LazerTurretUnit, AdvancedLazerTurretUnit, ShieldTurretUnit, \
+    MissileTurretUnit
+
+
+class BaseUpgrade:
+    def __init__(self, data: GameData, score: int, *args, condition=lambda : 1):
+        self.data: GameData = data
+        self.score: int = score
+        self.args: list = list(args)
+        self.condition: callable = condition
+
+    def on_click(self):
+        pass
+
+    def get_description(self):
+        return f""
+
+    def is_available(self):
+        return self.score <= self.data.player.score and self.condition()
+
+    def __str__(self):
+        return f"{self.__class__.__name__}<score={self.score}, args={self.args}>"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class UpgradeHull(BaseUpgrade):
+    def get_description(self):
+        return f"Hull Strength {self.args[0]:+}"
+
+    def on_click(self):
+        self.data.player.max_hp += self.args[0]
+        self.data.player.hp += self.args[0]
+        self.data.player.dmg += self.args[0] * 0.05
+        self.data.player.speed -= self.args[0] * 0.01
+        self.data.player.max_rad += self.args[0] * 0.1
+        self.data.player.rad += self.args[0] * 0.1
+        if isinstance(self.data.player, Unit):
+            self.data.player.max_speed -= self.args[0] * 0.01
+            self.data.player.shield.max_rad = max(self.data.player.shield.max_rad, self.data.player.max_rad + 100)
+
+
+# class UpgradeHP(BaseUpgrade):
+#     def get_description(self):
+#         return f"HP {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.max_hp += self.args[0]
+#         self.data.player.hp += self.args[0]
+#
+# class UpgradeBodyDmg(BaseUpgrade):
+#     def get_description(self):
+#         return f"BODY DAMAGE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.dmg += self.args[0]
+
+class UpgradeAgility(BaseUpgrade):
+    def get_description(self):
+        return f"Agility {self.args[0]:+}"
+
+    def on_click(self):
+        self.data.player.speed += self.args[0]
+        if self.data.player.max_rad - self.args[0] * 3 > UNIT_RADIUS:
+            self.data.player.max_rad -= self.args[0] * 3
+        if self.data.player.rad - self.args[0] > UNIT_RADIUS:
+            self.data.player.rad -= self.args[0] * 3
+        if isinstance(self.data.player, Unit):
+            self.data.player.max_speed += self.args[0]
+
+# class UpgradeSpeed(BaseUpgrade):
+#     def get_description(self):
+#         return f"SPEED {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.speed += self.args[0]
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.max_speed += self.args[0]
+
+# class UpgradeRad(BaseUpgrade):
+#     def get_description(self):
+#         return f"SIZE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         self.data.player.max_rad += self.args[0]
+#         self.data.player.rad += self.args[0]
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.shield.max_rad = max(self.data.player.shield.max_rad, self.data.player.max_rad + 100)
+
+class UpgradeOverdriveCD(BaseUpgrade):
+    def get_description(self):
+        return f"Overdrive {self.args[0] * 100:+.0f}%"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.main_weapon.overdrive_percentage += self.args[0]
+            self.data.player.sub_weapon.overdrive_percentage += self.args[0]
+
+    def is_available(self):
+        player = self.data.player
+        if not isinstance(player, Unit):
+            return False
+        max_overdrive = max(player.main_weapon.overdrive_percentage, player.sub_weapon.overdrive_percentage)
+        return super().is_available() and max_overdrive < 1.0
+
+class ChangeMainWeapon(BaseUpgrade):
+    def get_description(self):
+        if isinstance(self.data.player, Unit):
+            return f"MAIN WEAPON {self.data.player.main_weapon.get_weapon(self.args[0])}"
+        else:
+            f"MAIN WEAPON {self.args[0]}"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.main_weapon.change_weapon(self.args[0])
+
+    def _prerequisite_is_met(self):
+        if len(self.args) <= 1:
+            return True
+        w = self.args[1]
+        player = self.data.player
+        if not isinstance(w, BaseWeapon) or not isinstance(player, Unit):
+            return True
+        if player.main_weapon.weapon == self.args[1] and player.main_weapon.is_max():
+            return True
+        return False
+
+    def is_available(self):
+        return (isinstance(self.data.player, Unit)
+                and self.data.player.main_weapon.weapon != self.args[0]
+                and self._prerequisite_is_met() and super().is_available())
+
+class ChangeSubWeapon(BaseUpgrade):
+    def get_description(self):
+        if isinstance(self.data.player, Unit):
+            return f"SUB WEAPON {self.data.player.sub_weapon.get_weapon(self.args[0])}"
+        else:
+            f"SUB WEAPON {self.args[0]}"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.sub_weapon.change_weapon(self.args[0])
+
+    def _prerequisite_is_met(self):
+        if len(self.args) <= 1:
+            return True
+        w = self.args[1]
+        player = self.data.player
+        if not isinstance(w, BaseWeapon) or not isinstance(player, Unit):
+            return True
+        if player.sub_weapon.weapon == w and player.sub_weapon.is_max():
+            return True
+        return False
+
+    def is_available(self):
+        return (isinstance(self.data.player, Unit)
+                and self.data.player.sub_weapon.weapon != self.args[0]
+                and self._prerequisite_is_met()
+                and super().is_available())
+
+class UpgradeMainWeapon(BaseUpgrade):
+    def get_description(self):
+        return f"MAIN WEAPON Level {self.args[0]:+}"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.main_weapon.upgrade_weapon(self.args[0])
+
+    def is_available(self):
+        if (isinstance(self.data.player, Unit)
+                and not self.data.player.main_weapon.is_max()):
+            return super().is_available()
+        return False
+
+class UpgradeSubWeapon(BaseUpgrade):
+    def get_description(self):
+        return f"SUB WEAPON Level {self.args[0]:+}"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.sub_weapon.upgrade_weapon(self.args[0])
+
+    def is_available(self):
+        if (isinstance(self.data.player, Unit)
+                and not self.data.player.sub_weapon.is_max()):
+            return super().is_available()
+        return False
+
+class UpgradeShieldStrength(BaseUpgrade):
+    def get_description(self):
+        return f"SHIELD STRENGTH {self.args[0]:+}"
+
+    def on_click(self):
+        if isinstance(self.data.player, Unit):
+            self.data.player.shield.hp += self.args[0]
+            self.data.player.shield.max_hp += self.args[0]
+            self.data.player.shield.dmg = max(self.data.player.shield.dmg, self.data.player.shield.max_hp // 100)
+            self.data.player.shield.max_rad += self.args[0] * 0.5
+            self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
+
+# class UpgradeShieldRad(BaseUpgrade):
+#     def get_description(self):
+#         return f"SHIELD SIZE {self.args[0]:+}"
+#
+#     def on_click(self):
+#         if isinstance(self.data.player, Unit):
+#             self.data.player.shield.max_rad += self.args[0]
+#             self.data.player.shield.max_hp = max(1.0, self.data.player.shield.max_hp)
+
+class UpgradeNewUnit(BaseUpgrade):
+    def get_description(self):
+        return f"New unit: {self.args[0].__name__}"
+
+    def on_click(self):
+        player = self.data.player
+        if isinstance(player, Unit):
+            # mouse = self.data.get_mouse_pos_in_map()
+            # angle = player.angle_with_cord(*mouse)
+            # dis = min(player.rad + 300, player.distance_with_cord(*mouse))
+            x = player.x #+ math.cos(angle) * dis
+            y = player.y #+ math.sin(angle) * dis
+            player.faction.parent_list.append(
+                self.args[0](player.faction, x, y,
+                             color=player.get_greatest_parent().color, parent=player)
+            )
+
+
+# TODO:
+#  Idea: starter upgrade, one time upgrade
+#  get machine gun, missile, and shield, cost score 5, remove upgrade afterwards
+class UpgradePane(VPane):
+    def __init__(self, data: GameData):
+        super().__init__(5, SCREEN_HEIGHT // 2 + 150, 405, SCREEN_HEIGHT - 20)
+        self.data = data
+        self.hide()
+
+        self.upgrade_main_weapon = UpgradeMainWeapon(self.data, 200, 1)
+        self.upgrade_sub_weapon = UpgradeSubWeapon(self.data, 200, 1)
+        self.filler_upgrade = BaseUpgrade(self.data, 0)
+        self.current_upgrades: list[BaseUpgrade] = []
+        self.prev_upgrade_idx: int = 0
+        self.upgrades: list[list[BaseUpgrade]] = [
+            [
+                UpgradeHull(self.data, 50, 10, condition=lambda : self.data.player.max_hp < 100),
+                UpgradeHull(self.data, 1000, 100, condition=lambda : self.data.player.max_hp < 1000),
+                UpgradeHull(self.data, 20000, 1000, condition=lambda : self.data.player.max_hp < 3000),
+                # UpgradeBodyDmg(self.data, 50, 5, condition=lambda : self.data.player.dmg < 50),
+                # UpgradeBodyDmg(self.data, 1000, 50, condition=lambda : self.data.player.dmg < 300),
+                UpgradeShieldStrength(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_hp() < 100),
+                UpgradeShieldStrength(self.data, 1000, 100, condition=lambda : self.data.get_player_shield_max_hp() < 1000),
+                UpgradeShieldStrength(self.data, 20000, 1000, condition=lambda : self.data.get_player_shield_max_hp() < 3000),
+            ], [
+                UpgradeAgility(self.data, 50, 1, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 5),
+                UpgradeAgility(self.data, 1000, 5, condition=lambda : isinstance(self.data.player, Unit) and self.data.player.max_speed < 10),
+                # UpgradeRad(self.data, 50, 10, condition=lambda : self.data.player.max_rad < 100),
+                # UpgradeRad(self.data, 1000, 100, condition=lambda : self.data.player.max_rad < 300),
+                # UpgradeShieldRad(self.data, 50, 10, condition=lambda : self.data.get_player_shield_max_rad() < 100),
+                # UpgradeShieldRad(self.data, 500, 100, condition=lambda : self.data.get_player_shield_max_rad() < 2000),
+            ], [
+                self.upgrade_main_weapon,
+                *self.generate_weapon_series(ChangeMainWeapon, [
+                    [
+                        MainWeaponEnum.lazer_mini,
+                        [
+                            [MainWeaponEnum.lazer, MainWeaponEnum.beam],
+                            [MainWeaponEnum.charged_lazer, MainWeaponEnum.deleter],
+                        ]
+                    ], [
+                        MainWeaponEnum.machine_gun,
+                        [
+                            [MainWeaponEnum.shotgun, MainWeaponEnum.fireworks],
+                            [MainWeaponEnum.piercing_machine_gun, MainWeaponEnum.giant_canon]
+                        ]
+                    ]
+                ], 200),
+            ], [
+                self.upgrade_sub_weapon,
+                *self.generate_weapon_series(ChangeSubWeapon, [
+                    [
+                        MainWeaponEnum.missile,
+                        [
+                            MainWeaponEnum.swarm,
+                            MainWeaponEnum.torpedo,
+                            MainWeaponEnum.spike,
+                            [[AdvancedWeaponsEnum.mini_spawner,
+                              [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]]
+                        ]
+                    ], [
+                        MainWeaponEnum.dancer
+                    ], [
+                        MainWeaponEnum.flash, MainWeaponEnum.warp
+                    ]
+                ], 200)
+            ], [
+                UpgradeNewUnit(self.data, 100, BasicShootingUnit),
+                UpgradeNewUnit(self.data, 150, BasicLazerUnit),
+                UpgradeNewUnit(self.data, 500, EliteUnit),
+                UpgradeNewUnit(self.data, 100, BulletTurretUnit),
+                UpgradeNewUnit(self.data, 500, SpawningTurretUnit),
+                UpgradeNewUnit(self.data, 300, LazerTurretUnit),
+                UpgradeNewUnit(self.data, 500, AdvancedLazerTurretUnit),
+                UpgradeNewUnit(self.data, 500, ShieldTurretUnit),
+                UpgradeNewUnit(self.data, 500, MissileTurretUnit),
+                UpgradeNewUnit(self.data, 5000, UnitMothership),
+                # UpgradeOverdriveCD(self.data, 300, 0.1),
+                # UpgradeOverdriveCD(self.data, 10000, 1.0),
+            ]
+        ]
+        self.prev_upgrade: BaseUpgrade = self.upgrades[0][0]
+
+    def create_upgrade_button(self, upgrade: BaseUpgrade):
+        def on_click():
+            self.data.player.use_score(upgrade.score)
+            upgrade.on_click()
+            self.set_child()
+            self.prev_upgrade = upgrade
+            self.prev_upgrade_idx = self.current_upgrades.index(upgrade)
+        return RoundedButton(f"{upgrade.score:4} {upgrade.get_description()}", on_click)
+
+    # TODO:
+    #  make [x [[a, b], [c, d]]] means two different pathways x--a--b and x--c--d
+    def generate_weapon_series(self, upgrade_class:type[BaseUpgrade],
+                               weapon_series: list, score: int, roots: list|None=None,
+                               is_series:bool=True):
+        roots = roots if roots else []
+        ret = []
+        prev_w = roots
+        child_is_series = all(isinstance(i, list) for i in weapon_series)
+        is_series = is_series and not child_is_series
+
+        for w in weapon_series:
+            # if provided parent, follow parent
+            # else follow weapon to the left
+            inherit = roots if not is_series else prev_w
+
+            if isinstance(w, BaseWeapon):
+                if not inherit:
+                    ret.append(upgrade_class(self.data, score, w))
+                for pw in inherit:
+                    ret.append(upgrade_class(self.data, score, w, pw))
+                prev_w = [w]
+            elif isinstance(w, list):
+                new_ret: list[upgrade_class] = self.generate_weapon_series(
+                    upgrade_class, w, score, inherit, child_is_series
+                )
+                prev_w = []
+                for u in new_ret:
+                    if u.args[0] not in prev_w:
+                        prev_w.append(u.args[0])
+                ret.extend(new_ret)
+            else:
+                raise ValueError(f"Unexpected value of type {type(w)} in weapon_series: {w}")
+        return ret
+
+
+    def update_status(self):
+        if not self.get_all_child():
+            self._generate_upgrades()
+
+    def _generate_upgrades(self):
+        available_upgrades: list[list[BaseUpgrade]] = [[i for i in u if i.is_available()] for u in self.upgrades ]
+        if not any(u for u in available_upgrades):
+            self.hide()
+            return
+        if isinstance(self.prev_upgrade, ChangeMainWeapon):
+            self.prev_upgrade = self.upgrade_main_weapon
+        elif isinstance(self.prev_upgrade, ChangeSubWeapon):
+            self.prev_upgrade = self.upgrade_sub_weapon
+        for u_list in available_upgrades:
+            shuffle(u_list)
+        self.current_upgrades = [i for u_list in available_upgrades for i in (u_list + [self.filler_upgrade])[:1]]
+        if self.prev_upgrade.is_available() and not self.prev_upgrade is self.filler_upgrade:
+            self.current_upgrades[self.prev_upgrade_idx] = self.prev_upgrade
+        self.set_child(*[self.create_upgrade_button(upgrade) for upgrade in self.current_upgrades])
+        self.show()
+
+
+def main():
+    pane = UpgradePane(GameData())
+    weapon_series = pane.generate_weapon_series(
+        ChangeMainWeapon,
+        [
+            MainWeaponEnum.missile,
+            [
+                MainWeaponEnum.swarm,
+                MainWeaponEnum.torpedo,
+                [[AdvancedWeaponsEnum.mini_spawner, [AdvancedWeaponsEnum.elite_spawner, AdvancedWeaponsEnum.rammer_spawner]]]
+            ]
+        ],
+        200,
+    )
+    print(*weapon_series, sep="\n")
+
+if __name__ == '__main__':
+    main()
+
+
+import math
+
+def sigmoid(x: float, q: float) -> float:
+    """
+
+    :param float x: the variable
+    :param float q: value where f(x) reaches 0.9
+    :return float: [0.0, 1.0)
+    """
+    k = 4 / q
+    # got value through desmos by
+    # using x=q
+    # using k=\frac{4}{q}
+    # using \left(\frac{2}{\pi}\right)\arctan(\left(\frac{\pi}{2}\right)kx)
+    result = (2 / math.pi) * math.atan((math.pi / 2) * k * x)
+    return result
+
+
+def clamp(value, min_val, max_val):
+    if min_val > max_val:
+        min_val, max_val = max_val, min_val
+    return min(max(value, min_val), max_val)
+
+def angle_norm(angle):
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+
+def angle_add(angle, add):
+    return angle_norm(angle + add)
+
+def angle_diff(dst, src):
+    return angle_norm(dst - src)
+
+
+def color_norm(color):
+    return tuple(min(max(i, 0), 255) for i in color)
+
+
+def color_intensity_shift(color: tuple, intensity: float):
+    """
+    :param color: (R, G, B)
+    :param intensity: 0.0 ~ 1.0
+    :return: (R, G, B) with adjusted intensity
+    """
+    intensity = min(1.0, max(0.0, intensity))
+    return tuple(int(c * intensity) for c in color)
+
+
+def color_mix(color1, color2, weight1=1.0, weight2=1.0):
+    """
+    :param color1: (R, G, B)
+    :param color2: (R, G, B)
+    :param weight1: float
+    :param weight2: float
+    :return: (R, G, B)
+    """
+    # Normalize weights
+    total_weight = weight1 + weight2
+    weight1 /= total_weight
+    weight2 /= total_weight
+
+    # Mix colors
+    mixed_color = (
+        int(color1[0] * weight1 + color2[0] * weight2),
+        int(color1[1] * weight1 + color2[1] * weight2),
+        int(color1[2] * weight1 + color2[2] * weight2)
+    )
+
+    # Normalize the mixed color
+    return color_norm(mixed_color)
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
