@@ -13,10 +13,7 @@ Battle waves of spawning enemies, upgrade your weapons, build your military base
 - [Installation](#-installation)
 - [How to Play](#-how-to-play)
 - [Winning Strategies](#-winning-strategies)
-- [Roadmap](#-roadmap)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Credits](#-credits)
+- [Future Plans](#-future-plans)
 
 ---
 
@@ -118,12 +115,11 @@ Choose your playstyle — conquer through **personal power** or **military might
 
 ---
 
-## 🛤️ Roadmap
+## 🛤️ Future Plans
 
-- [ ] New enemy types and epic bosses
-- [ ] More diverse and specialized weapon classes
-- [ ] Sound Effects and Background Music
-- [ ] Game Settings and Customization Menu
-- [ ] Better UI (health bars, scores, upgrades panel)
+- New enemy types and epic bosses
+- More diverse and specialized weapon classes
+- Sound Effects and Background Music
+- Better compulsion loop
 
 ---
