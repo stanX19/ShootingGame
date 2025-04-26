@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 import pygame
-from srcs.classes.game_particle import GameParticle
-from srcs.classes.weapons import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
-from srcs.classes.weapon_handler import WeaponHandler
+from srcs.classes.entity.game_particle import GameParticle
+from srcs.classes.weapon_classes.weapons_enum import ALL_SUB_WEAPON_LIST, ALL_MAIN_WEAPON_LIST
+from srcs.classes.weapon_classes.weapon_handler import WeaponHandler
 from srcs import constants
 from srcs.classes import draw_utils
 from srcs.classes.game_data import GameData
@@ -15,8 +15,8 @@ SUB_WEAPON_THEME = ((25, 255, 255), (0, 0, 255))
 
 
 class Collectible(GameParticle):
-    def __init__(self, x, y, game_data: GameData, color=(125, 125, 125), radius=constants.COLLECTIBLE_RADIUS):
-        super().__init__(x, y, dmg=0, hp=1, color=color, radius=radius)
+    def __init__(self, x, y, game_data: GameData, color=(125, 125, 125), radius=constants.COLLECTIBLE_RADIUS, **kwargs):
+        super().__init__(x, y, dmg=0, hp=1, color=color, radius=radius, **kwargs)
         self.game_data: GameData = game_data
 
     def move(self):

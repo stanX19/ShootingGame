@@ -1,7 +1,141 @@
 from __future__ import annotations
 import math
 import random
-from srcs.classes.game_particle import GameParticle
+from srcs.classes.entity.game_particle import GameParticle
+
+
+def line_circle_first_intersect(line_start_x, line_start_y, line_end_x, line_end_y,
+                                circle_center_x, circle_center_y, circle_radius):
+    """
+    Find the first intersection point between a line segment and a circle.
+
+    Parameters:
+        line_start_x (float): X-coordinate of the start of the line.
+        line_start_y (float): Y-coordinate of the start of the line.
+        line_end_x (float): X-coordinate of the end of the line.
+        line_end_y (float): Y-coordinate of the end of the line.
+        circle_center_x (float): X-coordinate of the circle's center.
+        circle_center_y (float): Y-coordinate of the circle's center.
+        circle_radius (float): Radius of the circle.
+
+    Returns:
+        tuple or None: The (x, y) coordinates of the first intersection point, or None if there is no intersection.
+    """
+    # Vector representation of the line
+    dx = line_end_x - line_start_x
+    dy = line_end_y - line_start_y
+
+    # Vector from circle center to line start
+    fx = line_start_x - circle_center_x
+    fy = line_start_y - circle_center_y
+
+    # Quadratic coefficients
+    a = dx**2 + dy**2
+    b = 2 * (fx * dx + fy * dy)
+    c = fx**2 + fy**2 - circle_radius**2
+
+    # Discriminant
+    discriminant = b**2 - 4 * a * c
+
+    if discriminant < 0:
+        # No intersection
+        return None
+
+    # Find the two possible solutions (t-values for line equation)
+    if a == 0:
+        return None
+    discriminant_sqrt = math.sqrt(discriminant)
+    t1 = (-b - discriminant_sqrt) / (2 * a)
+    t2 = (-b + discriminant_sqrt) / (2 * a)
+
+    if t1 > t2:
+        t1, t2 = t2, t1
+    EPSILON = 1e-9  # Small tolerance for floating-point comparisons
+    if -EPSILON <= t1 <= 1 + EPSILON:
+        return line_start_x + t1 * dx, line_start_y + t1 * dy
+    # second intersect is when line starts inside circle, reject
+    # if -EPSILON <= t2 <= 1 + EPSILON:
+    #     return line_start_x + t2 * dx, line_start_y + t2 * dy
+    return None
+
+
+def compute_circle_circle_overlap(x1, y1, r1, x2, y2, r2):
+    d = math.hypot(x2 - x1, y2 - y1)
+    if d >= r1 + r2:
+        return 0
+    if d <= abs(r1 - r2):
+        return math.pi * min(r1, r2) ** 2
+
+    r1_sq, r2_sq = r1**2, r2**2
+    alpha1 = math.acos((d**2 + r1_sq - r2_sq) / (2 * d * r1))
+    alpha2 = math.acos((d**2 + r2_sq - r1_sq) / (2 * d * r2))
+    segment_area1 = r1_sq * alpha1 - 0.5 * r1_sq * math.sin(2 * alpha1)
+    segment_area2 = r2_sq * alpha2 - 0.5 * r2_sq * math.sin(2 * alpha2)
+    return segment_area1 + segment_area2
+
+
+def circle_line_overlap(cx, cy, radius, x1, y1, x2, y2):
+    import math
+
+    # Line segment equation: (x, y) = (x1, y1) + t * ((x2 - x1), (y2 - y1))
+    dx, dy = x2 - x1, y2 - y1
+    fx, fy = x1 - cx, y1 - cy
+
+    # Quadratic formula coefficients for intersection
+    a = dx * dx + dy * dy
+    b = 2 * (fx * dx + fy * dy)
+    c = fx * fx + fy * fy - radius * radius
+
+    if a == 0:
+        return 0
+    # Discriminant
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return 0  # No intersection
+
+    # Solve for t values (parametric intersection points)
+    discriminant_sqrt = math.sqrt(discriminant)
+    t1 = (-b - discriminant_sqrt) / (2 * a)
+    t2 = (-b + discriminant_sqrt) / (2 * a)
+
+    # Clamp t values to the range [0, 1] (segment endpoints)
+    t1 = max(0, min(1, t1))
+    t2 = max(0, min(1, t2))
+
+    if t1 == t2:
+        return 0  # No segment within the circle
+
+    # Intersection points
+    ix1, iy1 = x1 + t1 * dx, y1 + t1 * dy
+    ix2, iy2 = x1 + t2 * dx, y1 + t2 * dy
+
+    chord_length = math.hypot(ix2 - ix1, iy2 - iy1)
+    return chord_length
+
+
+def line_point_closest_point_on_line(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> tuple[float, float]:
+    if sx1 == sx2 and sy1 == sy2:
+        return sx1, sy1
+    segment_length_squared = (sx2 - sx1) ** 2 + (sy2 - sy1) ** 2
+    t = ((px - sx1) * (sx2 - sx1) + (py - sy1) * (sy2 - sy1)) / segment_length_squared
+    t = max(0.0, min(1.0, t))
+    closest_x = sx1 + t * (sx2 - sx1)
+    closest_y = sy1 + t * (sy2 - sy1)
+    return closest_x, closest_y
+
+def line_point_distance(sx1: float, sy1: float, sx2: float, sy2: float, px: float, py: float) -> float:
+    closest_x, closest_y = line_point_closest_point_on_line(sx1, sy1, sx2, sy2, px, py)
+    return math.hypot(px - closest_x, py - closest_y)
+
+
+def line_line_distance(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2):
+    distances = [
+        line_point_distance(bx1, by1, bx2, by2, ax1, ay1),
+        line_point_distance(bx1, by1, bx2, by2, ax2, ay2),
+        line_point_distance(ax1, ay1, ax2, ay2, bx1, by1),
+        line_point_distance(ax1, ay1, ax2, ay2, bx2, by2)
+    ]
+    return min(distances)
 
 
 def can_catch_up(self: GameParticle, target: GameParticle):
