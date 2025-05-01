@@ -23,7 +23,7 @@ class _SpawningUnit(Unit):
 
     def move(self):
         super().move()
-        self.score += 100 / FPS / SPAWN_CD
+        self.score += 100 / 2 / FPS / SPAWN_CD
 
 
 
@@ -53,10 +53,10 @@ class UnitMothership(_SpawningUnit):
     def __init__(self, faction: FactionData, x: float, y: float, **kwargs):
         self.unit_dict = {
             Unit: 200,
-            BasicShootingUnit: 10,
-            BasicLazerUnit: 10,
+            BasicShootingUnit: 15,
+            BasicLazerUnit: 5,
             BulletTurretUnit: 40,
-            LazerTurretUnit: 40,
+            LazerTurretUnit: 10,
             EliteUnit: 3,
             LazerUnit: 2,
             MiniMothershipUnit: 2,
@@ -72,8 +72,8 @@ class UnitMothership(_SpawningUnit):
         super().__init__(faction, x, y,
                          hp=20000, dmg=125, speed=0,
                          variable_shape=True, variable_color=True,
-                         radius=200, score=5000,
-                         shield_hp=500, shield_rad=300,
+                         radius=150, score=5000,
+                         shield_hp=500, shield_rad=250,
                          controller=SmartAIController(),
                          weapons=emergency,
                          sub_weapons=spawner,

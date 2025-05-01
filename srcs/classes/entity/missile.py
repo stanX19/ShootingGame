@@ -1,5 +1,8 @@
 from __future__ import annotations
 import math
+
+import pygame
+
 from srcs import utils
 from srcs.classes.entity.base_unit import BaseUnit
 from srcs.classes.entity.explosive import Explosive
@@ -63,3 +66,34 @@ class Missile(Explosive):
         self.update()
         super().move()
 
+    def draw(self, surface: pygame.Surface):
+        # Draw the fire ball (orange circle behind)
+        fire_ball_center_x = self.x - math.cos(self.angle) * self.rad * 0.75 # Adjust offset
+        fire_ball_center_y = self.y - math.sin(self.angle) * self.rad * 0.75 # Adjust offset
+        pygame.draw.circle(surface, FLAME_COLOR, (int(fire_ball_center_x), int(fire_ball_center_y)),
+                           int(self.rad * 0.5)) # Adjust size
+        missile_center_x = self.x + math.cos(self.angle) * self.rad * 0.25  # Adjust offset
+        missile_center_y = self.y + math.sin(self.angle) * self.rad * 0.25  # Adjust offset
+        pygame.draw.circle(surface, self.color, (int(missile_center_x), int(missile_center_y)),
+                           int(self.rad * 0.75))  # Adjust size
+        # # Draw the triangle representing the missile
+        # triangle_points = []
+        #
+        # # Front point: further out to make it pointy
+        # front_point_x = self.x + math.cos(self.angle) * self.rad
+        # front_point_y = self.y + math.sin(self.angle) * self.rad
+        # triangle_points.append((int(front_point_x), int(front_point_y)))
+        #
+        # # Rear points: on the radius
+        # rear_angle1 = self.angle + math.pi * 0.7 # Slightly adjust the angle for a better triangle
+        # rear_angle2 = self.angle - math.pi * 0.7 # Slightly adjust the angle for a better triangle
+        #
+        # rear_point1_x = self.x + math.cos(rear_angle1) * self.rad
+        # rear_point1_y = self.y + math.sin(rear_angle1) * self.rad
+        # triangle_points.append((int(rear_point1_x), int(rear_point1_y)))
+        #
+        # rear_point2_x = self.x + math.cos(rear_angle2) * self.rad
+        # rear_point2_y = self.y + math.sin(rear_angle2) * self.rad
+        # triangle_points.append((int(rear_point2_x), int(rear_point2_y)))
+        #
+        # pygame.draw.polygon(surface, self.color, triangle_points)

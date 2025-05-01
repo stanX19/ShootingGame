@@ -17,10 +17,30 @@ from srcs.utils import color_mix
 
 
 class Debris(Effect):
-    def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=1.0,
+    def __init__(self, game_data: GameData, x, y, angle, speed=0, rad=5.0,  # Increased default rad for visibility
                  color=(255, 255, 255), hp=1.0, dmg=1.0, **kwargs):
         super().__init__(game_data, x, y, angle, speed, rad, color, hp, dmg,
-                         lifespan=300, target_rad=0.1, fade_off=True, **kwargs)
+                         lifespan=300, target_rad=0.5, fade_off=True, **kwargs)
+        self.orientation_angle = random.uniform(0, 2 * math.pi)  # Initial random orientation
+        self.angular_momentum = random.uniform(-math.pi * 2 / FPS, math.pi * 2 / FPS)  # Random angular momentum (radians per frame)
+
+    def move(self):
+        super().move()
+        self.orientation_angle += self.angular_momentum
+
+    def draw(self, surface: pygame.Surface):
+        if self.is_dead() or self.rad <= 0:
+            return
+
+        points = []
+        for i in range(3):
+            angle_rad = self.orientation_angle + i * 2 * math.pi / 3  # Use radians directly
+            point_x = self.x + self.rad * math.cos(angle_rad)
+            point_y = self.y + self.rad * math.sin(angle_rad)
+            points.append((point_x, point_y))
+
+        pygame.draw.polygon(surface, (*self.color, int(self.opacity * 255)), points)
+
 
 
 class Breakable(FactionParticle):
@@ -60,7 +80,7 @@ class Breakable(FactionParticle):
         self._explode_prev_hp = self.hp
         # n = particle count, k = maximum size
         cap = MAX_ENEMY_COUNT - len(self.faction.parent_list)
-        k = 1.0
+        k = 2.0
         color = color_mix(self.color, (255, 255, 255), weight2=2)
         for j in range(cap):
             if explode_hp <= 0:
@@ -70,7 +90,7 @@ class Breakable(FactionParticle):
             hp = radius / 10
             carried_hp = self.max_hp * (radius / self.rad) ** 2
             explode_hp -= carried_hp
-            speed = (random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (10 + j / 4)) / radius * k
+            speed = (random.uniform(UNIT_SPEED * 2, UNIT_SPEED * (10 + j / 4)) / radius
                     * velocity_k)
             offset_x = math.cos(particle_angle) * (radius + spawn_rad)
             offset_y = math.sin(particle_angle) * (radius + spawn_rad)

@@ -37,7 +37,7 @@ from srcs.classes.entity.shield import Shield
 from srcs.classes.water_particle_handler import WaterParticleHandler
 from srcs.upgrade_pane import UpgradePane
 
-dev_mode = 1
+dev_mode = 0
 test_mode = 0
 god_mode: bool = False
 
