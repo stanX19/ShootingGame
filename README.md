@@ -63,8 +63,6 @@ Build your army, evolve your firepower, and survive the onslaught!
 
 ![Spam Shooting](snapshots/img_2.png)
 
-*(Tip: Create an `assets/screenshots/` folder and place your gameplay images or GIFs inside.)*
-
 ---
 
 ## 📦 Installation
@@ -113,9 +111,6 @@ You can clear the game using **two different strategies**:
 
 Choose your playstyle — conquer through **personal power** or **military might**!
 
----
-
-## 🛤️ Future Plans
 
 - New enemy types and epic bosses
 - More diverse and specialized weapon classes
